@@ -21,13 +21,33 @@ No commitear secretos; configurar solo en el panel de Railway.
 ## 3. Migraciones (regla única)
 
 1. La base Postgres del entorno debe existir y ser alcanzable desde donde ejecutes el comando.
-2. Ejecutar **antes** de considerar el servicio listo para uso real:
+2. Ejecutar **antes** de considerar el servicio listo para uso real.
+
+### Desde tu Mac (recomendado para producción)
+
+1. Instalar [golang-migrate](https://github.com/golang-migrate/migrate): `brew install golang-migrate` (macOS).
+2. En Railway: **Postgres** → **Variables** → copiar el valor de **`DATABASE_URL`** (o la URL que use tu servicio API). **No** pegues esa URL en el repositorio ni en chats públicos.
+3. En la terminal, desde la **raíz del repo**:
+
+```bash
+export DATABASE_URL='pegar-aquí-solo-en-tu-terminal'
+./scripts/migrate-up.sh
+```
+
+Equivalente manual:
 
 ```bash
 migrate -path backend/migrations -database "$DATABASE_URL" up
 ```
 
-Usar la misma `DATABASE_URL` que el servicio en Railway (desde tu máquina con red permitida, o desde un job one-shot / pre-deploy si lo configurás en la plataforma).
+### Revertir una migración (solo si sabés qué hacés)
+
+```bash
+export DATABASE_URL='...'
+./scripts/migrate-down.sh
+```
+
+(Pide confirmación; aplica `down 1`.)
 
 **Pre-deploy en Railway:** opcional; la regla por defecto del proyecto es **migrar antes de tráfico**, sea manual o automatizada.
 
@@ -48,8 +68,17 @@ En `backend/cmd/api/main.go` la conexión a la base ocurre **antes** de `ListenA
 
 El cliente HTTP usa `VITE_API_BASE` en tiempo de **build** (Vite). Si el front se sirve en otro dominio que el API:
 
-- Definir `VITE_API_BASE` como URL absoluta que **termina en `/api`** (ej. `https://tu-servicio-api.up.railway.app/api`).
+- Definir `VITE_API_BASE` como URL absoluta que **termina en `/api`** (ej. `https://fina11-production.up.railway.app/api` si ese es tu API público).
 - Rebuild del front si cambia la URL del API.
+
+Ejemplo de build (sin crear `.env` en el repo; el valor va en la misma línea):
+
+```bash
+cd frontend
+VITE_API_BASE=https://fina11-production.up.railway.app/api npm run build
+```
+
+Sustituí la URL por la de tu servicio API si cambia. El artefacto queda en `frontend/dist/` para subir a un hosting estático o a un segundo servicio en Railway.
 
 Ver `frontend/.env.example` y `frontend/src/api/client.ts`.
 
