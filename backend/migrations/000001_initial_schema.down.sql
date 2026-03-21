@@ -1,0 +1,16 @@
+BEGIN;
+
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS profit_entries;
+DROP TABLE IF EXISTS cc_entries;
+DROP TABLE IF EXISTS cc_balances;
+DROP TABLE IF EXISTS pending_items;
+DROP TABLE IF EXISTS movement_lines;
+DROP TABLE IF EXISTS movements;
+DROP TABLE IF EXISTS clients;
+DROP TABLE IF EXISTS account_currencies;
+DROP TABLE IF EXISTS accounts;
+DROP TABLE IF EXISTS currencies;
+DROP TABLE IF EXISTS users;
+
+COMMIT;

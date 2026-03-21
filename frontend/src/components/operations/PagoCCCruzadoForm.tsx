@@ -1,0 +1,317 @@
+import { useEffect, useState, useMemo } from 'react';
+import { api } from '../../api/client';
+import MoneyInput from '../common/MoneyInput';
+import { formatMoneyAR } from '../../utils/money';
+import { loadOperationDraft, saveOperationDraft } from '../../utils/operationDrafts';
+import { allowedFormatsFromList, formatLabel, resolveFormat, type MovementFormat } from '../../utils/accountCurrencyFormats';
+
+interface Account { id: string; name: string; active: boolean; }
+interface Currency { id: string; code: string; name: string; active: boolean; }
+interface AccountCurrency {
+  currency_id: string; currency_code: string; currency_name: string;
+  cash_enabled: boolean; digital_enabled: boolean;
+}
+interface CCBalance { currency_id: string; currency_code: string; balance: string; }
+
+interface PagoCCCruzadoDraftData {
+  payAccountId: string;
+  payCurrencyId: string;
+  payFormat: string;
+  payAmount: string;
+  debtCurrencyId: string;
+  cancelAmount: string;
+  mode?: 'ENTRA' | 'SALE';
+}
+
+interface Props {
+  movementId: string;
+  clientId: string;
+  onDone: () => void;
+  onCancel: () => void;
+}
+
+export default function PagoCCCruzadoForm({ movementId, clientId, onDone, onCancel }: Props) {
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [ccBalances, setCCBalances] = useState<CCBalance[]>([]);
+
+  // Real flow
+  const [mode, setMode] = useState<'ENTRA' | 'SALE'>('ENTRA');
+  const [payAccountId, setPayAccountId] = useState('');
+  const [payCurrencyId, setPayCurrencyId] = useState('');
+  const [payFormat, setPayFormat] = useState('CASH');
+  const [payAmount, setPayAmount] = useState('');
+  const [payAC, setPayAC] = useState<AccountCurrency[]>([]);
+
+  // Cancel (CC debt reduction)
+  const [debtCurrencyId, setDebtCurrencyId] = useState('');
+  const [cancelAmount, setCancelAmount] = useState('');
+
+  const [submitting, setSubmitting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftLoading, setDraftLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [draftMessage, setDraftMessage] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    api.get<Account[]>('/accounts').then((a) => setAccounts(a.filter((x) => x.active)));
+    api.get<Currency[]>('/currencies').then((c) => setCurrencies(c.filter((x) => x.active)));
+    if (clientId) {
+      api.get<CCBalance[]>(`/cc-balances/${clientId}`).then(setCCBalances).catch(() => setCCBalances([]));
+    }
+  }, [clientId]);
+
+  useEffect(() => {
+    if (!payAccountId) { setPayAC([]); return; }
+    api.get<AccountCurrency[]>(`/accounts/${payAccountId}/currencies`).then(setPayAC).catch(() => setPayAC([]));
+  }, [payAccountId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDraftLoading(true);
+    loadOperationDraft<PagoCCCruzadoDraftData>(movementId, 'PAGO_CC_CRUZADO')
+      .then((draft) => {
+        if (cancelled || !draft) return;
+        setPayAccountId(draft.payAccountId || '');
+        setPayCurrencyId(draft.payCurrencyId || '');
+        setPayFormat(draft.payFormat || 'CASH');
+        setPayAmount(draft.payAmount || '');
+        setDebtCurrencyId(draft.debtCurrencyId || '');
+        setCancelAmount(draft.cancelAmount || '');
+        setMode(draft.mode === 'SALE' ? 'SALE' : 'ENTRA');
+        setDraftMessage('Borrador reanudado.');
+      })
+      .finally(() => {
+        if (!cancelled) setDraftLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [movementId]);
+
+  useEffect(() => {
+    if (!payCurrencyId) return;
+    const allowed = allowedFormatsFromList(payAC, payCurrencyId);
+    if (allowed.length === 0) return;
+    const next = resolveFormat(allowed, payFormat);
+    if (next && next !== payFormat) setPayFormat(next);
+  }, [payAC, payCurrencyId, payFormat]);
+
+  const sameCurrency = payCurrencyId && debtCurrencyId && payCurrencyId === debtCurrencyId;
+  const debtBalance = useMemo(() => {
+    if (!debtCurrencyId) return null;
+    const found = ccBalances.find((b) => b.currency_id === debtCurrencyId);
+    return found ? found.balance : '0';
+  }, [debtCurrencyId, ccBalances]);
+
+  const debtCurrencyCode = currencies.find((c) => c.id === debtCurrencyId)?.code || '';
+
+  async function handleSubmit() {
+    setError('');
+
+    if (!payAccountId || !payCurrencyId || !payAmount) { setError('Completá la sección de pago.'); return; }
+    if (!debtCurrencyId || !cancelAmount) { setError('Completá la sección de cancelación.'); return; }
+    if (parseFloat(payAmount) <= 0) { setError('El monto pagado debe ser mayor a 0.'); return; }
+    if (parseFloat(cancelAmount) <= 0) { setError('El monto a cancelar debe ser mayor a 0.'); return; }
+
+    if (sameCurrency && payAmount !== cancelAmount) {
+      setError('Los montos deben coincidir cuando la divisa es la misma.');
+      return;
+    }
+
+    if (debtBalance !== null && parseFloat(debtBalance) === 0) {
+      setError('No hay saldo de CC en esta divisa para cancelar.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.post(`/movements/${movementId}/pago-cc-cruzado`, {
+        payment: {
+          account_id: payAccountId,
+          currency_id: payCurrencyId,
+          format: payFormat,
+          amount: payAmount,
+        },
+        cancel: {
+          currency_id: debtCurrencyId,
+          amount: cancelAmount,
+        },
+        mode,
+      });
+      setSuccess(true);
+    } catch (err: any) {
+      setError(err?.message || 'Error al guardar el pago CC cruzado.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function buildDraftData(): PagoCCCruzadoDraftData {
+    return {
+      payAccountId,
+      payCurrencyId,
+      payFormat,
+      payAmount,
+      debtCurrencyId,
+      cancelAmount,
+      mode,
+    };
+  }
+
+  async function handleSaveDraft() {
+    setError('');
+    setDraftMessage('');
+    setSavingDraft(true);
+    try {
+      await saveOperationDraft(movementId, 'PAGO_CC_CRUZADO', buildDraftData());
+      setDraftMessage('Borrador guardado.');
+    } catch (err: any) {
+      setError(err?.message || 'No se pudo guardar el borrador.');
+    } finally {
+      setSavingDraft(false);
+    }
+  }
+
+  function handleClear() {
+    setError('');
+    setPayAccountId('');
+    setPayCurrencyId('');
+    setPayFormat('CASH');
+    setPayAmount('');
+    setPayAC([]);
+    setDebtCurrencyId('');
+    setCancelAmount('');
+    setMode('ENTRA');
+  }
+
+  if (success) {
+    return (
+      <div className="border-t pt-4">
+        <p className="text-green-700 font-medium mb-4">Pago CC cruzado registrado correctamente.</p>
+        <button onClick={onDone} className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition">
+          Ver movimiento
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t pt-4 space-y-6">
+      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {draftMessage && <p className="text-blue-600 text-sm">{draftMessage}</p>}
+      {draftLoading && <p className="text-gray-500 text-sm">Cargando borrador...</p>}
+
+      {/* FLUJO REAL */}
+      <fieldset>
+        <legend className="text-sm font-semibold text-gray-700 mb-2">Flujo real</legend>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-0.5">Modo</label>
+            <select value={mode} onChange={(e) => setMode(e.target.value === 'SALE' ? 'SALE' : 'ENTRA')} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+              <option value="ENTRA">ENTRA</option>
+              <option value="SALE">SALE</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-0.5">Cuenta</label>
+            <select value={payAccountId} onChange={(e) => { setPayAccountId(e.target.value); setPayCurrencyId(''); }} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+              <option value="">—</option>
+              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-0.5">Divisa pago</label>
+            <select value={payCurrencyId} onChange={(e) => setPayCurrencyId(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+              <option value="">—</option>
+              {payAC.map((ac) => <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-0.5">Formato</label>
+            <select
+              value={payFormat}
+              onChange={(e) => setPayFormat(e.target.value as MovementFormat)}
+              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              disabled={!payCurrencyId || allowedFormatsFromList(payAC, payCurrencyId).length === 0}
+            >
+              {allowedFormatsFromList(payAC, payCurrencyId).map((f) => (
+                <option key={f} value={f}>{formatLabel(f)}</option>
+              ))}
+            </select>
+            {payCurrencyId && allowedFormatsFromList(payAC, payCurrencyId).length === 0 && (
+              <p className="text-xs text-red-600 mt-1">Sin formato habilitado para esta divisa en la cuenta.</p>
+            )}
+          </div>
+          <MoneyInput label={`Monto real (${mode})`} value={payAmount} onValueChange={setPayAmount} />
+        </div>
+      </fieldset>
+
+      {/* CANCELACIÓN CC */}
+      <fieldset>
+        <legend className="text-sm font-semibold text-gray-700 mb-2">Cancelación CC</legend>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-0.5">Divisa deuda</label>
+            <select value={debtCurrencyId} onChange={(e) => setDebtCurrencyId(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+              <option value="">—</option>
+              {currencies.map((c) => <option key={c.id} value={c.id}>{c.code}</option>)}
+            </select>
+          </div>
+          <MoneyInput label="Monto a cancelar" value={cancelAmount} onValueChange={setCancelAmount} />
+          <div>
+            <label className="block text-xs text-gray-500 mb-0.5">CC actual</label>
+            <p className={`text-sm font-mono py-1.5 font-medium ${
+              debtBalance !== null && parseFloat(debtBalance) < 0 ? 'text-red-600' :
+              debtBalance !== null && parseFloat(debtBalance) > 0 ? 'text-green-600' : 'text-gray-500'
+            }`}>
+              {debtBalance !== null && debtCurrencyCode
+                ? `${debtCurrencyCode} ${formatMoneyAR(debtBalance)}`
+                : '—'}
+            </p>
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-500 mt-2">
+          El impacto en CC se calcula automáticamente según saldo vivo en la divisa de cancelación.
+        </p>
+
+        {sameCurrency && (
+          <p className="text-xs text-gray-500 mt-2">Misma divisa — los montos deben coincidir.</p>
+        )}
+      </fieldset>
+
+      {/* ACTIONS */}
+      <div className="flex gap-3">
+        <button
+          onClick={handleSubmit}
+          disabled={submitting || savingDraft || draftLoading}
+          className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 transition"
+        >
+          {submitting ? 'Guardando...' : 'Guardar'}
+        </button>
+        <button
+          onClick={handleSaveDraft}
+          disabled={submitting || savingDraft || draftLoading}
+          className="px-4 py-2 text-sm text-blue-700 border border-blue-300 rounded hover:bg-blue-50 disabled:opacity-50 transition"
+        >
+          {savingDraft ? 'Guardando borrador...' : 'Guardar borrador'}
+        </button>
+        <button
+          onClick={handleClear}
+          disabled={submitting || savingDraft}
+          className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 transition"
+        >
+          Limpiar
+        </button>
+        <button
+          onClick={onCancel}
+          className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}

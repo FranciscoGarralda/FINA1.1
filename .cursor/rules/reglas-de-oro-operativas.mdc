@@ -1,0 +1,29 @@
+---
+description: Reglas de oro operativas y contables del proyecto
+alwaysApply: true
+---
+
+# Reglas de Oro Operativas
+
+Aplicar siempre estas reglas ante cualquier cambio. Si hay conflicto entre rapidez y seguridad, priorizar seguridad.
+
+1. Cero ambiguedad: si una regla admite dos interpretaciones, detener y aclarar antes de implementar.
+2. No doble impacto: nunca duplicar efectos entre cuentas reales, CC y pendientes.
+3. Separacion estricta: cuentas reales = flujo real; CC = trazabilidad comercial; pendientes = obligaciones abiertas.
+4. Backend manda: toda validacion critica debe existir en backend aunque ya exista en frontend.
+5. Transaccionalidad total: negocio + auditoria en la misma transaccion (InsertTx), sin commits parciales.
+6. Signos unificados: OUT negativo e IN positivo; no reinterpretar por modulo.
+7. Estados protegidos: respetar BORRADOR, CONFIRMADA y reglas de transicion sin atajos.
+8. Sin reimpacto al resolver: resolver pendientes no crea nuevo impacto CC salvo regla explicita.
+9. UX simple: una sola forma de operar por caso; evitar opciones duplicadas que generen confusion.
+10. Sin codigo muerto: eliminar ramas obsoletas, flags e imports sin uso al reemplazar logica.
+11. Compatibilidad controlada: no romper contratos API sin decision explicita y documentada.
+12. Cambios minimos y seguros: no mezclar refactors amplios con cambios funcionales criticos.
+13. Alcance estricto: si algo queda fuera del prompt, se reporta; no se implementa de forma lateral.
+14. Evidencia de cierre obligatoria: go test ./..., npm run build, sin lints nuevos, checklist funcional y reinicio de backend/frontend con verificacion de arranque.
+15. Trazabilidad de decisiones: cada cambio critico debe explicar por que se eligio esa regla.
+16. Riesgo residual cero: no se cierra ninguna tarea con riesgo residual operativo abierto; el cierre requiere mitigacion completa y evidencia de riesgo residual 0%.
+
+## Activacion rapida
+
+Cuando el usuario diga "aplica las reglas de oro", estas reglas son obligatorias para todo el trabajo de esa tarea.
