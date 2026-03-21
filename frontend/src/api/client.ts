@@ -1,4 +1,10 @@
-const API_BASE = '/api';
+/**
+ * Base del API para fetch.
+ * - Sin `VITE_API_BASE` (local): `/api` + proxy Vite → backend :8080.
+ * - Producción (front y API en orígenes distintos): definir `VITE_API_BASE` en el build del front.
+ *   Debe ser URL absoluta que termina en `/api` (ej. https://TU-API.up.railway.app/api), sin barra final extra.
+ */
+const API_BASE = (import.meta.env.VITE_API_BASE?.trim() || '/api').replace(/\/$/, '');
 
 function getToken(): string | null {
   return localStorage.getItem('token');

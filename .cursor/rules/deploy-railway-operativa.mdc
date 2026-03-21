@@ -1,0 +1,10 @@
+---
+description: Despliegue Railway e infra — alcance estricto
+---
+
+# Deploy Railway (Fina)
+
+- Ante tareas de **deploy / Railway / Docker / variables / migraciones / VITE_API_BASE**, seguir el documento **`docs/deploy-railway.md`** como fuente única.
+- **No** mezclar en la misma tarea refactors de dominio, CC, pendientes o auditoría salvo pedido explícito aparte (reglas de oro del proyecto).
+- Cambios mínimos; validación crítica sigue en backend; no commitear `.env` ni secretos.
+- Si hay ambigüedad entre rapidez y seguridad, priorizar seguridad.

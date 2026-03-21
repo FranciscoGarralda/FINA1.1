@@ -1,5 +1,9 @@
 # Fina — Currency Exchange System
 
+## Despliegue (Railway)
+
+Guía única: **[docs/deploy-railway.md](docs/deploy-railway.md)** (variables, migraciones, Docker, healthcheck, front en producción).
+
 ## Prerequisites
 
 - Docker & Docker Compose
