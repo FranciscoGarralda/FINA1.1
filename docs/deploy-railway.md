@@ -1,6 +1,8 @@
-# Despliegue en Railway (API Go)
+# Despliegue en Railway (API Go + front)
 
-Documento único para operar el backend en Railway. No duplicar este checklist en otros archivos; enlazar desde el README.
+Documento único para operar **API** y **front** en Railway. No duplicar este checklist en otros archivos; enlazar desde el README.
+
+El archivo **`railway.json` en la raíz del monorepo** aplica al **servicio del API** (`dockerfilePath: backend/Dockerfile`, contexto raíz). El **servicio del front** debe configurarse aparte (Root Directory `frontend`, ver §6) y **no** depende de ese `railway.json` de la raíz.
 
 ## 1. Requisitos en Railway
 
@@ -64,23 +66,43 @@ En `backend/cmd/api/main.go` la conexión a la base ocurre **antes** de `ListenA
 
 **Qué revisar primero:** **Deploy logs** (no solo Build logs). Buscar `failed to connect to database`. Corregir `DATABASE_URL` o disponibilidad de Postgres.
 
-## 6. Frontend en producción
+## 6. Frontend en producción (Vite + segundo servicio Railway)
 
-El cliente HTTP usa `VITE_API_BASE` en tiempo de **build** (Vite). Si el front se sirve en otro dominio que el API:
+Vite incrusta `VITE_*` solo en **`npm run build`**. Si el build no ve `VITE_API_BASE`, el cliente cae en el fallback `'/api'` (relativo) y el navegador pide al **mismo origen que el SPA** → el servidor estático devuelve `index.html` (HTML) en lugar del JSON del API.
 
-- Definir `VITE_API_BASE` como URL absoluta que **termina en `/api`** (ej. `https://fina11-production.up.railway.app/api` si ese es tu API público).
-- Rebuild del front si cambia la URL del API.
+**Por qué Dockerfile en `frontend/` (decisión):** build reproducible en CI/Railway y garantía de que `ARG`/`ENV` existen **antes** de `npm run build`, que es cuando Vite fija la URL del API en el bundle.
 
-Ejemplo de build (sin crear `.env` en el repo; el valor va en la misma línea):
+### 6.1 Servicio del front en Railway (panel)
+
+1. **Segundo servicio** en el mismo proyecto (no reutilizar el del API).
+2. **Root Directory:** `frontend` (obligatorio). Así el contexto de Docker es solo `frontend/` y se usa `frontend/Dockerfile` + `frontend/railway.json`, no el `railway.json` de la raíz (backend).
+3. **Builder:** Dockerfile. Si el panel ofrece Railpack/Nixpacks por defecto, elegir **Dockerfile** explícitamente. Path relativo al Root Directory: `Dockerfile`.
+4. **Variables:** `VITE_API_BASE` = URL absoluta del API público que **termina en `/api`**, **sin barra final** (ej. `https://<tu-servicio-api>.up.railway.app/api`). Railway expone las variables del servicio al build de Docker; deben estar definidas **antes** del build para que el `ARG`/`ENV` del Dockerfile llegue a Vite.
+5. **Puerto:** la imagen usa `serve` escuchando en `0.0.0.0:${PORT}` (Railway inyecta `PORT`).
+6. **Redeploy:** tras cambiar la variable o el código, redeploy; si hay opción de **limpiar caché de build**, usarla cuando el bundle siga viejo.
+
+**Confirmación en el repo:** la rama/commit conectado al servicio del front debe incluir `frontend/Dockerfile`; si no, el build fallará hasta merge/deploy del commit correcto.
+
+### 6.2 Build local (sin Docker)
 
 ```bash
 cd frontend
-VITE_API_BASE=https://fina11-production.up.railway.app/api npm run build
+VITE_API_BASE=https://<tu-api-publico>/api npm run build
 ```
 
-Sustituí la URL por la de tu servicio API si cambia. El artefacto queda en `frontend/dist/` para subir a un hosting estático o a un segundo servicio en Railway.
+Sustituí la URL por la de tu servicio API. El artefacto queda en `frontend/dist/`.
 
 Ver `frontend/.env.example` y `frontend/src/api/client.ts`.
+
+### 6.3 Validación manual (Network)
+
+- Pestaña **Network:** las peticiones van al **dominio del API**, no al del front.
+- Respuesta de login (u otro endpoint): **`Content-Type: application/json`**, no `text/html` del `index.html`.
+- Tras un deploy correcto, `index.html` referencia un **`index-*.js` con hash nuevo**.
+
+### 6.4 Prompt para el asistente / soporte Railway
+
+Texto listo para copiar: **`docs/railway-frontend-prompt.md`**.
 
 ## 7. CORS
 

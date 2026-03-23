@@ -5,9 +5,6 @@ import { AuthProvider } from './context/AuthContext';
 import App from './App';
 import './index.css';
 
-// Debug prod build: verificar que VITE_API_BASE llegó al bundle (Railway / build).
-console.log('API:', import.meta.env.VITE_API_BASE);
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
