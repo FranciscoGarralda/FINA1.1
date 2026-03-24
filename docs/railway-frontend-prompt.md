@@ -1,6 +1,6 @@
 # Prompt: servicio del front en Railway
 
-**Checklist operativo y explicación:** **[deploy-railway.md § 6](deploy-railway.md#6-frontend-en-producción-vite--segundo-servicio-railway)**.
+**Checklist operativo y explicación:** **[deploy-railway.md](deploy-railway.md)** (sección *6. Frontend en producción*).
 
 Debajo: texto para copiar y pegar en el asistente de Railway o soporte (sin secretos; placeholders según tu panel).
 
