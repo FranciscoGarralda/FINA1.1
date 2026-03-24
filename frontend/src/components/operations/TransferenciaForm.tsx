@@ -576,6 +576,10 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
       {draftMessage && <p className="text-blue-600 text-sm">{draftMessage}</p>}
       {draftLoading && <p className="text-gray-500 text-sm">Cargando borrador...</p>}
 
+      <p className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+        Liquidación palo a palo: cargá el monto de <strong>salida</strong> y el de <strong>ingreso</strong> en cada divisa acordada; no es obligatorio usar cotización del sistema. REAL/PENDIENTE y CC siguen las reglas del tipo de operación.
+      </p>
+
       <fieldset>
         <legend className="text-sm font-semibold text-gray-700 mb-2">Transferencia salida (lo que entregamos)</legend>
         <p className="text-xs text-gray-500 mb-2">Salida: dinero que sale de nuestras cuentas.</p>

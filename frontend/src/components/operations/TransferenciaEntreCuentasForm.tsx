@@ -183,6 +183,10 @@ export default function TransferenciaEntreCuentasForm({ movementId, onDone, onCa
       {draftMessage && <p className="text-blue-600 text-sm">{draftMessage}</p>}
       {draftLoading && <p className="text-gray-500 text-sm">Cargando borrador...</p>}
 
+      <p className="rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+        Esta operación mueve <strong>una sola divisa</strong> entre dos cuentas (mismo monto). Para liquidar en <strong>dos divisas</strong> (palo a palo) con titular/cliente usá <strong>Transferencia</strong> en Nueva operación.
+      </p>
+
       {/* SALIDA (FROM / OUT) */}
       <fieldset>
         <legend className="text-sm font-semibold text-gray-700 mb-2">Salida (origen)</legend>

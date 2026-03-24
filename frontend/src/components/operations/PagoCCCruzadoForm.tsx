@@ -203,6 +203,10 @@ export default function PagoCCCruzadoForm({ movementId, clientId, onDone, onCanc
       {draftMessage && <p className="text-blue-600 text-sm">{draftMessage}</p>}
       {draftLoading && <p className="text-gray-500 text-sm">Cargando borrador...</p>}
 
+      <p className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+        Si el pago real y la deuda de CC son en <strong>divisas distintas</strong>, cargá cada monto acordado (palo a palo); no hace falta tipo de cambio del sistema. Con la <strong>misma</strong> divisa, pago y cancelación deben ser iguales.
+      </p>
+
       {/* FLUJO REAL */}
       <fieldset>
         <legend className="text-sm font-semibold text-gray-700 mb-2">Flujo real</legend>
