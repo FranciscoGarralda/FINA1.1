@@ -381,7 +381,7 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
     return (
       <div className="border-t pt-4">
         <p className="text-green-700 font-medium mb-4">Venta registrada correctamente.</p>
-        <button onClick={onDone} className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition">
+        <button type="button" onClick={onDone} className="btn-touch bg-green-600 text-white rounded-md hover:bg-green-700 transition">
           Ver movimiento
         </button>
       </div>
@@ -536,7 +536,11 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
             )}
           </div>
         ))}
-        <button onClick={addInLine} className="text-sm text-blue-600 hover:text-blue-800 transition">
+        <button
+          type="button"
+          onClick={addInLine}
+          className="inline-flex min-h-[44px] items-center rounded-md px-2 text-sm text-blue-600 hover:bg-blue-50 hover:text-blue-800"
+        >
           + Agregar línea de entrada
         </button>
       </fieldset>
@@ -544,13 +548,13 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
       {/* CUADRE */}
       {equivalent > 0 && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Equivalente:</span>
-            <span className="font-mono font-medium">{quoteCurrencyCode} {formatMoneyAR(equivalent)}</span>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+            <span className="shrink-0 text-gray-600">Equivalente:</span>
+            <span className="min-w-0 break-words font-mono font-medium text-right">{quoteCurrencyCode} {formatMoneyAR(equivalent)}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Total entradas:</span>
-            <span className="font-mono font-medium">{quoteCurrencyCode} {formatMoneyAR(inSum)}</span>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+            <span className="shrink-0 text-gray-600">Total entradas:</span>
+            <span className="min-w-0 break-words font-mono font-medium text-right">{quoteCurrencyCode} {formatMoneyAR(inSum)}</span>
           </div>
           {cuadreMsg && (
             <p className={`mt-1 font-medium ${diff > 0 ? 'text-orange-600' : 'text-red-600'}`}>{cuadreMsg}</p>
@@ -562,31 +566,35 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
       )}
 
       {/* ACTIONS */}
-      <div className="flex gap-3">
+      <div className="form-actions pt-2">
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={submitting || savingDraft || draftLoading}
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 transition"
+          className="rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:text-base"
         >
           {submitting ? 'Guardando...' : 'Guardar'}
         </button>
         <button
+          type="button"
           onClick={handleSaveDraft}
           disabled={submitting || savingDraft || draftLoading}
-          className="px-4 py-2 text-sm text-blue-700 border border-blue-300 rounded hover:bg-blue-50 disabled:opacity-50 transition"
+          className="rounded-md border border-blue-300 px-4 text-sm text-blue-700 hover:bg-blue-50 disabled:opacity-50 sm:text-base"
         >
           {savingDraft ? 'Guardando borrador...' : 'Guardar borrador'}
         </button>
         <button
+          type="button"
           onClick={handleClear}
           disabled={submitting || savingDraft}
-          className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 transition"
+          className="rounded-md border border-gray-300 px-4 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 sm:text-base"
         >
           Limpiar
         </button>
         <button
+          type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition"
+          className="rounded-md border border-gray-300 px-4 text-sm text-gray-600 hover:bg-gray-50 sm:text-base"
         >
           Cancelar
         </button>

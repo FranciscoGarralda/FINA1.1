@@ -563,7 +563,9 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
     return (
       <div className="border-t pt-4">
         <p className="text-green-700 font-medium mb-4">Transferencia registrada correctamente.</p>
-        <button onClick={onDone} className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition">Ver movimiento</button>
+        <button type="button" onClick={onDone} className="btn-touch bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+          Ver movimiento
+        </button>
       </div>
     );
   }
@@ -760,7 +762,7 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
         <legend className="text-sm font-semibold text-gray-700 mb-2">Impacto cliente</legend>
         <div className="bg-gray-50 rounded p-3 text-sm space-y-1.5">
           <p className="text-xs text-gray-600">Pendiente no duplica CC; solo indica que la ejecución real queda abierta.</p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-gray-700">
+          <div className="grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1 font-mono text-gray-700 text-xs sm:text-sm [&>span]:min-w-0 [&>span]:break-words">
             <span>Salida:</span>
             <span>{outCurrCode} {formatMoneyAR(outAbs)} ({settlementLabel(outLeg.settlement)})</span>
             <span>Entrada:</span>
@@ -820,7 +822,7 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
           ) : (
             <div className="space-y-2">
               {totalsByCurrency.map((row) => (
-                <div key={row.code} className="grid grid-cols-4 gap-2 font-mono text-gray-700 text-xs sm:text-sm">
+                <div key={row.code} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 font-mono text-gray-700 text-xs sm:text-sm [&>span]:min-w-0 [&>span]:break-words">
                   <span className="font-semibold">{row.code}</span>
                   <span>CC: {clientCcEnabled ? formatMoneyAR(row.cc) : '—'}</span>
                   <span>Real ahora: {formatMoneyAR(row.real)}</span>
@@ -832,21 +834,36 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
         </div>
       </fieldset>
 
-      <div className="flex gap-3">
-        <button onClick={handleSubmit} disabled={submitting || savingDraft || draftLoading}
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 transition">
+      <div className="form-actions pt-2">
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={submitting || savingDraft || draftLoading}
+          className="rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:text-base"
+        >
           {submitting ? 'Guardando...' : 'Guardar'}
         </button>
-        <button onClick={handleSaveDraft} disabled={submitting || savingDraft || draftLoading}
-          className="px-4 py-2 text-sm text-blue-700 border border-blue-300 rounded hover:bg-blue-50 disabled:opacity-50 transition">
+        <button
+          type="button"
+          onClick={handleSaveDraft}
+          disabled={submitting || savingDraft || draftLoading}
+          className="rounded-md border border-blue-300 px-4 text-sm text-blue-700 hover:bg-blue-50 disabled:opacity-50 sm:text-base"
+        >
           {savingDraft ? 'Guardando borrador...' : 'Guardar borrador'}
         </button>
-        <button onClick={handleClear} disabled={submitting || savingDraft}
-          className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 transition">
+        <button
+          type="button"
+          onClick={handleClear}
+          disabled={submitting || savingDraft}
+          className="rounded-md border border-gray-300 px-4 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 sm:text-base"
+        >
           Limpiar
         </button>
-        <button onClick={onCancel}
-          className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-md border border-gray-300 px-4 text-sm text-gray-600 hover:bg-gray-50 sm:text-base"
+        >
           Cancelar
         </button>
       </div>

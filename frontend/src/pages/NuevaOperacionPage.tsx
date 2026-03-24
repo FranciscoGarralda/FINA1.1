@@ -732,7 +732,7 @@ export default function NuevaOperacionPage() {
   }
 
   return (
-    <div>
+    <div className="min-w-0 max-w-full">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">
         Nueva operación
         {movementId != null && operationNumber != null && (
@@ -761,18 +761,20 @@ export default function NuevaOperacionPage() {
                     Fecha: {d.date} {d.client_name ? `| Cliente: ${d.client_name}` : ''} | Actualizado: {new Date(d.updated_at).toLocaleString()}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="form-actions w-full sm:w-auto sm:justify-end">
                   <button
+                    type="button"
                     onClick={() => handleResumeDraft(d)}
                     disabled={processingDraftId === d.id}
-                    className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition"
+                    className="text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition px-4"
                   >
                     Reanudar
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleDiscardListedDraft(d.id)}
                     disabled={processingDraftId === d.id}
-                    className="px-3 py-1.5 text-xs text-red-600 border border-red-300 rounded hover:bg-red-50 disabled:opacity-50 transition"
+                    className="text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 disabled:opacity-50 transition px-4"
                   >
                     {processingDraftId === d.id ? 'Eliminando...' : 'Eliminar'}
                   </button>
@@ -792,14 +794,14 @@ export default function NuevaOperacionPage() {
         {/* Date */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-2 text-sm"
+              className="border border-gray-300 rounded px-3 py-2 text-sm min-w-0 max-w-full"
             />
-            {dayName && <span className="text-sm text-gray-500">{dayName}</span>}
+            {dayName && <span className="text-sm text-gray-500 shrink-0">{dayName}</span>}
           </div>
         </div>
 
@@ -936,12 +938,12 @@ export default function NuevaOperacionPage() {
       </div>
 
       {confirmClearOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center bg-black/40 p-4">
           <div className="modal-panel max-w-md w-full p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] space-y-4">
             <p className="text-sm text-gray-800">
               Hay datos guardados en el borrador. Para cambiar el tipo o el cliente hay que descartarlos. ¿Continuar?
             </p>
-            <div className="flex flex-wrap justify-end gap-2">
+            <div className="form-actions sm:justify-end">
               <button
                 type="button"
                 className="btn-touch border border-gray-300 rounded-md hover:bg-gray-50"
@@ -974,8 +976,9 @@ function TypeFormStub({ type, movementId, onDone }: { type: string; movementId: 
       </p>
       <p className="text-xs text-gray-400 mb-4">Movement ID: {movementId}</p>
       <button
+        type="button"
         onClick={onDone}
-        className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
+        className="btn-touch bg-green-600 text-white rounded-md hover:bg-green-700 transition"
       >
         Ver movimiento
       </button>

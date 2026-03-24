@@ -30,9 +30,21 @@ body {
     @apply min-h-[44px] inline-flex items-center justify-center px-4 py-2.5 text-base;
   }
 
+  /*
+   * Filas de acción: sin overflow horizontal; en viewport angosto se apilan.
+   * Los botones conservan sus clases de color; solo se fuerza ancho y apilado.
+   */
+  .form-actions {
+    @apply flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center;
+  }
+
+  .form-actions > button {
+    @apply w-full min-h-[44px] shrink-0 sm:w-auto;
+  }
+
   /* Overlay + panel con scroll y safe-area inferior (iPhone / home indicator) */
   .modal-backdrop {
-    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4;
+    @apply fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/40 p-4;
   }
 
   /* Usar con p-6 y pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] para safe-area */

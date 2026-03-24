@@ -254,22 +254,26 @@ export default function ReportesPage() {
                     </table>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      onClick={handleSaveAndRecalc}
-                      disabled={savingQuotes}
-                      className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 transition"
-                    >
-                      {savingQuotes ? 'Guardando...' : 'Guardar y recalcular'}
-                    </button>
-                    <button
-                      onClick={fetchReport}
-                      className="px-4 py-1.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-100 transition"
-                    >
-                      Recalcular estimado
-                    </button>
+                  <div className="space-y-2">
+                    <div className="form-actions">
+                      <button
+                        type="button"
+                        onClick={handleSaveAndRecalc}
+                        disabled={savingQuotes}
+                        className="rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:text-base"
+                      >
+                        {savingQuotes ? 'Guardando...' : 'Guardar y recalcular'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={fetchReport}
+                        className="rounded-md border border-gray-300 px-4 text-sm text-gray-600 hover:bg-gray-100 sm:text-base"
+                      >
+                        Recalcular estimado
+                      </button>
+                    </div>
                     {quoteMsg && (
-                      <span className={`text-xs ${quoteMsgType === 'ok' ? 'text-green-600' : 'text-red-600'}`}>{quoteMsg}</span>
+                      <span className={`block text-xs ${quoteMsgType === 'ok' ? 'text-green-600' : 'text-red-600'}`}>{quoteMsg}</span>
                     )}
                   </div>
                 </>
@@ -287,14 +291,15 @@ export default function ReportesPage() {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Tabs: wrap en móvil, sin scroll horizontal forzado */}
       <div className="border-b border-gray-200 mb-4">
-        <nav className="flex gap-6">
+        <nav className="flex flex-wrap gap-x-4 gap-y-1 sm:gap-6">
           {TABS.map((t) => (
             <button
               key={t.key}
+              type="button"
               onClick={() => setTab(t.key)}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`min-h-[44px] sm:min-h-0 pb-3 text-sm font-medium border-b-2 transition-colors ${
                 tab === t.key
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -308,24 +313,24 @@ export default function ReportesPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-4 mb-6">
-        <div>
+        <div className="min-w-0">
           <label className="block text-xs text-gray-500 mb-0.5">Desde</label>
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-            className="border border-gray-300 rounded px-2 py-1.5 text-sm" />
+            className="w-full max-w-[11rem] border border-gray-300 rounded px-2 py-1.5 text-sm" />
         </div>
-        <div>
+        <div className="min-w-0">
           <label className="block text-xs text-gray-500 mb-0.5">Hasta</label>
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-            className="border border-gray-300 rounded px-2 py-1.5 text-sm" />
+            className="w-full max-w-[11rem] border border-gray-300 rounded px-2 py-1.5 text-sm" />
         </div>
-        <div className="flex items-center gap-3 ml-4">
-          <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+        <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 sm:w-auto sm:min-w-0">
+          <label className="flex min-h-[44px] items-center gap-1.5 text-sm cursor-pointer sm:min-h-0">
             <input type="radio" checked={!showEstimated} onChange={() => setShowEstimated(false)} />
             <span className="text-gray-700">REAL (sin conversión)</span>
           </label>
-          <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+          <label className="flex min-h-[44px] items-center gap-1.5 text-sm cursor-pointer sm:min-h-0">
             <input type="radio" checked={showEstimated} onChange={() => setShowEstimated(true)} />
-            <span className="text-gray-700">ESTIMADO en {baseCurrencyCode || '...'}</span>
+            <span className="text-gray-700 break-words">ESTIMADO en {baseCurrencyCode || '...'}</span>
           </label>
         </div>
       </div>
