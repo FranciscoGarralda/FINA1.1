@@ -45,3 +45,14 @@ migrate -path backend/migrations -database "postgres://fina:fina@localhost:5432/
 cd backend
 go run ./cmd/api
 ```
+
+## Arranque local completo (Postgres + migraciones)
+
+1. Docker Desktop encendido.
+2. Desde la raíz del repo:
+
+```bash
+./scripts/start-local.sh
+```
+
+3. En dos terminales: API (`cd backend && go run ./cmd/api`) y front (`cd frontend && npm run dev`). Front: [http://localhost:5173](http://localhost:5173), API: puerto `8080`.
