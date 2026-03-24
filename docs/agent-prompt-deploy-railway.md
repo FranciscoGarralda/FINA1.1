@@ -1,5 +1,7 @@
-# Prompt de referencia (Agent) — ya aplicado en el repo
+# Deploy Railway — referencia rápida
 
-La implementación vive en `docs/deploy-railway.md`, regla `.cursor/rules/deploy-railway-operativa.mdc`, y código `frontend/src/api/client.ts` + `vite-env.d.ts`.
+La guía operativa completa está en **[deploy-railway.md](deploy-railway.md)** (variables, migraciones, API, Postgres, bootstrap de usuario, healthcheck).
 
-Para repetir un flujo similar en el futuro, usar el mismo checklist que `docs/deploy-railway.md` y ramas `deploy/*` con PR a `main` si se desea revisión.
+Para el **servicio del front** (Vite, `VITE_API_BASE`, Dockerfile), usá también el prompt copiable en **[railway-frontend-prompt.md](railway-frontend-prompt.md)**.
+
+Reglas del IDE: `.cursor/rules/deploy-railway-operativa.mdc` y código en `frontend/src/api/client.ts`, `frontend/src/vite-env.d.ts`.
