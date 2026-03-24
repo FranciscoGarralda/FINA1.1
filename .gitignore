@@ -1,3 +1,6 @@
 .env
 backend/.env
 .agent-debug.log
+
+# Build de Vite (se genera con npm run build / Docker del front)
+frontend/dist
