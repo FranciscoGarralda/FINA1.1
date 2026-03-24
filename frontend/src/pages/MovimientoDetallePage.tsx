@@ -251,21 +251,23 @@ export default function MovimientoDetallePage() {
         <p className="text-gray-500 text-sm">Este movimiento no tiene líneas registradas.</p>
       )}
       {pendingAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-lg">
+        <div className="modal-backdrop">
+          <div className="modal-panel max-w-md p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
             <h3 className="mb-2 text-lg font-semibold text-gray-800">{actionTitle(pendingAction)}</h3>
             <p className="mb-3 text-sm text-gray-600">{actionDescription(pendingAction)}</p>
             <p className="mb-4 text-sm text-gray-500">Operación #{detail.operation_number}</p>
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <button
+                type="button"
                 onClick={() => setPendingAction(null)}
-                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition"
+                className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
               >
                 Volver
               </button>
               <button
+                type="button"
                 onClick={executePendingAction}
-                className={`px-4 py-2 text-sm text-white rounded transition ${
+                className={`btn-touch text-white rounded-md ${
                   pendingAction === 'cancel' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
                 }`}
               >

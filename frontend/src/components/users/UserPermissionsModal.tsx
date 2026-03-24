@@ -95,14 +95,21 @@ export default function UserPermissionsModal({ userId, username, onClose }: Prop
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6 max-h-[85vh] overflow-hidden flex flex-col">
+    <div className="modal-backdrop">
+      <div className="modal-panel max-w-4xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] max-h-[min(85vh,calc(100dvh-2rem))] overflow-hidden flex flex-col">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold">Permisos de usuario</h2>
             <p className="text-sm text-gray-500">{username}</p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
         </div>
 
         {loading ? (
@@ -144,16 +151,18 @@ export default function UserPermissionsModal({ userId, username, onClose }: Prop
 
         <div className="pt-4 mt-4 border-t flex flex-wrap items-center gap-3">
           <button
+            type="button"
             onClick={save}
             disabled={saving || loading || items.length === 0}
-            className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 transition"
+            className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
             {saving ? 'Guardando...' : 'Guardar permisos'}
           </button>
           <button
+            type="button"
             onClick={resetOverrides}
             disabled={saving || loading || items.length === 0}
-            className="px-4 py-2 border border-gray-300 text-sm rounded hover:bg-gray-50 disabled:opacity-50 transition"
+            className="btn-touch border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
           >
             Restaurar permisos al rol
           </button>

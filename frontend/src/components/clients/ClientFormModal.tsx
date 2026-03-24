@@ -153,7 +153,8 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
     }
   };
 
-  const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+  const inputCls =
+    'w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500';
 
   function addCCAdjustmentLine() {
     setCcAdjustments((prev) => [...prev, { currency_id: '', amount: '', reason: '' }]);
@@ -170,15 +171,15 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div className="modal-backdrop">
+      <div className="modal-panel max-w-lg p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h2 className="text-lg font-semibold mb-4">{isEdit ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
 
         {loadingDetail ? (
           <p className="text-gray-500 text-sm">Cargando...</p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                 <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputCls} required />
@@ -189,7 +190,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
                 <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} required />
@@ -200,7 +201,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Calle</label>
                 <input type="text" value={addressStreet} onChange={(e) => setAddressStreet(e.target.value)} className={inputCls} required />
@@ -215,7 +216,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Contacto de referencia</label>
                 <input type="text" value={referenceContact} onChange={(e) => setReferenceContact(e.target.value)} className={inputCls} required />
@@ -265,8 +266,8 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
                 ) : (
                   <div className="space-y-2">
                     {ccAdjustments.map((line, idx) => (
-                      <div key={idx} className="grid grid-cols-12 gap-2 items-end">
-                        <div className="col-span-4">
+                      <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
+                        <div className="sm:col-span-4">
                           <label className="block text-xs text-gray-500 mb-1">Divisa</label>
                           <select
                             value={line.currency_id}
@@ -281,7 +282,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
                             ))}
                           </select>
                         </div>
-                        <div className="col-span-3">
+                        <div className="sm:col-span-3">
                           <label className="block text-xs text-gray-500 mb-1">Monto (+/-)</label>
                           <input
                             type="text"
@@ -291,7 +292,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
                             className={inputCls}
                           />
                         </div>
-                        <div className="col-span-4">
+                        <div className="sm:col-span-4">
                           <label className="block text-xs text-gray-500 mb-1">Motivo</label>
                           <input
                             type="text"
@@ -301,11 +302,11 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
                             className={inputCls}
                           />
                         </div>
-                        <div className="col-span-1">
+                        <div className="sm:col-span-1">
                           <button
                             type="button"
                             onClick={() => removeCCAdjustmentLine(idx)}
-                            className="w-full border border-red-200 text-red-600 rounded-md py-2 text-xs hover:bg-red-50"
+                            className="w-full border border-red-200 text-red-600 rounded-md min-h-[44px] py-2 text-sm hover:bg-red-50"
                             title="Eliminar línea"
                           >
                             ×
@@ -320,18 +321,18 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
 
             {error && <p className="text-red-600 text-sm">{error}</p>}
 
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex flex-wrap justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 text-sm"
+                className="btn-touch border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+                className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
               >
                 {saving ? 'Guardando...' : 'Guardar'}
               </button>

@@ -72,8 +72,8 @@ export default function CurrencyFormModal({ currency, onClose, onSaved }: Props)
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+    <div className="modal-backdrop">
+      <div className="modal-panel max-w-md p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h2 className="text-lg font-semibold mb-4">{isEdit ? 'Editar Divisa' : 'Nueva Divisa'}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -84,7 +84,7 @@ export default function CurrencyFormModal({ currency, onClose, onSaved }: Props)
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="USD"
               maxLength={6}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
@@ -96,25 +96,25 @@ export default function CurrencyFormModal({ currency, onClose, onSaved }: Props)
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Dólar estadounidense"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
 
           {error && <p className="text-red-600 text-sm">{error}</p>}
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex flex-wrap justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 text-sm"
+              className="btn-touch border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+              className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
             >
               {saving ? 'Guardando...' : 'Guardar'}
             </button>

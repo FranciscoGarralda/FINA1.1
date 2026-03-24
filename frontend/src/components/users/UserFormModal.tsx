@@ -238,8 +238,8 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6">
+    <div className="modal-backdrop">
+      <div className="modal-panel max-w-3xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h2 className="text-lg font-semibold mb-4">{isEdit ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
         {isEdit && (
           <div className="border-b border-gray-200 mb-4">
@@ -249,7 +249,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                   key={t.key}
                   type="button"
                   onClick={() => setTab(t.key)}
-                  className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
+                  className={`min-h-[44px] px-1 pb-2 text-sm font-medium border-b-2 transition-colors ${
                     tab === t.key
                       ? 'border-blue-600 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -271,7 +271,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -281,7 +281,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {availableRoles.map((r) => (
                     <option key={r} value={r}>{r}</option>
@@ -295,7 +295,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                   <select
                     value={active ? 'ACTIVE' : 'INACTIVE'}
                     onChange={(e) => setActive(e.target.value === 'ACTIVE')}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="ACTIVE">Activo</option>
                     <option value="INACTIVE">Inactivo</option>
@@ -315,7 +315,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required={!isEdit}
                 />
               </div>
@@ -326,7 +326,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required={!isEdit}
                 />
               </div>
@@ -338,7 +338,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                     type="password"
                     value={pin}
                     onChange={(e) => setPin(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="PIN numérico"
                   />
                 </div>
@@ -391,14 +391,14 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
           {error && <p className="text-red-600 text-sm">{error}</p>}
           {success && <p className="text-green-600 text-sm">{success}</p>}
 
-          <div className="flex justify-between gap-3 pt-2">
-            <div className="flex gap-2">
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-between sm:items-center">
+            <div className="flex flex-wrap gap-2">
               {isEdit && tab === 'datos' && (
                 <button
                   type="button"
                   onClick={handleSaveData}
                   disabled={saving}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+                  className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
                 >
                   Guardar cambios
                 </button>
@@ -408,7 +408,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                   type="button"
                   onClick={handleSaveSecurity}
                   disabled={saving}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+                  className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
                 >
                   Guardar seguridad
                 </button>
@@ -418,7 +418,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                   type="button"
                   onClick={handleSavePermissions}
                   disabled={saving || permLoading}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+                  className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
                 >
                   Guardar permisos
                 </button>
@@ -428,7 +428,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                   type="button"
                   onClick={handleResetPermissions}
                   disabled={saving || permLoading}
-                  className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 disabled:opacity-50 text-sm"
+                  className="btn-touch border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50"
                 >
                   Restaurar permisos al rol
                 </button>
@@ -437,7 +437,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+                  className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
                 >
                   {saving ? 'Guardando...' : 'Guardar'}
                 </button>
@@ -446,7 +446,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 text-sm"
+              className="btn-touch border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 w-full sm:w-auto"
             >
               Cancelar
             </button>

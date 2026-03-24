@@ -79,8 +79,8 @@ export default function UsuariosPage() {
       {loading ? (
         <p className="text-gray-500">Cargando...</p>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-lg shadow overflow-hidden overflow-x-auto">
+          <table className="w-full min-w-[560px] text-sm">
             <thead className="bg-gray-50">
               <tr className="text-left text-gray-500">
                 <th className="px-4 py-3 font-medium">Username</th>

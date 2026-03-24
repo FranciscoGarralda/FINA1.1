@@ -33,7 +33,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-gray-100 px-4 pb-[env(safe-area-inset-bottom,0px)]">
       <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-sm">
         <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">Fina</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -61,7 +61,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
+            className="btn-touch w-full bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
           >
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>

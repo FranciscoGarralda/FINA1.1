@@ -6,3 +6,46 @@ html, body, #root {
   width: 100%;
   overflow-x: hidden;
 }
+
+/* Safe area (notch / home indicator) */
+body {
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* iOS Safari: evita zoom al enfocar (gana a utility text-sm en inputs) */
+@layer base {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: 1rem !important;
+    line-height: 1.5rem !important;
+  }
+}
+
+@layer components {
+  /* Botones táctiles mínimos razonables (modales / formularios) */
+  .btn-touch {
+    @apply min-h-[44px] inline-flex items-center justify-center px-4 py-2.5 text-base;
+  }
+
+  /* Overlay + panel con scroll y safe-area inferior (iPhone / home indicator) */
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4;
+  }
+
+  /* Usar con p-6 y pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] para safe-area */
+  .modal-panel {
+    @apply bg-white rounded-lg shadow-lg w-full overflow-y-auto overflow-x-hidden;
+    max-height: min(90vh, calc(100dvh - 2rem));
+  }
+}
+
+/* Focus visible en controles interactivos (pantallas táctiles + teclado) */
+button:focus-visible,
+a:focus-visible,
+[role='button']:focus-visible {
+  outline: 2px solid rgb(59 130 246);
+  outline-offset: 2px;
+}

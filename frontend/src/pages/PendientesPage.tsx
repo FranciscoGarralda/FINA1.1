@@ -297,8 +297,8 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+    <div className="modal-backdrop">
+      <div className="modal-panel max-w-md p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h3 className="text-lg font-semibold text-gray-800 mb-1">Resolver pendiente</h3>
         <p className="text-sm text-gray-500 mb-4">
           {item.client_name} — {item.currency_code} {formatMoneyAR(item.amount)} ({pendingTypeLabel(item.type)})
@@ -346,7 +346,7 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
               <select
                 value={accountId}
                 onChange={(e) => setAccountId(e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                className="w-full border border-gray-300 rounded px-3 py-2 text-base"
               >
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>{a.name}</option>
@@ -403,7 +403,7 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
                   value={resolvedByMovementId}
                   onChange={(e) => setResolvedByMovementId(e.target.value)}
                   placeholder="ID de movimiento"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-base"
                 />
               </div>
               <div>
@@ -412,24 +412,24 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
                   value={resolutionNote}
                   onChange={(e) => setResolutionNote(e.target.value)}
                   placeholder="Detalle de compensación"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-base"
                 />
               </div>
             </>
           )}
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex flex-wrap justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition"
+              className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition"
+              className="btn-touch bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
             >
               {submitting ? 'Guardando...' : (mode === 'COMPENSATED' ? 'Confirmar compensación' : 'Confirmar')}
             </button>
@@ -464,8 +464,8 @@ function CancelModal({ item, onClose, onDone }: { item: PendingItem; onClose: ()
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-sm p-6">
+    <div className="modal-backdrop">
+      <div className="modal-panel max-w-sm p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Anular operación</h3>
         <p className="text-sm text-gray-600 mb-4">
           ¿Estás seguro de anular toda la operación? Se revertirán sus efectos reales/comerciales y se cerrarán sus pendientes.
@@ -476,17 +476,19 @@ function CancelModal({ item, onClose, onDone }: { item: PendingItem; onClose: ()
 
         {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition"
+            className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
           >
             Volver
           </button>
           <button
+            type="button"
             onClick={handleCancel}
             disabled={submitting}
-            className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition"
+            className="btn-touch bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
           >
             {submitting ? 'Anulando...' : 'Confirmar anulación'}
           </button>

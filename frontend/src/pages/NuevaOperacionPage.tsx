@@ -918,21 +918,21 @@ export default function NuevaOperacionPage() {
 
       {confirmClearOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-5 space-y-4">
+          <div className="modal-panel max-w-md w-full p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] space-y-4">
             <p className="text-sm text-gray-800">
               Hay datos guardados en el borrador. Para cambiar el tipo o el cliente hay que descartarlos. ¿Continuar?
             </p>
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <button
                 type="button"
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                className="btn-touch border border-gray-300 rounded-md hover:bg-gray-50"
                 onClick={revertHeaderToLastSynced}
               >
                 Volver
               </button>
               <button
                 type="button"
-                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 onClick={() => patchMovementHeader(true)}
               >
                 Descartar datos y aplicar

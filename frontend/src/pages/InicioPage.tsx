@@ -97,7 +97,8 @@ export default function InicioPage() {
               <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
                 <h3 className="text-sm font-semibold text-gray-700">{acc.account_name}</h3>
               </div>
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[280px] text-sm">
                 <thead>
                   <tr className="text-left text-gray-500 border-b bg-gray-50/50">
                     <th className="px-4 py-1.5">Divisa</th>
@@ -127,6 +128,7 @@ export default function InicioPage() {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           ))}
         </div>

@@ -78,7 +78,8 @@ function EntitySection({ entityKey, title, endpoint, displayFn }: (typeof ENTITY
       ) : filtered.length === 0 ? (
         <p className="text-gray-400 text-sm">Sin resultados</p>
       ) : (
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[320px] text-sm">
           <thead>
             <tr className="border-b text-left text-gray-500">
               <th className="pb-2 font-medium">Nombre / Identificador</th>
@@ -106,6 +107,7 @@ function EntitySection({ entityKey, title, endpoint, displayFn }: (typeof ENTITY
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

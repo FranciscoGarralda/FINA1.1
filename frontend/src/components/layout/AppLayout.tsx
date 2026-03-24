@@ -50,12 +50,12 @@ export default function AppLayout() {
   return (
     <div className="min-h-screen w-full flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-30">
+      <header className="bg-white shadow-sm border-b sticky top-0 z-30 pt-[env(safe-area-inset-top,0px)]">
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={handleBack}
-              className="p-1.5 rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition"
+              className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition"
               aria-label="Volver"
               title="Volver"
             >
@@ -65,7 +65,7 @@ export default function AppLayout() {
             </button>
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-1.5 rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition"
+              className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition"
               aria-label="Abrir menú"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,7 +90,7 @@ export default function AppLayout() {
 
       {/* Sidebar drawer */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 transform transition-transform duration-200 ease-in-out flex flex-col ${
+        className={`fixed top-0 left-0 h-full min-h-[100dvh] w-64 max-w-[min(16rem,calc(100vw-1rem))] bg-white shadow-lg z-50 transform transition-transform duration-200 ease-in-out flex flex-col pt-[env(safe-area-inset-top,0px)] ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -98,7 +98,7 @@ export default function AppLayout() {
           <span className="text-lg font-bold text-gray-800">Fina</span>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="p-1 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition"
+            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition"
             aria-label="Cerrar menú"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +110,7 @@ export default function AppLayout() {
         <nav className="flex-1 overflow-y-auto py-2">
           {visibleItems.map((item) => {
             const isActive = location.pathname === item.to;
-            const className = `block w-full text-left px-4 py-2.5 text-sm font-medium transition ${
+            const className = `flex w-full min-h-[44px] items-center text-left px-4 py-2.5 text-sm font-medium transition ${
               isActive
                 ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
@@ -134,7 +134,7 @@ export default function AppLayout() {
                 key={item.to}
                 to={item.to}
                 className={({ isActive: active }) =>
-                  `block px-4 py-2.5 text-sm font-medium transition ${
+                  `flex min-h-[44px] items-center px-4 py-2.5 text-sm font-medium transition ${
                     active
                       ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
@@ -147,12 +147,12 @@ export default function AppLayout() {
           })}
         </nav>
 
-        <div className="border-t px-4 py-3">
-          <div className="flex items-center justify-between">
+        <div className="border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
+          <div className="flex items-center justify-between gap-2">
             <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{role}</span>
             <button
               onClick={logout}
-              className="text-sm text-red-600 hover:text-red-800 font-medium transition"
+              className="min-h-[44px] px-3 inline-flex items-center text-sm text-red-600 hover:text-red-800 font-medium transition"
             >
               Cerrar sesión
             </button>
@@ -161,7 +161,7 @@ export default function AppLayout() {
       </aside>
 
       {/* Main content */}
-      <main className="max-w-6xl mx-auto w-full px-4 py-6">
+      <main className="max-w-6xl mx-auto w-full min-w-0 px-4 py-6">
         <Outlet />
       </main>
     </div>
