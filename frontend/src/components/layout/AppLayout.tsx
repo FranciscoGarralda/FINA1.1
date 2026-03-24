@@ -18,18 +18,22 @@ const NAV_ITEMS = [
   { to: '/mi-perfil',       label: 'Mi perfil',       permission: 'profile.view' },
 ];
 
+type HistoryIdxState = { idx?: number; usr?: unknown; key?: string };
+
 export default function AppLayout() {
   const { logout, role, can } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
+  /** Retroceso real en el stack del router (state.idx); si no hay entrada anterior, /inicio. */
   function handleBack() {
-    if (window.history.length > 1) {
+    const idx = (window.history.state as HistoryIdxState | null)?.idx;
+    if (typeof idx === 'number' && idx > 0) {
       navigate(-1);
       return;
     }
-    navigate('/inicio', { replace: true });
+    navigate('/inicio');
   }
 
   function handleNewOperationClick() {
@@ -41,29 +45,47 @@ export default function AppLayout() {
   }, [location.pathname]);
 
   useEffect(() => {
-    document.body.style.overflow = sidebarOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    if (!sidebarOpen) {
+      document.body.style.overflow = '';
+      document.body.style.overscrollBehavior = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.overscrollBehavior = '';
+      return;
+    }
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.overscrollBehavior = 'none';
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.overscrollBehavior = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.overscrollBehavior = '';
+    };
   }, [sidebarOpen]);
 
   const visibleItems = NAV_ITEMS.filter((item) => can(item.permission));
 
   return (
-    <div className="min-h-screen w-full flex flex-col">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-30 pt-[env(safe-area-inset-top,0px)]">
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <div className="min-h-dvh w-full flex flex-col">
+      {/* Barra app: fija (evita fallos de sticky con overflow-x en html/body) */}
+      <header className="fixed top-0 left-0 right-0 z-30 bg-white shadow-sm border-b pt-[env(safe-area-inset-top,0px)]">
+        <div className="h-14 min-h-[44px] px-4 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition"
+            aria-label="Volver"
+            title="Volver"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="flex-1 min-w-0 text-center text-xl font-bold text-gray-800 truncate px-1">Fina</h1>
+          <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={handleBack}
-              className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition"
-              aria-label="Volver"
-              title="Volver"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
+              type="button"
               onClick={() => setSidebarOpen(true)}
               className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition"
               aria-label="Abrir menú"
@@ -72,10 +94,9 @@ export default function AppLayout() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <h1 className="text-xl font-bold text-gray-800">Fina</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{role}</span>
+            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded max-w-[5.5rem] truncate hidden sm:inline-block">
+              {role}
+            </span>
           </div>
         </div>
       </header>
@@ -83,14 +104,15 @@ export default function AppLayout() {
       {/* Sidebar overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 transition-opacity"
+          className="fixed inset-0 bg-black/40 z-40 transition-opacity overscroll-none touch-manipulation"
           onClick={() => setSidebarOpen(false)}
+          aria-hidden
         />
       )}
 
       {/* Sidebar drawer */}
       <aside
-        className={`fixed top-0 left-0 h-full min-h-[100dvh] w-64 max-w-[min(16rem,calc(100vw-1rem))] bg-white shadow-lg z-50 transform transition-transform duration-200 ease-in-out flex flex-col pt-[env(safe-area-inset-top,0px)] ${
+        className={`fixed top-0 left-0 h-dvh min-h-0 w-64 max-w-[min(16rem,calc(100vw-1rem))] bg-white shadow-lg z-50 transform transition-transform duration-200 ease-in-out flex flex-col border-r border-gray-100 pt-[env(safe-area-inset-top,0px)] ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -149,7 +171,7 @@ export default function AppLayout() {
 
         <div className="border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{role}</span>
+            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded truncate">{role}</span>
             <button
               onClick={logout}
               className="min-h-[44px] px-3 inline-flex items-center text-sm text-red-600 hover:text-red-800 font-medium transition"
@@ -160,8 +182,8 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      {/* Main content */}
-      <main className="max-w-6xl mx-auto w-full min-w-0 px-4 py-6">
+      {/* Main: offset = barra (3.5rem) + safe-area superior; sin duplicar insets del body en el eje vertical */}
+      <main className="max-w-6xl mx-auto w-full min-w-0 flex-1 px-4 pb-6 pt-[calc(env(safe-area-inset-top,0px)+3.5rem)]">
         <Outlet />
       </main>
     </div>

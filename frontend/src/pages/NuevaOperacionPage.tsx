@@ -617,11 +617,19 @@ export default function NuevaOperacionPage() {
     };
   }, [date, type, clientId, movementId, confirmClearOpen, patchMovementHeader]);
 
+  /**
+   * Éxito del flujo final (formularios hijos: botón "Ver movimiento" tras confirmar).
+   * No invocar desde "Guardar borrador" — esos flujos solo persisten borrador y no llaman onDone.
+   */
   function handleDone() {
+    const id = movementId;
     clearDraftSession();
     fetchDrafts();
-    if (movementId) emitDraftSync('draft_deleted', movementId);
-    navigate(`/movimientos/${movementId}`);
+    if (id) emitDraftSync('draft_deleted', id);
+    resetWizard();
+    if (id) {
+      navigate(`/movimientos/${id}`, { replace: true });
+    }
   }
 
   async function handleCancelDraft() {
