@@ -10,6 +10,7 @@ interface Client {
   last_name: string;
   phone: string;
   dni: string;
+  department?: string;
   active: boolean;
   cc_enabled: boolean;
 }
@@ -52,11 +53,13 @@ export default function ClientesPage() {
   const filtered = clients.filter((c) => {
     const q = search.toLowerCase();
     const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();
+    const dept = (c.department || '').toLowerCase();
     return (
       fullName.includes(q) ||
       c.dni.toLowerCase().includes(q) ||
       c.phone.toLowerCase().includes(q) ||
-      String(c.client_code).includes(q)
+      String(c.client_code).includes(q) ||
+      dept.includes(q)
     );
   });
 
@@ -87,13 +90,14 @@ export default function ClientesPage() {
         <p className="text-gray-500">Cargando...</p>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[720px] text-sm">
             <thead className="bg-gray-50">
               <tr className="text-left text-gray-500">
                 <th className="px-4 py-3 font-medium">Nº cliente</th>
                 <th className="px-4 py-3 font-medium">Nombre</th>
                 <th className="px-4 py-3 font-medium">Teléfono</th>
                 <th className="px-4 py-3 font-medium">DNI</th>
+                <th className="px-4 py-3 font-medium">Departamento</th>
                 <th className="px-4 py-3 font-medium text-center">Estado</th>
                 <th className="px-4 py-3 font-medium text-center">CC</th>
                 {(canEdit || canToggle) && <th className="px-4 py-3 font-medium text-right">Acciones</th>}
@@ -106,6 +110,9 @@ export default function ClientesPage() {
                   <td className="px-4 py-3 text-gray-700">{c.first_name} {c.last_name}</td>
                   <td className="px-4 py-3 text-gray-600">{c.phone}</td>
                   <td className="px-4 py-3 text-gray-600">{c.dni}</td>
+                  <td className="px-4 py-3 text-gray-600 max-w-[12rem] break-words" title={c.department || undefined}>
+                    {c.department?.trim() ? c.department.trim() : '—'}
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <button
                       onClick={() => toggleActive(c)}
@@ -136,7 +143,7 @@ export default function ClientesPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={(canEdit || canToggle) ? 7 : 6} className="px-4 py-6 text-center text-gray-400">
+                  <td colSpan={(canEdit || canToggle) ? 8 : 7} className="px-4 py-6 text-center text-gray-400">
                     Sin resultados
                   </td>
                 </tr>

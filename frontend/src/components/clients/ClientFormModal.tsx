@@ -9,6 +9,7 @@ interface ClientListItem {
   last_name: string;
   phone: string;
   dni: string;
+  department?: string;
   active: boolean;
   cc_enabled: boolean;
 }
@@ -25,6 +26,7 @@ interface ClientDetail {
   address_floor: string;
   reference_contact: string;
   referred_by: string;
+  department?: string;
   active: boolean;
   cc_enabled: boolean;
 }
@@ -60,6 +62,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
   const [addressFloor, setAddressFloor] = useState('');
   const [referenceContact, setReferenceContact] = useState('');
   const [referredBy, setReferredBy] = useState('');
+  const [department, setDepartment] = useState('');
   const [ccEnabled, setCcEnabled] = useState(false);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [ccAdjustments, setCcAdjustments] = useState<CCBalanceAdjustmentInput[]>([]);
@@ -96,6 +99,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
         setAddressFloor(d.address_floor);
         setReferenceContact(d.reference_contact);
         setReferredBy(d.referred_by);
+        setDepartment(d.department || '');
         setCcEnabled(d.cc_enabled);
       })
       .catch(() => setError('Error al cargar datos del cliente.'))
@@ -127,6 +131,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
         address_floor: addressFloor.trim(),
         reference_contact: referenceContact.trim(),
         referred_by: referredBy.trim(),
+        department: department.trim(),
         cc_enabled: ccEnabled,
         cc_balance_adjustments: ccEnabled
           ? ccAdjustments
@@ -225,6 +230,19 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Recomendado por</label>
                 <input type="text" value={referredBy} onChange={(e) => setReferredBy(e.target.value)} className={inputCls} required />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
+              <input
+                type="text"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                className={inputCls}
+                placeholder="Opcional"
+                maxLength={255}
+                autoComplete="organization"
+              />
             </div>
 
             <div className="flex items-center gap-3 pt-1">

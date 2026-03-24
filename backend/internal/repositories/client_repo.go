@@ -26,11 +26,13 @@ func (r *ClientRepo) FindByID(ctx context.Context, id string) (*models.ClientDet
 	err := r.pool.QueryRow(ctx,
 		`SELECT id::text, client_code, first_name, last_name, phone, dni,
 		        address_street, address_number, address_floor,
-		        reference_contact, referred_by, active, cc_enabled
+		        reference_contact, referred_by,
+		        COALESCE(department, ''), active, cc_enabled
 		 FROM clients WHERE id = $1`, id).
 		Scan(&c.ID, &c.ClientCode, &c.FirstName, &c.LastName, &c.Phone, &c.DNI,
 			&c.AddressStreet, &c.AddressNumber, &c.AddressFloor,
-			&c.ReferenceContact, &c.ReferredBy, &c.Active, &c.CcEnabled)
+			&c.ReferenceContact, &c.ReferredBy, &c.Department,
+			&c.Active, &c.CcEnabled)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
@@ -50,6 +52,7 @@ type ClientInput struct {
 	AddressFloor         string                     `json:"address_floor"`
 	ReferenceContact     string                     `json:"reference_contact"`
 	ReferredBy           string                     `json:"referred_by"`
+	Department           string                     `json:"department"`
 	CcEnabled            bool                       `json:"cc_enabled"`
 	CcBalanceAdjustments []CCBalanceAdjustmentInput `json:"cc_balance_adjustments,omitempty"`
 }
@@ -74,11 +77,11 @@ func (r *ClientRepo) Create(ctx context.Context, input ClientInput) (string, err
 	err := r.pool.QueryRow(ctx,
 		`INSERT INTO clients (first_name, last_name, phone, dni,
 		        address_street, address_number, address_floor,
-		        reference_contact, referred_by, cc_enabled)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id::text`,
+		        reference_contact, referred_by, department, cc_enabled)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NULLIF(TRIM($10),''),$11) RETURNING id::text`,
 		input.FirstName, input.LastName, input.Phone, input.DNI,
 		input.AddressStreet, input.AddressNumber, input.AddressFloor,
-		input.ReferenceContact, input.ReferredBy, input.CcEnabled).Scan(&id)
+		input.ReferenceContact, input.ReferredBy, input.Department, input.CcEnabled).Scan(&id)
 	return id, err
 }
 
@@ -87,11 +90,11 @@ func (r *ClientRepo) CreateTx(ctx context.Context, tx pgx.Tx, input ClientInput)
 	err := tx.QueryRow(ctx,
 		`INSERT INTO clients (first_name, last_name, phone, dni,
 		        address_street, address_number, address_floor,
-		        reference_contact, referred_by, cc_enabled)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id::text`,
+		        reference_contact, referred_by, department, cc_enabled)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NULLIF(TRIM($10),''),$11) RETURNING id::text`,
 		input.FirstName, input.LastName, input.Phone, input.DNI,
 		input.AddressStreet, input.AddressNumber, input.AddressFloor,
-		input.ReferenceContact, input.ReferredBy, input.CcEnabled).Scan(&id)
+		input.ReferenceContact, input.ReferredBy, input.Department, input.CcEnabled).Scan(&id)
 	return id, err
 }
 
@@ -99,12 +102,13 @@ func (r *ClientRepo) Update(ctx context.Context, id string, input ClientInput) e
 	tag, err := r.pool.Exec(ctx,
 		`UPDATE clients SET first_name=$2, last_name=$3, phone=$4, dni=$5,
 		        address_street=$6, address_number=$7, address_floor=$8,
-		        reference_contact=$9, referred_by=$10, cc_enabled=$11,
+		        reference_contact=$9, referred_by=$10,
+		        department=NULLIF(TRIM($11),''), cc_enabled=$12,
 		        updated_at=now()
 		 WHERE id=$1`,
 		id, input.FirstName, input.LastName, input.Phone, input.DNI,
 		input.AddressStreet, input.AddressNumber, input.AddressFloor,
-		input.ReferenceContact, input.ReferredBy, input.CcEnabled)
+		input.ReferenceContact, input.ReferredBy, input.Department, input.CcEnabled)
 	if err != nil {
 		return err
 	}
@@ -118,12 +122,13 @@ func (r *ClientRepo) UpdateTx(ctx context.Context, tx pgx.Tx, id string, input C
 	tag, err := tx.Exec(ctx,
 		`UPDATE clients SET first_name=$2, last_name=$3, phone=$4, dni=$5,
 		        address_street=$6, address_number=$7, address_floor=$8,
-		        reference_contact=$9, referred_by=$10, cc_enabled=$11,
+		        reference_contact=$9, referred_by=$10,
+		        department=NULLIF(TRIM($11),''), cc_enabled=$12,
 		        updated_at=now()
 		 WHERE id=$1`,
 		id, input.FirstName, input.LastName, input.Phone, input.DNI,
 		input.AddressStreet, input.AddressNumber, input.AddressFloor,
-		input.ReferenceContact, input.ReferredBy, input.CcEnabled)
+		input.ReferenceContact, input.ReferredBy, input.Department, input.CcEnabled)
 	if err != nil {
 		return err
 	}
@@ -138,11 +143,13 @@ func (r *ClientRepo) FindByIDTx(ctx context.Context, tx pgx.Tx, id string) (*mod
 	err := tx.QueryRow(ctx,
 		`SELECT id::text, client_code, first_name, last_name, phone, dni,
 		        address_street, address_number, address_floor,
-		        reference_contact, referred_by, active, cc_enabled
+		        reference_contact, referred_by,
+		        COALESCE(department, ''), active, cc_enabled
 		 FROM clients WHERE id = $1`, id).
 		Scan(&c.ID, &c.ClientCode, &c.FirstName, &c.LastName, &c.Phone, &c.DNI,
 			&c.AddressStreet, &c.AddressNumber, &c.AddressFloor,
-			&c.ReferenceContact, &c.ReferredBy, &c.Active, &c.CcEnabled)
+			&c.ReferenceContact, &c.ReferredBy, &c.Department,
+			&c.Active, &c.CcEnabled)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound

@@ -35,6 +35,7 @@ type ClientListItem struct {
 	LastName   string `json:"last_name"`
 	Phone      string `json:"phone"`
 	DNI        string `json:"dni"`
+	Department string `json:"department"`
 	Active     bool   `json:"active"`
 	CcEnabled  bool   `json:"cc_enabled"`
 }
@@ -51,6 +52,7 @@ type ClientDetail struct {
 	AddressFloor     string `json:"address_floor"`
 	ReferenceContact string `json:"reference_contact"`
 	ReferredBy       string `json:"referred_by"`
+	Department       string `json:"department"`
 	Active           bool   `json:"active"`
 	CcEnabled        bool   `json:"cc_enabled"`
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"fina/internal/models"
 	"fina/internal/repositories"
@@ -64,6 +65,7 @@ func (s *ClientService) Create(ctx context.Context, input repositories.ClientInp
 			"first_name":             input.FirstName,
 			"last_name":              input.LastName,
 			"dni":                    input.DNI,
+			"department":             input.Department,
 			"cc_enabled":             input.CcEnabled,
 			"cc_balance_adjustments": ccAdjustments,
 		},
@@ -110,13 +112,15 @@ func (s *ClientService) Update(ctx context.Context, id string, input repositorie
 
 	if err := s.auditRepo.InsertTx(ctx, tx, "client", &id, "update",
 		map[string]interface{}{
-			"first_name": before.FirstName,
-			"last_name":  before.LastName,
-			"cc_enabled": before.CcEnabled,
+			"first_name":  before.FirstName,
+			"last_name":   before.LastName,
+			"department":  before.Department,
+			"cc_enabled":  before.CcEnabled,
 		},
 		map[string]interface{}{
 			"first_name":             input.FirstName,
 			"last_name":              input.LastName,
+			"department":             input.Department,
 			"cc_enabled":             input.CcEnabled,
 			"cc_balance_adjustments": ccAdjustments,
 		},
@@ -137,6 +141,11 @@ func validateClientInput(input *repositories.ClientInput) error {
 	input.AddressFloor = strings.TrimSpace(input.AddressFloor)
 	input.ReferenceContact = strings.TrimSpace(input.ReferenceContact)
 	input.ReferredBy = strings.TrimSpace(input.ReferredBy)
+	input.Department = strings.TrimSpace(input.Department)
+	if utf8.RuneCountInString(input.Department) > 255 {
+		rs := []rune(input.Department)
+		input.Department = string(rs[:255])
+	}
 
 	if input.FirstName == "" || input.LastName == "" || input.Phone == "" ||
 		input.DNI == "" || input.AddressStreet == "" || input.AddressNumber == "" ||
