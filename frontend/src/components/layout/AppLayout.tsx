@@ -33,7 +33,7 @@ export default function AppLayout() {
       navigate(-1);
       return;
     }
-    navigate('/inicio');
+    navigate('/inicio', { replace: true });
   }
 
   function handleNewOperationClick() {
