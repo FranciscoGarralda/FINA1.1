@@ -53,6 +53,27 @@ export DATABASE_URL='...'
 
 **Pre-deploy en Railway:** opcional; la regla por defecto del proyecto es **migrar antes de tráfico**, sea manual o automatizada.
 
+### 3.1 Usuario de login en producción (bootstrap desde tu Mac)
+
+Las migraciones **no** insertan usuarios. La base local y la de Railway son **independientes**: cambiar contraseña en local **no** actualiza producción.
+
+Para crear o actualizar un usuario (bcrypt igual que el API) **desde tu computadora**, contra la misma Postgres que uses en prod:
+
+1. En Railway → **Postgres** → Variables: para conectar **desde fuera** de Railway usá **`DATABASE_PUBLIC_URL`** (host público tipo `*.rlwy.net`). La URL con `postgres.railway.internal` solo sirve **entre servicios dentro de Railway**.
+2. En la terminal (no pegar la URL en chats):
+
+```bash
+cd backend
+export DATABASE_URL='pegar DATABASE_PUBLIC_URL aquí'
+export BOOTSTRAP_USERNAME='tu_usuario'
+export BOOTSTRAP_PASSWORD='tu_contraseña'
+export BOOTSTRAP_ROLE='SUPERADMIN'   # opcional; default SUPERADMIN
+export BOOTSTRAP_CONFIRM='yes'
+go run ./cmd/upsert-login-user
+```
+
+Si el usuario ya existe, se actualiza `password_hash`, rol, activo y se limpian bloqueos / intentos fallidos. Si no existe, se inserta. Requiere `BOOTSTRAP_CONFIRM=yes` para evitar ejecuciones accidentales.
+
 ## 4. Docker y build
 
 - Raíz del repo: `docker build -f backend/Dockerfile .`
