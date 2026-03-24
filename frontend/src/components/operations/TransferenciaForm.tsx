@@ -8,7 +8,14 @@ import { allowedFormatsFromList, formatLabel } from '../../utils/accountCurrency
 interface Account { id: string; name: string; active: boolean; }
 interface AccountCurrency { currency_id: string; currency_code: string; cash_enabled: boolean; digital_enabled: boolean; }
 
-interface Props { movementId: string; clientId: string; onDone: () => void; onCancel: () => void; }
+interface Props {
+  movementId: string;
+  clientId: string;
+  /** Si false, no hay impacto CC: el resumen no muestra montos en CC (alineado al backend). */
+  clientCcEnabled: boolean;
+  onDone: () => void;
+  onCancel: () => void;
+}
 
 interface TransferState {
   account_id: string;
@@ -138,7 +145,7 @@ function mapDraft(draft: TransferenciaDraftData | LegacyTransferenciaDraftData):
   };
 }
 
-export default function TransferenciaForm({ movementId, clientId: _clientId, onDone, onCancel }: Props) {
+export default function TransferenciaForm({ movementId, clientId: _clientId, clientCcEnabled, onDone, onCancel }: Props) {
   const localDraftKey = `transferencia_local_draft:${movementId}`;
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [acCache, setAcCache] = useState<Record<string, AccountCurrency[]>>({});
@@ -315,8 +322,10 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, onD
       totals[currencyId][bucket] = roundTo(totals[currencyId][bucket] + amount, 2);
     };
 
-    add(outLeg.currency_id, outCurrCode, 'cc', -outAbs);
-    add(inLeg.currency_id, inCurrCode, 'cc', inAbs);
+    if (clientCcEnabled) {
+      add(outLeg.currency_id, outCurrCode, 'cc', -outAbs);
+      add(inLeg.currency_id, inCurrCode, 'cc', inAbs);
+    }
 
     add(outLeg.currency_id, outCurrCode, 'real', outLeg.settlement === 'REAL' ? -outAbs : 0);
     add(inLeg.currency_id, inCurrCode, 'real', inLeg.settlement === 'REAL' ? inAbs : 0);
@@ -325,13 +334,16 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, onD
     add(inLeg.currency_id, inCurrCode, 'pending', inLeg.settlement === 'PENDIENTE' ? inAbs : 0);
 
     if (feeEnabled && expectedFee > 0 && feeCurrCode) {
-      add(feeCurrencyId, feeCurrCode, 'cc', feeAmountSigned);
+      if (clientCcEnabled) {
+        add(feeCurrencyId, feeCurrCode, 'cc', feeAmountSigned);
+      }
       add(feeCurrencyId, feeCurrCode, 'real', feeRealSigned);
       add(feeCurrencyId, feeCurrCode, 'pending', feePendingSigned);
     }
 
     return Object.values(totals);
   }, [
+    clientCcEnabled,
     outLeg.currency_id, outCurrCode, outAbs, outLeg.settlement,
     inLeg.currency_id, inCurrCode, inAbs, inLeg.settlement,
     feeEnabled, expectedFee, feeCurrCode, feeCurrencyId, feeAmountSigned, feeRealSigned, feePendingSigned,
@@ -770,7 +782,13 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, onD
               </>
             )}
             <span className="border-t border-gray-200 pt-1 font-semibold">Impacto comercial (CC):</span>
-            <span className="border-t border-gray-200 pt-1 font-semibold">{feeEnabled ? feeImpactLabel : 'Sin comisión'}</span>
+            <span className="border-t border-gray-200 pt-1 font-semibold">
+              {!clientCcEnabled
+                ? 'No aplica (cliente sin CC habilitada)'
+                : feeEnabled
+                  ? feeImpactLabel
+                  : 'Sin comisión'}
+            </span>
             <span>Impacto real ahora:</span>
             <span>Solo patas/commission en REAL</span>
             <span>Pendiente operativo:</span>
@@ -804,7 +822,7 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, onD
               {totalsByCurrency.map((row) => (
                 <div key={row.code} className="grid grid-cols-4 gap-2 font-mono text-gray-700 text-xs sm:text-sm">
                   <span className="font-semibold">{row.code}</span>
-                  <span>CC: {formatMoneyAR(row.cc)}</span>
+                  <span>CC: {clientCcEnabled ? formatMoneyAR(row.cc) : '—'}</span>
                   <span>Real ahora: {formatMoneyAR(row.real)}</span>
                   <span>Pendiente: {formatMoneyAR(row.pending)}</span>
                 </div>

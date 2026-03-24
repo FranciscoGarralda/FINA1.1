@@ -2,12 +2,17 @@ package services
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"fina/internal/repositories"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// ErrCCNotEnabledForClient se devuelve si se intenta aplicar un asiento CC a un cliente con cc_enabled=false.
+var ErrCCNotEnabledForClient = errors.New("CC_NOT_ENABLED_FOR_CLIENT")
 
 type CCService struct {
 	pool      *pgxpool.Pool
@@ -30,6 +35,21 @@ type ApplyCCEntryInput struct {
 // ApplyEntry creates a cc_entry and atomically updates cc_balances within a transaction.
 // The signed amount is applied as-is (negative = increase debt, positive = reduce debt).
 func (s *CCService) ApplyEntry(ctx context.Context, tx pgx.Tx, input ApplyCCEntryInput, callerID string) (string, error) {
+	var ccEnabled bool
+	err := tx.QueryRow(ctx,
+		`SELECT COALESCE(cc_enabled, false) FROM clients WHERE id = $1::uuid`,
+		input.ClientID,
+	).Scan(&ccEnabled)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", fmt.Errorf("cliente no encontrado para CC: %w", err)
+		}
+		return "", err
+	}
+	if !ccEnabled {
+		return "", ErrCCNotEnabledForClient
+	}
+
 	newBalance, err := s.ccRepo.ApplyCCEntry(ctx, tx, input.ClientID, input.CurrencyID, input.Amount, input.MovementID, input.Note)
 	if err != nil {
 		return "", err

@@ -23,6 +23,8 @@ interface PendingItem {
   account_name: string;
   cc_enabled: boolean;
   created_at: string;
+  /** Tipo de movimiento (COMPRA, VENTA, …): para etiquetar pendientes según operación */
+  movement_type?: string;
 }
 
 interface Account {
@@ -37,7 +39,12 @@ interface SettingsMap {
 
 type ResolveMode = 'REAL_EXECUTION' | 'COMPENSATED';
 
-function pendingTypeLabel(type: string) {
+function pendingTypeLabel(type: string, movementType?: string) {
+  // VENTA: salida (divisa vendida) = entrega al cliente; entrada (cobro) = retiro del cliente hacia la casa
+  if (movementType === 'VENTA') {
+    if (type === 'PENDIENTE_DE_RETIRO') return 'Entrega';
+    if (type === 'PENDIENTE_DE_PAGO') return 'Retiro';
+  }
   if (type === 'PENDIENTE_DE_PAGO') return 'Pago';
   if (type === 'PENDIENTE_DE_RETIRO') return 'Retiro';
   if (type === 'PENDIENTE_DE_COBRO_COMISION') return 'Cobro comisión';
@@ -141,7 +148,7 @@ export default function PendientesPage() {
                         ? 'bg-blue-50 text-blue-700'
                         : 'bg-orange-50 text-orange-700'
                     }`}>
-                      {pendingTypeLabel(item.type)}
+                      {pendingTypeLabel(item.type, item.movement_type)}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(item.amount)}</td>

@@ -703,8 +703,19 @@ export default function NuevaOperacionPage() {
         return <GastoForm key={key} movementId={movementId} onDone={handleDone} onCancel={handleCancelDraft} />;
       case 'PAGO_CC_CRUZADO':
         return <PagoCCCruzadoForm key={key} movementId={movementId} clientId={clientId} onDone={handleDone} onCancel={handleCancelDraft} />;
-      case 'TRANSFERENCIA':
-        return <TransferenciaForm key={key} movementId={movementId} clientId={clientId} onDone={handleDone} onCancel={handleCancelDraft} />;
+      case 'TRANSFERENCIA': {
+        const sel = clients.find((c) => c.id === clientId);
+        return (
+          <TransferenciaForm
+            key={key}
+            movementId={movementId}
+            clientId={clientId}
+            clientCcEnabled={sel?.cc_enabled ?? false}
+            onDone={handleDone}
+            onCancel={handleCancelDraft}
+          />
+        );
+      }
       case 'TRASPASO_DEUDA_CC':
         return <TraspasoDeudaCCForm key={key} movementId={movementId} clientId={clientId} onDone={handleDone} onCancel={handleCancelDraft} />;
       default:

@@ -134,6 +134,7 @@ func (s *VentaService) Execute(ctx context.Context, movementID string, input Ven
 	}
 
 	if outPending {
+		// PENDIENTE_DE_RETIRO en OUT: pendiente de entregar divisa vendida al cliente (etiqueta VENTA: "Entrega").
 		_, err = s.operationRepo.InsertPendingItem(ctx, tx, outLineID, "PENDIENTE_DE_RETIRO",
 			clientID, input.Out.CurrencyID, input.Out.Amount)
 		if err != nil {
@@ -156,6 +157,7 @@ func (s *VentaService) Execute(ctx context.Context, movementID string, input Ven
 		}
 
 		if inPending {
+			// PENDIENTE_DE_PAGO en IN: pendiente de cobro/retiro en caja (etiqueta VENTA: "Retiro" hacia la casa).
 			_, err = s.operationRepo.InsertPendingItem(ctx, tx, inLineID, "PENDIENTE_DE_PAGO",
 				clientID, input.Quote.CurrencyID, in_.Amount)
 			if err != nil {

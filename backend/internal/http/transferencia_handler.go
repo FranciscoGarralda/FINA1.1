@@ -107,6 +107,9 @@ func mapTransferenciaError(w http.ResponseWriter, err error) {
 	case errors.Is(err, services.ErrMovementTypeMismatch):
 		RespondError(w, http.StatusBadRequest, "TYPE_MISMATCH",
 			"El movimiento no es de tipo TRANSFERENCIA.")
+	case errors.Is(err, services.ErrCCNotEnabledForClient):
+		RespondError(w, http.StatusBadRequest, "CC_NOT_ENABLED_FOR_CLIENT",
+			"El cliente no tiene cuenta corriente habilitada; no puede aplicarse impacto CC.")
 	default:
 		handleOperationError(w, err)
 	}

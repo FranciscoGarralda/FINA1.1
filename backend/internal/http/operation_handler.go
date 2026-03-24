@@ -206,6 +206,9 @@ func handleOperationError(w http.ResponseWriter, err error) {
 		RespondError(w, http.StatusNotImplemented, "NOT_IMPLEMENTED", "Este tipo de operación aún no está implementado.")
 	case errors.Is(err, repositories.ErrNotFound):
 		RespondError(w, http.StatusNotFound, "NOT_FOUND", "Recurso no encontrado.")
+	case errors.Is(err, services.ErrCCNotEnabledForClient):
+		RespondError(w, http.StatusBadRequest, "CC_NOT_ENABLED_FOR_CLIENT",
+			"El cliente no tiene cuenta corriente habilitada; no puede aplicarse impacto CC.")
 	default:
 		RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Error interno del servidor.")
 	}

@@ -22,6 +22,7 @@ type PendingListItem struct {
 	MovementLineID  string    `json:"movement_line_id"`
 	MovementID      string    `json:"movement_id"`
 	OperationNumber int64     `json:"operation_number"`
+	MovementType    string    `json:"movement_type"`
 	Type            string    `json:"type"`
 	Status          string    `json:"status"`
 	ClientID        string    `json:"client_id"`
@@ -55,7 +56,7 @@ type PendingDetail struct {
 func (r *PendingRepo) ListOpen(ctx context.Context) ([]PendingListItem, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT pi.id::text, pi.movement_line_id::text, ml.movement_id::text,
-		        m.operation_number, pi.type, pi.status,
+		        m.operation_number, m.type, pi.type, pi.status,
 		        pi.client_id::text,
 		        cl.last_name || ', ' || cl.first_name,
 		        cl.address_street, cl.address_number, cl.address_floor,
@@ -83,7 +84,7 @@ func (r *PendingRepo) ListOpen(ctx context.Context) ([]PendingListItem, error) {
 		var item PendingListItem
 		if err := rows.Scan(
 			&item.ID, &item.MovementLineID, &item.MovementID,
-			&item.OperationNumber, &item.Type, &item.Status,
+			&item.OperationNumber, &item.MovementType, &item.Type, &item.Status,
 			&item.ClientID, &item.ClientName,
 			&item.AddressStreet, &item.AddressNumber, &item.AddressFloor,
 			&item.Phone,

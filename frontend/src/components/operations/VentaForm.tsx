@@ -438,7 +438,7 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
         </div>
         <label className="flex items-center gap-2 mt-2 text-sm">
           <input type="checkbox" checked={outPending} onChange={(e) => setOutPending(e.target.checked)} disabled={!canOutPending()} />
-          <span className={canOutPending() ? 'text-gray-700' : 'text-gray-400'}>Pendiente de retiro</span>
+          <span className={canOutPending() ? 'text-gray-700' : 'text-gray-400'}>Pendiente de entrega</span>
         </label>
       </fieldset>
 
@@ -529,7 +529,7 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
                 onChange={(e) => updateIn(inLine.key, { pendingCash: e.target.checked })}
                 disabled={!canInPending(inLine)}
               />
-              <span className={canInPending(inLine) ? 'text-gray-700' : 'text-gray-400'}>Pendiente de pago</span>
+              <span className={canInPending(inLine) ? 'text-gray-700' : 'text-gray-400'}>Pendiente de retiro</span>
             </label>
             {inLine.accountId && quoteCurrencyId && !validateInCurrencyOnAccount(inLine.key) && (
               <p className="text-xs text-red-500 mt-1">La divisa/formato no está habilitada para esta cuenta.</p>
