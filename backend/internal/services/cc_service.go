@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"fina/internal/repositories"
 
@@ -80,4 +81,12 @@ func (s *CCService) GetClientBalances(ctx context.Context, clientID string) ([]r
 
 func (s *CCService) GetEntries(ctx context.Context, clientID, currencyID string) ([]repositories.CCEntryItem, error) {
 	return s.ccRepo.ListEntries(ctx, clientID, currencyID)
+}
+
+func (s *CCService) GetClientCodeForExport(ctx context.Context, clientID string) (int64, error) {
+	return s.ccRepo.GetClientCodeForExport(ctx, clientID)
+}
+
+func (s *CCService) ListEntriesForExport(ctx context.Context, clientID string, fromDate, toDate time.Time) ([]repositories.CCEntryExportRow, error) {
+	return s.ccRepo.ListEntriesForExport(ctx, clientID, fromDate, toDate)
 }

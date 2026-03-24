@@ -47,6 +47,51 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
+/** Descarga binaria/texto con el mismo token que `api` (CSV, adjuntos). */
+export async function downloadAuthenticated(path: string, fallbackFilename: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}${path}`, { headers });
+
+  if (res.status === 401) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('permissions');
+    window.location.href = '/login';
+    throw new Error('Unauthorized');
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    let message = text || `Error ${res.status}`;
+    try {
+      const data = JSON.parse(text) as { message?: string };
+      if (data?.message) message = data.message;
+    } catch {
+      /* usar texto crudo */
+    }
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  const cd = res.headers.get('Content-Disposition');
+  let filename = fallbackFilename;
+  const quoted = cd?.match(/filename="([^"]+)"/i);
+  const star = cd?.match(/filename\*=UTF-8''([^;\s]+)/i);
+  if (quoted?.[1]) filename = quoted[1];
+  else if (star?.[1]) filename = decodeURIComponent(star[1]);
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
   put: <T>(path: string, body: unknown) => request<T>('PUT', path, body),

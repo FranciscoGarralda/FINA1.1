@@ -128,6 +128,7 @@ func NewRouter(pool *pgxpool.Pool, jwtSecret string) http.Handler {
 	// CC / Posiciones
 	mux.Handle("GET /api/cc-balances", RequirePermission(jwtSecret, userPermissionsSvc, "cc.view", ccViewRoles, http.HandlerFunc(listCCBalancesHandler(ccSvc))))
 	mux.Handle("GET /api/cc-balances/{client_id}", RequirePermission(jwtSecret, userPermissionsSvc, "cc.view", ccViewRoles, http.HandlerFunc(getClientCCBalancesHandler(ccSvc))))
+	mux.Handle("GET /api/cc-entries/export.csv", RequirePermission(jwtSecret, userPermissionsSvc, "cc.export_csv", ccViewRoles, http.HandlerFunc(exportCCEntriesCSVHandler(ccSvc))))
 	mux.Handle("GET /api/cc-entries", RequirePermission(jwtSecret, userPermissionsSvc, "cc.view", ccViewRoles, http.HandlerFunc(listCCEntriesHandler(ccSvc))))
 
 	// Movements

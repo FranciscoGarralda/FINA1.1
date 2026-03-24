@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -37,6 +38,17 @@ type CCEntryItem struct {
 	OperationNumber *int64    `json:"operation_number"`
 	Note            *string   `json:"note"`
 	CreatedAt       time.Time `json:"created_at"`
+}
+
+// CCEntryExportRow filas del CSV de export (solo asientos CC del cliente; filtro por fecha de operación).
+type CCEntryExportRow struct {
+	CreatedAt       time.Time
+	MovementDate    time.Time
+	MovementType    string
+	OperationNumber *int64
+	CurrencyCode    string
+	Amount          string
+	Note            string
 }
 
 // ApplyCCEntry atomically upserts cc_balances and inserts a cc_entry within the given transaction.
@@ -164,4 +176,44 @@ func (r *CCRepo) ListEntries(ctx context.Context, clientID, currencyID string) (
 		items = append(items, item)
 	}
 	return items, rows.Err()
+}
+
+// GetClientCodeForExport devuelve client_code si el cliente existe.
+func (r *CCRepo) GetClientCodeForExport(ctx context.Context, clientID string) (int64, error) {
+	var code int64
+	err := r.pool.QueryRow(ctx, `SELECT client_code FROM clients WHERE id = $1::uuid`, clientID).Scan(&code)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, ErrNotFound
+		}
+		return 0, err
+	}
+	return code, nil
+}
+
+// ListEntriesForExport lista cc_entries del cliente entre fechas de operación (movements.date), todas las divisas.
+func (r *CCRepo) ListEntriesForExport(ctx context.Context, clientID string, fromDate, toDate time.Time) ([]CCEntryExportRow, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT ce.created_at, m.date, m.type, m.operation_number, c.code, ce.amount::text, COALESCE(ce.note, '')
+		 FROM cc_entries ce
+		 JOIN movements m ON m.id = ce.movement_id
+		 JOIN currencies c ON c.id = ce.currency_id
+		 WHERE ce.client_id = $1::uuid
+		   AND m.date >= $2::date AND m.date <= $3::date
+		 ORDER BY ce.created_at ASC, ce.id ASC`,
+		clientID, fromDate, toDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []CCEntryExportRow
+	for rows.Next() {
+		var row CCEntryExportRow
+		if err := rows.Scan(&row.CreatedAt, &row.MovementDate, &row.MovementType, &row.OperationNumber, &row.CurrencyCode, &row.Amount, &row.Note); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
 }

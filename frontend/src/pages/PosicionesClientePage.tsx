@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '../api/client';
+import { api, downloadAuthenticated } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import { formatMoneyAR } from '../utils/money';
+
+function toLocalISODate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 interface CurrencyBalance {
   currency_id: string;
@@ -21,12 +29,20 @@ interface CCEntry {
 export default function PosicionesClientePage() {
   const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
+  const { can } = useAuth();
+  const canExportCsv = can('cc.export_csv', ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR']);
 
   const [balances, setBalances] = useState<CurrencyBalance[]>([]);
   const [entries, setEntries] = useState<CCEntry[]>([]);
   const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingEntries, setLoadingEntries] = useState(false);
+  const [exportFrom, setExportFrom] = useState(() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [exportTo, setExportTo] = useState(() => toLocalISODate(new Date()));
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!clientId) return;
@@ -71,6 +87,24 @@ export default function PosicionesClientePage() {
 
   const selectedCode = balances.find((b) => b.currency_id === selectedCurrency)?.currency_code ?? '';
 
+  async function handleExportCsv() {
+    if (!clientId) return;
+    setExporting(true);
+    try {
+      const q = new URLSearchParams({
+        client_id: clientId,
+        from: exportFrom,
+        to: exportTo,
+      });
+      await downloadAuthenticated(`/cc-entries/export.csv?${q.toString()}`, 'cc_export.csv');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'No se pudo exportar.';
+      window.alert(msg);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div>
       <button
@@ -88,6 +122,36 @@ export default function PosicionesClientePage() {
         <p className="text-gray-500 text-sm">Este cliente no tiene posiciones CC.</p>
       ) : (
         <>
+          {canExportCsv && (
+            <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Desde</label>
+                <input
+                  type="date"
+                  value={exportFrom}
+                  onChange={(e) => setExportFrom(e.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
+                <input
+                  type="date"
+                  value={exportTo}
+                  onChange={(e) => setExportTo(e.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleExportCsv()}
+                disabled={exporting}
+                className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {exporting ? 'Exportando…' : 'Exportar CSV CC'}
+              </button>
+            </div>
+          )}
           <div className="mb-6">
             <h3 className="text-sm font-medium text-gray-600 mb-2">Balances</h3>
             <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
