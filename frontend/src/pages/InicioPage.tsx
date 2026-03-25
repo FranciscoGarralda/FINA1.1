@@ -196,7 +196,7 @@ export default function InicioPage() {
             <Link to="/reportes" className="text-blue-600 hover:text-blue-800">
               Ir a Reportes
             </Link>{' '}
-            para rangos, estimado en divisa base y cotizaciones manuales.
+            para otros rangos y el detalle por divisa.
           </p>
         )}
       </div>

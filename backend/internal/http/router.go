@@ -51,8 +51,7 @@ func NewRouter(pool *pgxpool.Pool, jwtSecret string) http.Handler {
 	pagoCCSvc := services.NewPagoCCCruzadoService(pool, operationRepo, ccSvc, auditRepo)
 	transferenciaSvc := services.NewTransferenciaService(pool, operationRepo, ccSvc, auditRepo)
 	traspasoDeudaCCSvc := services.NewTraspasoDeudaCCService(pool, operationRepo, ccSvc, auditRepo)
-	fxQuoteRepo := repositories.NewFXQuoteRepo(pool)
-	reportesSvc := services.NewReportesService(pool, fxQuoteRepo)
+	reportesSvc := services.NewReportesService(pool)
 	cashPosRepo := repositories.NewCashPositionRepo(pool)
 	cashPosSvc := services.NewCashPositionService(cashPosRepo)
 	cashArqueoRepo := repositories.NewCashArqueoRepo(pool)
@@ -173,13 +172,8 @@ func NewRouter(pool *pgxpool.Pool, jwtSecret string) http.Handler {
 	mux.Handle("GET /api/cash-arqueos/system-totals", RequirePermission(jwtSecret, userPermissionsSvc, "cash_arqueo.view", cashPositionRoles, http.HandlerFunc(cashArqueoSystemTotalsHandler(cashArqueoSvc))))
 	mux.Handle("POST /api/cash-arqueos", RequirePermission(jwtSecret, userPermissionsSvc, "cash_arqueo.create", cashPositionRoles, http.HandlerFunc(createCashArqueoHandler(cashArqueoSvc))))
 
-	// Manual FX Quotes
-	reportRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN"}
-	mux.Handle("GET /api/manual-fx-quotes", RequirePermission(jwtSecret, userPermissionsSvc, "manual_fx_quotes.view", reportRoles, http.HandlerFunc(listFXQuotesHandler(fxQuoteRepo))))
-	mux.Handle("POST /api/manual-fx-quotes", RequirePermission(jwtSecret, userPermissionsSvc, "manual_fx_quotes.edit", reportRoles, http.HandlerFunc(createFXQuoteHandler(fxQuoteRepo))))
-	mux.Handle("PUT /api/manual-fx-quotes/{id}", RequirePermission(jwtSecret, userPermissionsSvc, "manual_fx_quotes.edit", reportRoles, http.HandlerFunc(updateFXQuoteHandler(fxQuoteRepo))))
-
 	// Reportes
+	reportRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN"}
 	mux.Handle("GET /api/reportes", RequirePermission(jwtSecret, userPermissionsSvc, "reportes.view", reportRoles, http.HandlerFunc(reportesHandler(reportesSvc))))
 
 	// Permissions matrix (SUPERADMIN by default)

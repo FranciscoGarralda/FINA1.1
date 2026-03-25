@@ -21,7 +21,7 @@ Si `date` se omite, el servidor usa la fecha UTC actual (`time.Now().UTC()`), al
 
 ## Qué no es
 
-- No sustituye el módulo **Reportes** (rangos largos, estimado en divisa base, edición de cotizaciones).
+- No sustituye el módulo **Reportes** (otros rangos y vistas por divisa).
 - La **posición de caja** en Inicio sigue siendo `GET /api/cash-position` (permiso `cash_position.view`), solo en el bloque desplegable.
 
 ## Archivos relevantes

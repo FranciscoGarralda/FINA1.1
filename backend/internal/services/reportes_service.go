@@ -6,18 +6,15 @@ import (
 	"math/big"
 	"time"
 
-	"fina/internal/repositories"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type ReportesService struct {
-	pool        *pgxpool.Pool
-	fxQuoteRepo *repositories.FXQuoteRepo
+	pool *pgxpool.Pool
 }
 
-func NewReportesService(pool *pgxpool.Pool, fxQuoteRepo *repositories.FXQuoteRepo) *ReportesService {
-	return &ReportesService{pool: pool, fxQuoteRepo: fxQuoteRepo}
+func NewReportesService(pool *pgxpool.Pool) *ReportesService {
+	return &ReportesService{pool: pool}
 }
 
 type CurrencyAmount struct {
@@ -26,39 +23,18 @@ type CurrencyAmount struct {
 	Amount       string `json:"amount"`
 }
 
-type UsedQuote struct {
-	FromCurrencyCode string    `json:"from_currency_code"`
-	ToCurrencyCode   string    `json:"to_currency_code"`
-	Rate             string    `json:"rate"`
-	UpdatedAt        time.Time `json:"updated_at"`
-}
-
-type MissingQuote struct {
-	CurrencyCode string `json:"currency_code"`
-	Reason       string `json:"reason"`
-}
-
-type ReportEstimated struct {
-	BaseCurrencyCode string         `json:"base_currency_code"`
-	Total            string         `json:"total"`
-	Label            string         `json:"label"`
-	UsedQuotes       []UsedQuote    `json:"used_quotes"`
-	MissingQuotes    []MissingQuote `json:"missing_quotes"`
-}
-
 type ReportSection struct {
 	ByCurrency []CurrencyAmount `json:"by_currency"`
 }
 
 type ReportResponse struct {
-	Utilidad  ReportSection    `json:"utilidad"`
-	Profit    ReportSection    `json:"profit"`
-	Gastos    ReportSection    `json:"gastos"`
-	Resultado ReportSection    `json:"resultado"`
-	Estimated *ReportEstimated `json:"estimated,omitempty"`
+	Utilidad  ReportSection `json:"utilidad"`
+	Profit    ReportSection `json:"profit"`
+	Gastos    ReportSection `json:"gastos"`
+	Resultado ReportSection `json:"resultado"`
 }
 
-func (s *ReportesService) Generate(ctx context.Context, from, to string, baseCurrencyID string) (*ReportResponse, error) {
+func (s *ReportesService) Generate(ctx context.Context, from, to string) (*ReportResponse, error) {
 	utilidad, err := s.computeFXUtility(ctx, from, to)
 	if err != nil {
 		return nil, err
@@ -76,21 +52,12 @@ func (s *ReportesService) Generate(ctx context.Context, from, to string, baseCur
 
 	resultado := s.computeResultado(utilidad, profit, gastos)
 
-	resp := &ReportResponse{
+	return &ReportResponse{
 		Utilidad:  ReportSection{ByCurrency: mapToSlice(utilidad)},
 		Profit:    ReportSection{ByCurrency: mapToSlice(profit)},
 		Gastos:    ReportSection{ByCurrency: mapToSlice(gastos)},
 		Resultado: ReportSection{ByCurrency: mapToSlice(resultado)},
-	}
-
-	if baseCurrencyID != "" {
-		est, err := s.computeEstimated(ctx, resultado, baseCurrencyID)
-		if err == nil {
-			resp.Estimated = est
-		}
-	}
-
-	return resp, nil
+	}, nil
 }
 
 type currencyInfo struct {
@@ -380,78 +347,6 @@ func (s *ReportesService) computeResultado(utilidad, profit, gastos map[string]*
 	return result
 }
 
-func (s *ReportesService) computeEstimated(ctx context.Context, resultado map[string]*big.Rat, baseCurrencyID string) (*ReportEstimated, error) {
-	var baseCurrencyCode string
-	err := s.pool.QueryRow(ctx, `SELECT code FROM currencies WHERE id=$1`, baseCurrencyID).Scan(&baseCurrencyCode)
-	if err != nil {
-		return nil, err
-	}
-
-	activeQuotes, err := s.fxQuoteRepo.ListActiveMap(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	total := new(big.Rat)
-	var used []UsedQuote
-	var missing []MissingQuote
-
-	for currID, amt := range resultado {
-		if currID == baseCurrencyID {
-			total.Add(total, amt)
-
-			var code string
-			s.pool.QueryRow(ctx, `SELECT code FROM currencies WHERE id=$1`, currID).Scan(&code)
-			used = append(used, UsedQuote{
-				FromCurrencyCode: code,
-				ToCurrencyCode:   baseCurrencyCode,
-				Rate:             "1",
-				UpdatedAt:        time.Now(),
-			})
-			continue
-		}
-
-		q, ok := activeQuotes[currID]
-		if !ok {
-			var code string
-			s.pool.QueryRow(ctx, `SELECT code FROM currencies WHERE id=$1`, currID).Scan(&code)
-			missing = append(missing, MissingQuote{
-				CurrencyCode: code,
-				Reason:       "Sin cotización manual activa hacia " + baseCurrencyCode,
-			})
-			continue
-		}
-
-		if q.ToCurrencyID != baseCurrencyID {
-			var code string
-			s.pool.QueryRow(ctx, `SELECT code FROM currencies WHERE id=$1`, currID).Scan(&code)
-			missing = append(missing, MissingQuote{
-				CurrencyCode: code,
-				Reason:       "Cotización activa no apunta a " + baseCurrencyCode,
-			})
-			continue
-		}
-
-		rate, _ := new(big.Rat).SetString(q.Rate)
-		converted := new(big.Rat).Mul(amt, rate)
-		total.Add(total, converted)
-		used = append(used, UsedQuote{
-			FromCurrencyCode: q.FromCurrencyCode,
-			ToCurrencyCode:   q.ToCurrencyCode,
-			Rate:             q.Rate,
-			UpdatedAt:        q.UpdatedAt,
-		})
-	}
-
-	return &ReportEstimated{
-		BaseCurrencyCode: baseCurrencyCode,
-		Total:            total.FloatString(2),
-		Label:            "ESTIMADO con cotización manual (no contable)",
-		UsedQuotes:       used,
-		MissingQuotes:    missing,
-	}, nil
-}
-
 func mapToSlice(m map[string]*big.Rat) []CurrencyAmount {
 	if len(m) == 0 {
 		return []CurrencyAmount{}
@@ -469,13 +364,16 @@ func mapToSlice(m map[string]*big.Rat) []CurrencyAmount {
 	return items
 }
 
-func (s *ReportesService) GenerateWithCodes(ctx context.Context, from, to, baseCurrencyID string) (*ReportResponse, error) {
-	resp, err := s.Generate(ctx, from, to, baseCurrencyID)
+func (s *ReportesService) GenerateWithCodes(ctx context.Context, from, to string) (*ReportResponse, error) {
+	resp, err := s.Generate(ctx, from, to)
 	if err != nil {
 		return nil, err
 	}
 
-	codeMap, _ := s.loadCurrencyCodes(ctx)
+	codeMap, err := s.loadCurrencyCodes(ctx)
+	if err != nil {
+		return nil, err
+	}
 	enrichCodes(resp.Utilidad.ByCurrency, codeMap)
 	enrichCodes(resp.Profit.ByCurrency, codeMap)
 	enrichCodes(resp.Gastos.ByCurrency, codeMap)
@@ -494,10 +392,12 @@ func (s *ReportesService) loadCurrencyCodes(ctx context.Context) (map[string]str
 	m := make(map[string]string)
 	for rows.Next() {
 		var id, code string
-		rows.Scan(&id, &code)
+		if err := rows.Scan(&id, &code); err != nil {
+			return nil, err
+		}
 		m[id] = code
 	}
-	return m, nil
+	return m, rows.Err()
 }
 
 func enrichCodes(items []CurrencyAmount, codeMap map[string]string) {
@@ -545,11 +445,11 @@ func (s *ReportesService) DailySummary(ctx context.Context, referenceDate string
 	dayStr := t.Format("2006-01-02")
 	prevStr := t.AddDate(0, 0, -1).Format("2006-01-02")
 
-	refRep, err := s.GenerateWithCodes(ctx, dayStr, dayStr, "")
+	refRep, err := s.GenerateWithCodes(ctx, dayStr, dayStr)
 	if err != nil {
 		return nil, err
 	}
-	cmpRep, err := s.GenerateWithCodes(ctx, prevStr, prevStr, "")
+	cmpRep, err := s.GenerateWithCodes(ctx, prevStr, prevStr)
 	if err != nil {
 		return nil, err
 	}

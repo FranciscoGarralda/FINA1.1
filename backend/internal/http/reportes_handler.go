@@ -19,9 +19,7 @@ func reportesHandler(svc *services.ReportesService) http.HandlerFunc {
 			to = time.Now().Format("2006-01-02")
 		}
 
-		baseCurrencyID := r.URL.Query().Get("base_currency_id")
-
-		resp, err := svc.GenerateWithCodes(r.Context(), from, to, baseCurrencyID)
+		resp, err := svc.GenerateWithCodes(r.Context(), from, to)
 		if err != nil {
 			RespondError(w, http.StatusInternalServerError, "INTERNAL", "Error al generar reporte.")
 			return
