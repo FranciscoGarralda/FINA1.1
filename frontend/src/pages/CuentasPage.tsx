@@ -50,20 +50,20 @@ export default function CuentasPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">Cuentas</h2>
-        <div className="flex gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 min-w-0">
+        <h2 className="text-xl font-semibold text-gray-800 shrink-0">Cuentas</h2>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto min-w-0">
           <input
             type="text"
             placeholder="Buscar..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-48 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           {canCreate && (
             <button
               onClick={() => setModalAccount('new')}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium w-full sm:w-auto shrink-0"
             >
               + Nueva cuenta
             </button>
@@ -75,7 +75,7 @@ export default function CuentasPage() {
         <p className="text-gray-500">Cargando...</p>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden overflow-x-auto">
-          <table className="w-full min-w-[480px] text-sm">
+          <table className="w-full min-w-[440px] text-sm">
             <thead className="bg-gray-50">
               <tr className="text-left text-gray-500">
                 <th className="px-4 py-3 font-medium">Nombre</th>

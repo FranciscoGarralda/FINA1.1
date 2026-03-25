@@ -227,8 +227,8 @@ export default function CashArqueosPage() {
             </button>
             {loadingTotals && <p className="text-xs text-gray-400">Cargando saldos…</p>}
             {accountId && totals.length > 0 && (
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="border border-gray-200 rounded-lg overflow-x-auto">
+                <table className="w-full text-sm min-w-[280px]">
                   <thead>
                     <tr className="bg-gray-50 text-left text-gray-600 border-b">
                       <th className="px-3 py-2">Divisa</th>
@@ -327,7 +327,8 @@ export default function CashArqueosPage() {
                   <span className="text-gray-400 text-xs ml-2">{new Date(aq.created_at).toLocaleString('es-AR')}</span>
                   {aq.note && <p className="text-xs text-gray-600 mt-1">Nota: {aq.note}</p>}
                 </div>
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[320px]">
                   <thead>
                     <tr className="text-left text-gray-500 border-b">
                       <th className="px-4 py-2">Divisa</th>
@@ -352,6 +353,7 @@ export default function CashArqueosPage() {
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
             ))}
           </div>

@@ -154,31 +154,31 @@ export default function MovimientosPage() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4 items-end">
-        <div>
+      <div className="flex flex-wrap gap-3 mb-4 items-end min-w-0">
+        <div className="min-w-0 w-full sm:w-auto">
           <label className="block text-xs text-gray-500 mb-0.5">Desde</label>
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => { setDateFrom(e.target.value); }}
-            className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+            className="w-full min-w-0 max-w-full sm:max-w-none sm:w-auto border border-gray-300 rounded px-2 py-1.5 text-sm"
           />
         </div>
-        <div>
+        <div className="min-w-0 w-full sm:w-auto">
           <label className="block text-xs text-gray-500 mb-0.5">Hasta</label>
           <input
             type="date"
             value={dateTo}
             onChange={(e) => { setDateTo(e.target.value); }}
-            className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+            className="w-full min-w-0 max-w-full sm:max-w-none sm:w-auto border border-gray-300 rounded px-2 py-1.5 text-sm"
           />
         </div>
-        <div>
+        <div className="min-w-0 w-full sm:w-auto">
           <label className="block text-xs text-gray-500 mb-0.5">Tipo</label>
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+            className="w-full min-w-0 sm:w-auto border border-gray-300 rounded px-2 py-1.5 text-sm"
           >
             <option value="">Todos</option>
             <option value="COMPRA">Compra</option>
@@ -193,17 +193,17 @@ export default function MovimientosPage() {
             <option value="RETIRO_CAPITAL">Retiro capital</option>
           </select>
         </div>
-        <div>
+        <div className="min-w-0 w-full sm:w-auto flex-1 sm:flex-none sm:max-w-xs">
           <label className="block text-xs text-gray-500 mb-0.5">Cliente</label>
           <input
             type="text"
             placeholder="Buscar..."
             value={clientSearch}
             onChange={(e) => setClientSearch(e.target.value)}
-            className="border border-gray-300 rounded px-2 py-1.5 text-sm w-36"
+            className="w-full min-w-0 border border-gray-300 rounded px-2 py-1.5 text-sm sm:w-36"
           />
         </div>
-        <div>
+        <div className="min-w-0 w-full sm:w-auto">
           <label className="block text-xs text-gray-500 mb-0.5">Ordenar</label>
           <select
             value={`${sortBy}_${sortDir}`}
@@ -212,7 +212,7 @@ export default function MovimientosPage() {
               setSortBy(sb);
               setSortDir(sd);
             }}
-            className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+            className="w-full min-w-0 sm:w-auto border border-gray-300 rounded px-2 py-1.5 text-sm"
           >
             <option value="_desc">Más recientes</option>
             <option value="date_desc">Fecha ↓</option>
@@ -223,7 +223,7 @@ export default function MovimientosPage() {
         </div>
         <button
           onClick={handleFilterApply}
-          className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition"
+          className="w-full sm:w-auto px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition"
         >
           Filtrar
         </button>
@@ -319,11 +319,11 @@ export default function MovimientosPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <span className="text-sm text-gray-500">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4 min-w-0">
+              <span className="text-sm text-gray-500 break-words">
                 Página {data.page} de {totalPages} — {data.total} resultados
               </span>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage(page - 1)}

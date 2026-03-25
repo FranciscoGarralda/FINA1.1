@@ -72,12 +72,12 @@ export default function PosicionesPage() {
               className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm cursor-pointer transition"
               onClick={() => navigate(`/posiciones/${client.client_id}`)}
             >
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <span className="font-medium text-gray-800">
+              <div className="flex flex-wrap items-start justify-between gap-2 mb-2 min-w-0">
+                <div className="min-w-0">
+                  <span className="font-medium text-gray-800 break-words">
                     {client.last_name}, {client.first_name}
                   </span>
-                  <span className="ml-2 text-xs text-gray-400">#{client.client_code}</span>
+                  <span className="ml-2 text-xs text-gray-400 shrink-0">#{client.client_code}</span>
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">

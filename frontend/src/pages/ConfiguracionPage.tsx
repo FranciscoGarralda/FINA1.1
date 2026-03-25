@@ -16,15 +16,15 @@ export default function ConfiguracionPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-6 min-w-0">
         <h2 className="text-xl font-semibold text-gray-800">Configuración</h2>
         {!canEditSettings && (
-          <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">Solo lectura</span>
+          <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded shrink-0 self-start sm:self-auto">Solo lectura</span>
         )}
       </div>
 
       <div className="border-b border-gray-200 mb-6">
-        <nav className="flex gap-6">
+        <nav className="flex flex-wrap gap-4 sm:gap-6">
           {visibleTabs.map((tab) => (
             <button
               key={tab}

@@ -14,7 +14,6 @@ const NAV_ITEMS = [
   { to: '/caja-arqueos',    label: 'Arqueos caja',    permission: 'cash_arqueo.view' },
   { to: '/divisas',         label: 'Divisas',         permission: 'currencies.view' },
   { to: '/usuarios',        label: 'Usuarios',        permission: 'users.view' },
-  { to: '/auditoria',       label: 'Auditoría',       permission: 'audit.view' },
   { to: '/configuracion',   label: 'Configuración',   permission: 'settings.view' },
   { to: '/mi-perfil',       label: 'Mi perfil',       permission: 'profile.view' },
 ];

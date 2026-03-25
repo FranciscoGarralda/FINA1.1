@@ -16,7 +16,6 @@ import ClientesPage from './pages/ClientesPage';
 import CuentasPage from './pages/CuentasPage';
 import DivisasPage from './pages/DivisasPage';
 import UsuariosPage from './pages/UsuariosPage';
-import AuditoriaPage from './pages/AuditoriaPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
 import MiPerfilPage from './pages/MiPerfilPage';
 import AppLayout from './components/layout/AppLayout';
@@ -215,14 +214,6 @@ export default function App() {
           element={
             <ProtectedRoute requiredPermission="users.view" fallbackRoles={['SUPERADMIN', 'ADMIN', 'SUBADMIN']}>
               <UsuariosPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/auditoria"
-          element={
-            <ProtectedRoute requiredPermission="audit.view" fallbackRoles={['SUPERADMIN', 'ADMIN', 'SUBADMIN']}>
-              <AuditoriaPage />
             </ProtectedRoute>
           }
         />

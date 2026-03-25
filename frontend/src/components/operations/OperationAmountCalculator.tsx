@@ -45,9 +45,9 @@ export default function OperationAmountCalculator({ onApply }: Props) {
 
   return (
     <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 p-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2 min-w-0">
         <p className="text-xs font-semibold text-gray-600">Calculadora rápida</p>
-        <span className="text-[11px] text-gray-500">Solo aplica al campo Monto</span>
+        <span className="text-[11px] text-gray-500 shrink-0">Solo aplica al campo Monto</span>
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_160px_minmax(0,1fr)_minmax(0,1fr)_170px]">

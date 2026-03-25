@@ -220,7 +220,6 @@ var permissionCatalog = []repositories.PermissionCatalogItem{
 	{Key: "pending.resolve", Module: "pending", Label: "Resolver pendientes"},
 	{Key: "pending.cancel", Module: "pending", Label: "Cancelar pendientes"},
 	{Key: "reportes.view", Module: "reportes", Label: "Ver reportes"},
-	{Key: "audit.view", Module: "audit", Label: "Ver auditoría"},
 	{Key: "profile.view", Module: "profile", Label: "Ver perfil"},
 	{Key: "profile.change_password", Module: "profile", Label: "Cambiar contraseña propia"},
 	{Key: "profile.change_pin", Module: "profile", Label: "Cambiar PIN propio"},
@@ -264,7 +263,6 @@ func init() {
 		"operations.gasto.execute", "operations.pago_cc_cruzado.execute", "operations.traspaso_deuda_cc.execute",
 		"pending.view", "pending.resolve", "pending.cancel",
 		"reportes.view",
-		"audit.view",
 		"profile.view", "profile.change_password",
 		"cash_position.view", "cash_arqueo.view", "cash_arqueo.create",
 	)
@@ -286,7 +284,6 @@ func init() {
 		"operations.gasto.execute", "operations.pago_cc_cruzado.execute", "operations.traspaso_deuda_cc.execute",
 		"pending.view", "pending.resolve", "pending.cancel",
 		"reportes.view",
-		"audit.view",
 		"profile.view", "profile.change_password",
 		"cash_position.view", "cash_arqueo.view", "cash_arqueo.create",
 	)

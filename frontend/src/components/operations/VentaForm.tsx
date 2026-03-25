@@ -476,7 +476,7 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
         <legend className="text-sm font-semibold text-gray-700 mb-2">Entrada (ENTRA)</legend>
         {ins.map((inLine, idx) => (
           <div key={inLine.key} className="border border-gray-200 rounded-lg p-3 mb-3">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2 min-w-0">
               <span className="text-xs text-gray-400">Línea {idx + 1}</span>
               {ins.length > 1 && (
                 <button onClick={() => removeInLine(inLine.key)} className="text-xs text-red-500 hover:text-red-700">Quitar</button>

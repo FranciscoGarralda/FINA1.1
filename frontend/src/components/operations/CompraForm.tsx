@@ -476,7 +476,7 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
         <legend className="text-sm font-semibold text-gray-700 mb-2">Salida (SALE)</legend>
         {outs.map((out, idx) => (
           <div key={out.key} className="border border-gray-200 rounded-lg p-3 mb-3">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2 min-w-0">
               <span className="text-xs text-gray-400">Línea {idx + 1}</span>
               {outs.length > 1 && (
                 <button onClick={() => removeOutLine(out.key)} className="text-xs text-red-500 hover:text-red-700">Quitar</button>
@@ -544,13 +544,13 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
       {/* CUADRE */}
       {equivalent > 0 && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Equivalente:</span>
-            <span className="font-mono font-medium">{quoteCurrencyCode} {formatMoneyAR(equivalent)}</span>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+            <span className="shrink-0 text-gray-600">Equivalente:</span>
+            <span className="min-w-0 break-words font-mono font-medium text-right">{quoteCurrencyCode} {formatMoneyAR(equivalent)}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Total salidas:</span>
-            <span className="font-mono font-medium">{quoteCurrencyCode} {formatMoneyAR(outSum)}</span>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+            <span className="shrink-0 text-gray-600">Total salidas:</span>
+            <span className="min-w-0 break-words font-mono font-medium text-right">{quoteCurrencyCode} {formatMoneyAR(outSum)}</span>
           </div>
           {cuadreMsg && (
             <p className={`mt-1 font-medium ${diff > 0 ? 'text-orange-600' : 'text-red-600'}`}>{cuadreMsg}</p>

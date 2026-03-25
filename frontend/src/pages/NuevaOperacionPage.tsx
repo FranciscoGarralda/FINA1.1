@@ -743,7 +743,7 @@ export default function NuevaOperacionPage() {
       {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
       <div className="bg-white border border-gray-200 rounded-lg p-5 mb-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-3 min-w-0">
           <h3 className="text-sm font-semibold text-gray-700">Borradores guardados</h3>
           {loadingDrafts && <span className="text-xs text-gray-500">Cargando...</span>}
         </div>
@@ -830,8 +830,8 @@ export default function NuevaOperacionPage() {
         {/* Client combobox */}
         {type && clientRequired && (
           <div>
-            <div className="flex items-center justify-between max-w-sm mb-1">
-              <label className="text-sm font-medium text-gray-700">
+            <div className="flex flex-wrap items-center justify-between gap-2 max-w-full sm:max-w-sm mb-1 min-w-0">
+              <label className="text-sm font-medium text-gray-700 min-w-0">
                 Cliente
               </label>
               {canCreateClient && (

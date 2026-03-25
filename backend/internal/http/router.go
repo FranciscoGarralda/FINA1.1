@@ -56,8 +56,6 @@ func NewRouter(pool *pgxpool.Pool, jwtSecret string) http.Handler {
 	cashPosSvc := services.NewCashPositionService(cashPosRepo)
 	cashArqueoRepo := repositories.NewCashArqueoRepo(pool)
 	cashArqueoSvc := services.NewCashArqueoService(pool, cashArqueoRepo, cashPosRepo, accountRepo, auditRepo)
-	auditLogsRepo := repositories.NewAuditLogsRepo(pool)
-	auditLogsSvc := services.NewAuditLogsService(auditLogsRepo)
 
 	allRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN", "OPERATOR", "COURIER"}
 	dashboardRoles := allRoles
@@ -157,10 +155,6 @@ func NewRouter(pool *pgxpool.Pool, jwtSecret string) http.Handler {
 	mux.Handle("POST /api/movements/{id}/pago-cc-cruzado", RequirePermission(jwtSecret, userPermissionsSvc, "operations.pago_cc_cruzado.execute", operationRoles, http.HandlerFunc(pagoCCCruzadoHandler(pagoCCSvc))))
 	mux.Handle("POST /api/movements/{id}/transferencia", RequirePermission(jwtSecret, userPermissionsSvc, "operations.transferencia.execute", operationRoles, http.HandlerFunc(transferenciaHandler(transferenciaSvc))))
 	mux.Handle("POST /api/movements/{id}/traspaso-deuda-cc", RequirePermission(jwtSecret, userPermissionsSvc, "operations.traspaso_deuda_cc.execute", operationRoles, http.HandlerFunc(traspasoDeudaCCHandler(traspasoDeudaCCSvc))))
-
-	// Audit Logs
-	auditRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN"}
-	mux.Handle("GET /api/audit-logs", RequirePermission(jwtSecret, userPermissionsSvc, "audit.view", auditRoles, http.HandlerFunc(listAuditLogsHandler(auditLogsSvc))))
 
 	// Inicio / resumen diario (misma lógica que reportes, permiso dashboard.view)
 	mux.Handle("GET /api/dashboard/daily-summary", RequirePermission(jwtSecret, userPermissionsSvc, "dashboard.view", dashboardRoles, http.HandlerFunc(dashboardDailySummaryHandler(reportesSvc))))

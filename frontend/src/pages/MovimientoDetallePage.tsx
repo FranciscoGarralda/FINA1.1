@@ -169,16 +169,9 @@ export default function MovimientoDetallePage() {
 
   return (
     <div>
-      <button
-        onClick={() => navigate('/movimientos')}
-        className="text-sm text-blue-600 hover:text-blue-800 mb-4 inline-block"
-      >
-        &larr; Volver a movimientos
-      </button>
-
       <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
-        <div className="flex items-center gap-3 mb-3">
-          <h2 className="text-lg font-semibold text-gray-800">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 min-w-0">
+          <h2 className="text-lg font-semibold text-gray-800 min-w-0 break-words">
             Operación #{detail.operation_number}
           </h2>
           <span className={`text-xs font-medium px-2 py-0.5 rounded ${

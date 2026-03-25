@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api, downloadAuthenticated } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { formatMoneyAR } from '../utils/money';
@@ -28,7 +28,6 @@ interface CCEntry {
 
 export default function PosicionesClientePage() {
   const { clientId } = useParams<{ clientId: string }>();
-  const navigate = useNavigate();
   const { can } = useAuth();
   const canExportCsv = can('cc.export_csv', ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR']);
 
@@ -107,13 +106,6 @@ export default function PosicionesClientePage() {
 
   return (
     <div>
-      <button
-        onClick={() => navigate('/posiciones')}
-        className="text-sm text-blue-600 hover:text-blue-800 mb-4 inline-block"
-      >
-        &larr; Volver a posiciones
-      </button>
-
       <h2 className="text-lg font-semibold text-gray-800 mb-4">Detalle de Posición</h2>
 
       {loading ? (
@@ -123,30 +115,30 @@ export default function PosicionesClientePage() {
       ) : (
         <>
           {canExportCsv && (
-            <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-              <div>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 min-w-0">
+              <div className="min-w-0 w-full sm:w-auto">
                 <label className="block text-xs font-medium text-gray-500 mb-1">Desde</label>
                 <input
                   type="date"
                   value={exportFrom}
                   onChange={(e) => setExportFrom(e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1 text-sm"
+                  className="w-full sm:w-auto border border-gray-300 rounded px-2 py-1 text-sm min-w-0"
                 />
               </div>
-              <div>
+              <div className="min-w-0 w-full sm:w-auto">
                 <label className="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
                 <input
                   type="date"
                   value={exportTo}
                   onChange={(e) => setExportTo(e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1 text-sm"
+                  className="w-full sm:w-auto border border-gray-300 rounded px-2 py-1 text-sm min-w-0"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => void handleExportCsv()}
                 disabled={exporting}
-                className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="w-full sm:w-auto rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
                 {exporting ? 'Exportando…' : 'Exportar CSV CC'}
               </button>
@@ -222,7 +214,7 @@ export default function PosicionesClientePage() {
                         <td className="px-4 py-2 text-gray-600">
                           {e.operation_number != null ? `#${e.operation_number}` : '—'}
                         </td>
-                        <td className="px-4 py-2 text-gray-500">{e.note ?? '—'}</td>
+                        <td className="px-4 py-2 text-gray-500 max-w-[12rem] break-words">{e.note ?? '—'}</td>
                       </tr>
                     ))}
                   </tbody>

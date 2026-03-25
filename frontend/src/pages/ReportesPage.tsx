@@ -103,7 +103,7 @@ export default function ReportesPage() {
         <button
           type="button"
           onClick={() => void fetchReport()}
-          className="rounded-md border border-gray-300 px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+          className="w-full sm:w-auto rounded-md border border-gray-300 px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] sm:min-h-0"
         >
           Actualizar
         </button>
@@ -146,9 +146,9 @@ function ReportCard({ title, items, color }: { title: string; items: CurrencyAmo
             const num = parseFloat(item.amount);
             const isNeg = num < 0;
             return (
-              <div key={item.currency_id} className="flex items-center justify-between">
-                <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${c.badge}`}>{item.currency_code}</span>
-                <span className={`font-mono text-sm font-medium ${isNeg ? 'text-red-600' : ''}`}>
+              <div key={item.currency_id} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 min-w-0">
+                <span className={`text-xs font-medium px-1.5 py-0.5 rounded shrink-0 ${c.badge}`}>{item.currency_code}</span>
+                <span className={`font-mono text-sm font-medium min-w-0 text-right break-all ${isNeg ? 'text-red-600' : ''}`}>
                   {formatMoneyAR(item.amount)}
                 </span>
               </div>
