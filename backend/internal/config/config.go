@@ -1,11 +1,15 @@
 package config
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 type Config struct {
 	DatabaseURLValue string
 	Port             string
 	JWTSecret        string
+	SkipDBMigrate    bool
 }
 
 func Load() *Config {
@@ -19,7 +23,13 @@ func Load() *Config {
 		DatabaseURLValue: dbURL,
 		Port:             getEnv("PORT", "8080"),
 		JWTSecret:        getEnv("JWT_SECRET", "dev-secret-change-me"),
+		SkipDBMigrate:    isTruthyEnv("SKIP_DB_MIGRATE"),
 	}
+}
+
+func isTruthyEnv(key string) bool {
+	v := strings.TrimSpace(strings.ToLower(os.Getenv(key)))
+	return v == "1" || v == "true" || v == "yes"
 }
 
 func (c *Config) DatabaseURL() string {

@@ -15,8 +15,10 @@ RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 
 COPY --from=build /out/fina-api .
+COPY --from=build /src/migrations /app/migrations
 
 ENV PORT=8080
+ENV MIGRATIONS_PATH=/app/migrations
 EXPOSE 8080
 
 USER nobody

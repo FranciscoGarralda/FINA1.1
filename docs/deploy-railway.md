@@ -20,12 +20,14 @@ El archivo **`railway.json` en la raíz del monorepo** aplica al **servicio del 
 
 No commitear secretos; configurar solo en el panel de Railway.
 
-## 3. Migraciones (regla única)
+## 3. Migraciones
 
-1. La base Postgres del entorno debe existir y ser alcanzable desde donde ejecutes el comando.
-2. Ejecutar **antes** de considerar el servicio listo para uso real.
+1. La base Postgres del entorno debe existir y ser alcanzable desde el API.
+2. **En producción (imagen Docker):** al arrancar, el binario **`fina-api` ejecuta `migrate up` automáticamente** usando los `.sql` empaquetados en `/app/migrations` (`MIGRATIONS_PATH`). Un deploy nuevo debería alinear el esquema sin pasos manuales. Si falla una migración, el proceso sale con error y Railway no deja el servicio “sano” hasta corregir la DB o el SQL.
+3. **Variable opcional:** `SKIP_DB_MIGRATE=true` desactiva ese paso (solo para depuración o entornos especiales).
+4. **Migración manual** desde tu Mac sigue siendo válida y útil para operar sin redeploy:
 
-### Desde tu Mac (recomendado para producción)
+### Desde tu Mac (manual, sin redeploy)
 
 1. Instalar [golang-migrate](https://github.com/golang-migrate/migrate): `brew install golang-migrate` (macOS).
 2. En Railway: **Postgres** → **Variables** → copiar el valor de **`DATABASE_URL`** (o la URL que use tu servicio API). **No** pegues esa URL en el repositorio ni en chats públicos.
@@ -51,9 +53,9 @@ export DATABASE_URL='...'
 
 (Pide confirmación; aplica `down 1`.)
 
-**Pre-deploy en Railway:** opcional; la regla por defecto del proyecto es **migrar antes de tráfico**, sea manual o automatizada.
+**Pre-deploy en Railway:** con **auto-migrate al arranque**, un deploy del API suele alinear la base solo; la migración manual sigue sirviendo si `SKIP_DB_MIGRATE` está activo o para corregir sin redeploy.
 
-**Síntoma:** `POST /api/clients` o `GET /api/clients` responden error y el cuerpo JSON incluye `DB_SCHEMA_MISMATCH` (o en logs del API aparece Postgres `42703`). Suele indicar que el **código ya espera columnas/tablas nuevas** (por ejemplo `department` en `clients`, migración `000012`) pero la base **no tuvo `migrate up`**. Corregir ejecutando migraciones contra esa `DATABASE_URL`.
+**Síntoma `DB_SCHEMA_MISMATCH` / Postgres `42703`:** esquema viejo vs código nuevo. Con auto-migrate: **redeploy del API** (imagen nueva). Si usás `SKIP_DB_MIGRATE=true`, ejecutá `migrate up` manual contra esa `DATABASE_URL`.
 
 ### 3.1 Usuario de login en producción (bootstrap desde tu Mac)
 
