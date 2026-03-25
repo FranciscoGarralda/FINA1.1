@@ -118,7 +118,7 @@ const fallbackPermissionByRole: Record<string, Set<string>> = {
     'pending.view', 'pending.resolve', 'pending.cancel',
     'reportes.view', 'manual_fx_quotes.view', 'manual_fx_quotes.edit', 'audit.view',
     'profile.view', 'profile.change_password', 'profile.change_pin',
-    'cash_position.view',
+    'cash_position.view', 'cash_arqueo.view', 'cash_arqueo.create',
   ]),
   ADMIN: new Set([
     'dashboard.view', 'settings.view',
@@ -133,7 +133,7 @@ const fallbackPermissionByRole: Record<string, Set<string>> = {
     'pending.view', 'pending.resolve', 'pending.cancel',
     'reportes.view', 'manual_fx_quotes.view', 'manual_fx_quotes.edit', 'audit.view',
     'profile.view', 'profile.change_password',
-    'cash_position.view',
+    'cash_position.view', 'cash_arqueo.view', 'cash_arqueo.create',
   ]),
   SUBADMIN: new Set([
     'dashboard.view', 'settings.view',
@@ -148,7 +148,7 @@ const fallbackPermissionByRole: Record<string, Set<string>> = {
     'pending.view', 'pending.resolve', 'pending.cancel',
     'reportes.view', 'manual_fx_quotes.view', 'manual_fx_quotes.edit', 'audit.view',
     'profile.view', 'profile.change_password',
-    'cash_position.view',
+    'cash_position.view', 'cash_arqueo.view', 'cash_arqueo.create',
   ]),
   OPERATOR: new Set([
     'dashboard.view',
@@ -160,7 +160,7 @@ const fallbackPermissionByRole: Record<string, Set<string>> = {
     'operations.retiro_capital.execute', 'operations.gasto.execute', 'operations.pago_cc_cruzado.execute',
     'pending.view', 'pending.resolve', 'pending.cancel',
     'profile.view', 'profile.change_password',
-    'cash_position.view',
+    'cash_position.view', 'cash_arqueo.view', 'cash_arqueo.create',
   ]),
   COURIER: new Set([
     'dashboard.view',

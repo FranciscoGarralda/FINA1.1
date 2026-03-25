@@ -57,5 +57,45 @@ func (r *CashPositionRepo) ListPositions(ctx context.Context, asOfDate string) (
 		}
 		result = append(result, row)
 	}
-	return result, nil
+	return result, rows.Err()
+}
+
+// AccountCurrencyTotal saldo sistema agregado (CASH + DIGITAL) por divisa en la cuenta, al corte as_of (vacío = sin tope de fecha).
+type AccountCurrencyTotal struct {
+	CurrencyID   string `json:"currency_id"`
+	CurrencyCode string `json:"currency_code"`
+	Balance      string `json:"balance"`
+}
+
+func (r *CashPositionRepo) ListAccountCurrencyTotals(ctx context.Context, accountID, asOfDate string) ([]AccountCurrencyTotal, error) {
+	q := `
+		SELECT c.id::text, c.code, COALESCE(agg.bal, 0)::text AS balance
+		FROM account_currencies ac
+		JOIN currencies c ON c.id = ac.currency_id
+		LEFT JOIN (
+			SELECT ml.account_id, ml.currency_id,
+			       SUM(CASE WHEN ml.side = 'IN' THEN ml.amount ELSE -ml.amount END) AS bal
+			FROM movement_lines ml
+			INNER JOIN movements m ON m.id = ml.movement_id
+			WHERE ml.is_pending = false
+			  AND ($2::text = '' OR m.date <= $2::date)
+			GROUP BY ml.account_id, ml.currency_id
+		) agg ON agg.account_id = ac.account_id AND agg.currency_id = ac.currency_id
+		WHERE ac.account_id = $1::uuid
+		ORDER BY c.code`
+	rows, err := r.pool.Query(ctx, q, accountID, asOfDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []AccountCurrencyTotal
+	for rows.Next() {
+		var row AccountCurrencyTotal
+		if err := rows.Scan(&row.CurrencyID, &row.CurrencyCode, &row.Balance); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
 }

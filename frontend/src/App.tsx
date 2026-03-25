@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import LoginPage from './pages/LoginPage';
 import InicioPage from './pages/InicioPage';
+import CashArqueosPage from './pages/CashArqueosPage';
 import NuevaOperacionPage from './pages/NuevaOperacionPage';
 import MovimientosPage from './pages/MovimientosPage';
 import MovimientoDetallePage from './pages/MovimientoDetallePage';
@@ -190,6 +191,14 @@ export default function App() {
           element={
             <ProtectedRoute requiredPermission="accounts.view" fallbackRoles={['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR']}>
               <CuentasPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/caja-arqueos"
+          element={
+            <ProtectedRoute requiredPermission="cash_arqueo.view" fallbackRoles={['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR']}>
+              <CashArqueosPage />
             </ProtectedRoute>
           }
         />

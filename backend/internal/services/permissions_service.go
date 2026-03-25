@@ -227,6 +227,8 @@ var permissionCatalog = []repositories.PermissionCatalogItem{
 	{Key: "profile.change_password", Module: "profile", Label: "Cambiar contraseña propia"},
 	{Key: "profile.change_pin", Module: "profile", Label: "Cambiar PIN propio"},
 	{Key: "cash_position.view", Module: "cash_position", Label: "Ver posición de caja"},
+	{Key: "cash_arqueo.view", Module: "cash_position", Label: "Ver arqueos de caja"},
+	{Key: "cash_arqueo.create", Module: "cash_position", Label: "Registrar arqueo de caja"},
 }
 
 var fallbackRolePermissions = map[string]map[string]bool{
@@ -267,7 +269,7 @@ func init() {
 		"manual_fx_quotes.view", "manual_fx_quotes.edit",
 		"audit.view",
 		"profile.view", "profile.change_password",
-		"cash_position.view",
+		"cash_position.view", "cash_arqueo.view", "cash_arqueo.create",
 	)
 
 	// SUBADMIN defaults
@@ -290,7 +292,7 @@ func init() {
 		"manual_fx_quotes.view", "manual_fx_quotes.edit",
 		"audit.view",
 		"profile.view", "profile.change_password",
-		"cash_position.view",
+		"cash_position.view", "cash_arqueo.view", "cash_arqueo.create",
 	)
 
 	// OPERATOR defaults
@@ -308,7 +310,7 @@ func init() {
 		"operations.gasto.execute", "operations.pago_cc_cruzado.execute", "operations.traspaso_deuda_cc.execute",
 		"pending.view", "pending.resolve", "pending.cancel",
 		"profile.view", "profile.change_password",
-		"cash_position.view",
+		"cash_position.view", "cash_arqueo.view", "cash_arqueo.create",
 	)
 
 	// COURIER defaults
