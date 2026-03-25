@@ -53,6 +53,8 @@ export DATABASE_URL='...'
 
 **Pre-deploy en Railway:** opcional; la regla por defecto del proyecto es **migrar antes de tráfico**, sea manual o automatizada.
 
+**Síntoma:** `POST /api/clients` o `GET /api/clients` responden error y el cuerpo JSON incluye `DB_SCHEMA_MISMATCH` (o en logs del API aparece Postgres `42703`). Suele indicar que el **código ya espera columnas/tablas nuevas** (por ejemplo `department` en `clients`, migración `000012`) pero la base **no tuvo `migrate up`**. Corregir ejecutando migraciones contra esa `DATABASE_URL`.
+
 ### 3.1 Usuario de login en producción (bootstrap desde tu Mac)
 
 Las migraciones **no** insertan usuarios. La base local y la de Railway son **independientes**: cambiar contraseña en local **no** actualiza producción.

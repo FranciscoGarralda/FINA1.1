@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 
 	"fina/internal/auth"
@@ -90,6 +91,12 @@ func handleClientError(w http.ResponseWriter, err error) {
 	case errors.Is(err, repositories.ErrNotFound):
 		RespondError(w, http.StatusNotFound, "NOT_FOUND", "Cliente no encontrado.")
 	default:
+		if st, code, msg, ok := mapPostgresClientErr(err); ok {
+			log.Printf("client handler: postgres error (mapped): %v", err)
+			RespondError(w, st, code, msg)
+			return
+		}
+		log.Printf("client handler: internal error: %v", err)
 		RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Error interno del servidor.")
 	}
 }

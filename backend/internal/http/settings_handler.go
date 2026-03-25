@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 
 	"fina/internal/auth"
@@ -98,6 +99,12 @@ func listClientsHandler(entityRepo *repositories.EntityRepo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		items, err := entityRepo.ListClients(r.Context())
 		if err != nil {
+			if st, code, msg, ok := mapPostgresClientErr(err); ok {
+				log.Printf("list clients: postgres error (mapped): %v", err)
+				RespondError(w, st, code, msg)
+				return
+			}
+			log.Printf("list clients: internal error: %v", err)
 			RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "error al obtener clientes")
 			return
 		}
