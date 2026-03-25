@@ -17,7 +17,17 @@ Usuarios, divisas, cuentas (y `account_currencies`), `system_settings`, catálog
 
 ## Comando
 
-Desde la **raíz del monorepo**:
+**Opción A — script con confirmación** (recomendado):
+
+```bash
+cd /ruta/al/repo/Fina
+export DATABASE_URL='(solo en tu terminal, desde Railway)'
+./scripts/run-reset-operational-data.sh
+```
+
+Te pedirá escribir `RESET` para confirmar.
+
+**Opción B — `psql` directo:**
 
 ```bash
 export DATABASE_URL='(solo en tu terminal)'
