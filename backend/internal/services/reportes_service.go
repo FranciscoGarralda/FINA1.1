@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -505,4 +506,66 @@ func enrichCodes(items []CurrencyAmount, codeMap map[string]string) {
 			items[i].CurrencyCode = code
 		}
 	}
+}
+
+// DashboardDayMetrics cuatro secciones de un reporte de un solo día (sin estimated).
+type DashboardDayMetrics struct {
+	Utilidad  ReportSection `json:"utilidad"`
+	Profit    ReportSection `json:"profit"`
+	Gastos    ReportSection `json:"gastos"`
+	Resultado ReportSection `json:"resultado"`
+}
+
+// DashboardDailySummaryResponse compara el día de referencia con el día calendario anterior.
+// Misma lógica que GenerateWithCodes (módulo Reportes).
+type DashboardDailySummaryResponse struct {
+	ReferenceDate string              `json:"reference_date"`
+	CompareDate   string              `json:"compare_date"`
+	Reference     DashboardDayMetrics `json:"reference"`
+	Compare       DashboardDayMetrics `json:"compare"`
+	Definitions   map[string]string   `json:"definitions"`
+}
+
+func reportResponseToDayMetrics(r *ReportResponse) DashboardDayMetrics {
+	return DashboardDayMetrics{
+		Utilidad:  r.Utilidad,
+		Profit:    r.Profit,
+		Gastos:    r.Gastos,
+		Resultado: r.Resultado,
+	}
+}
+
+// DailySummary genera dos reportes de un día cada uno: referenceDate y referenceDate−1 (calendario).
+// referenceDate debe ser YYYY-MM-DD.
+func (s *ReportesService) DailySummary(ctx context.Context, referenceDate string) (*DashboardDailySummaryResponse, error) {
+	t, err := time.Parse("2006-01-02", referenceDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid reference date: %w", err)
+	}
+	dayStr := t.Format("2006-01-02")
+	prevStr := t.AddDate(0, 0, -1).Format("2006-01-02")
+
+	refRep, err := s.GenerateWithCodes(ctx, dayStr, dayStr, "")
+	if err != nil {
+		return nil, err
+	}
+	cmpRep, err := s.GenerateWithCodes(ctx, prevStr, prevStr, "")
+	if err != nil {
+		return nil, err
+	}
+
+	defs := map[string]string{
+		"utilidad":  "Utilidad FX (COMPRA/VENTA, costo medio móvil en divisa cotización). Backend: reportes_service.computeFXUtility — misma regla que GET /api/reportes.",
+		"profit":    "Suma de profit_entries del día por divisa (p. ej. comisiones). Backend: reportes_service.computeProfit.",
+		"gastos":    "Suma de líneas OUT en movimientos tipo GASTO. Backend: reportes_service.computeGastos.",
+		"resultado": "Por divisa: utilidad + profit − gastos. Backend: reportes_service.computeResultado.",
+	}
+
+	return &DashboardDailySummaryResponse{
+		ReferenceDate: dayStr,
+		CompareDate:   prevStr,
+		Reference:     reportResponseToDayMetrics(refRep),
+		Compare:       reportResponseToDayMetrics(cmpRep),
+		Definitions:   defs,
+	}, nil
 }

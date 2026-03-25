@@ -59,6 +59,7 @@ func NewRouter(pool *pgxpool.Pool, jwtSecret string) http.Handler {
 	auditLogsSvc := services.NewAuditLogsService(auditLogsRepo)
 
 	allRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN", "OPERATOR", "COURIER"}
+	dashboardRoles := allRoles
 	viewRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN"}
 	editRoles := []string{"SUPERADMIN", "SUBADMIN"}
 	superOnly := []string{"SUPERADMIN"}
@@ -159,6 +160,9 @@ func NewRouter(pool *pgxpool.Pool, jwtSecret string) http.Handler {
 	// Audit Logs
 	auditRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN"}
 	mux.Handle("GET /api/audit-logs", RequirePermission(jwtSecret, userPermissionsSvc, "audit.view", auditRoles, http.HandlerFunc(listAuditLogsHandler(auditLogsSvc))))
+
+	// Inicio / resumen diario (misma lógica que reportes, permiso dashboard.view)
+	mux.Handle("GET /api/dashboard/daily-summary", RequirePermission(jwtSecret, userPermissionsSvc, "dashboard.view", dashboardRoles, http.HandlerFunc(dashboardDailySummaryHandler(reportesSvc))))
 
 	// Cash Position
 	cashPositionRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN", "OPERATOR"}
