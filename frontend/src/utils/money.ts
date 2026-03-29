@@ -3,7 +3,7 @@ const arFormatter8 = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, 
 
 export function normalizeMoneyInput(input: string): string {
   let s = input.replace(/\./g, '').replace(',', '.');
-  s = s.replace(/[^0-9.\-]/g, '');
+  s = s.replace(/[^0-9.-]/g, '');
   const parts = s.split('.');
   if (parts.length > 2) {
     s = parts[0] + '.' + parts.slice(1).join('');

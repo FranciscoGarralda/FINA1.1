@@ -5,13 +5,15 @@ import (
 	"net/http"
 
 	"fina/internal/auth"
+	"fina/internal/config"
 	"fina/internal/repositories"
 	"fina/internal/services"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewRouter(pool *pgxpool.Pool, jwtSecret string) http.Handler {
+func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
+	jwtSecret := cfg.JWTSecret
 	mux := http.NewServeMux()
 
 	userRepo := repositories.NewUserRepo(pool)
@@ -180,5 +182,5 @@ func NewRouter(pool *pgxpool.Pool, jwtSecret string) http.Handler {
 	mux.Handle("PATCH /api/pendientes/{id}/resolver", RequirePermission(jwtSecret, userPermissionsSvc, "pending.resolve", allRoles, http.HandlerFunc(resolvePendingHandler(pendingSvc))))
 	mux.Handle("PATCH /api/pendientes/{id}/cancelar", RequirePermission(jwtSecret, userPermissionsSvc, "pending.cancel", allRoles, http.HandlerFunc(cancelPendingHandler(pendingSvc))))
 
-	return CORSMiddleware(mux)
+	return CORSMiddleware(mux, cfg)
 }

@@ -1,0 +1,51 @@
+# CI: mismo orden que desarrollo local (backend luego front).
+# Simular localmente:
+#   cd backend && go vet ./... && go test ./... && go build ./...
+#   cd backend && golangci-lint run ./...
+#   cd backend && go install golang.org/x/vuln/cmd/govulncheck@latest && "$(go env GOPATH)/bin/govulncheck" ./...
+#   cd frontend && npm ci && npm run lint && npm run build
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Go vet, test, build
+        working-directory: backend
+        run: go vet ./... && go test ./... && go build ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64.8
+          working-directory: backend
+
+      - name: govulncheck
+        working-directory: backend
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          "$(go env GOPATH)/bin/govulncheck" ./...
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend npm ci, lint and build
+        working-directory: frontend
+        run: npm ci && npm run lint && npm run build

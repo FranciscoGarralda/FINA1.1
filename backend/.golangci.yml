@@ -1,0 +1,15 @@
+# Conjunto inicial conservador. Ejecutar desde backend/: golangci-lint run ./...
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - staticcheck
+    - ineffassign
+    - unused
+
+issues:
+  exclude-use-default: false

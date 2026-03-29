@@ -16,6 +16,36 @@ Guía única: **[docs/deploy-railway.md](docs/deploy-railway.md)** (variables, m
 brew install golang-migrate
 ```
 
+### Vulnerabilidades en dependencias Go (opcional)
+
+Para listar vulnerabilidades conocidas en el módulo del API (además de `go test`):
+
+```bash
+go install golang.org/x/vuln/cmd/govulncheck@latest
+cd backend
+govulncheck ./...
+```
+
+`govulncheck` no modifica el código ni el `go.sum`; solo informa. Integrarlo en CI queda para el plan de workflows (p. ej. job en GitHub Actions).
+
+### Lint Go (opcional)
+
+Requiere [golangci-lint](https://golangci-lint.run/) instalado (`brew install golangci-lint` o `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`).
+
+```bash
+cd backend
+golangci-lint run ./...
+```
+
+La configuración está en [`backend/.golangci.yml`](backend/.golangci.yml).
+
+### Lint frontend (ESLint)
+
+```bash
+cd frontend
+npm run lint
+```
+
 ## Run PostgreSQL
 
 ```bash
@@ -56,3 +86,8 @@ go run ./cmd/api
 ```
 
 3. En dos terminales: API (`cd backend && go run ./cmd/api`) y front (`cd frontend && npm run dev`). Front: [http://localhost:5173](http://localhost:5173), API: puerto `8080`.
+
+### API: CORS y JWT en local vs producción
+
+- **CORS:** si no definís `CORS_ALLOWED_ORIGINS`, el API solo permite orígenes de desarrollo HTTP en `localhost` / `127.0.0.1` con puertos `5173`, `5174` o `3000` (coincide con Vite). Con front y API en orígenes distintos en prod, definí `CORS_ALLOWED_ORIGINS` con la URL exacta del front (ver [docs/deploy-railway.md](docs/deploy-railway.md)).
+- **JWT:** sin variables de entorno, se usa un secreto por defecto solo para desarrollo. En Railway, `RAILWAY_ENVIRONMENT=production` hace que el proceso exija `JWT_SECRET` real; también podés forzar con `REQUIRE_JWT_SECRET=1` o `FINA_ENV=production` / `APP_ENV=production`.

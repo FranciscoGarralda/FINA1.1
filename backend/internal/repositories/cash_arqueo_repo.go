@@ -76,7 +76,6 @@ func (r *CashArqueoRepo) List(ctx context.Context, accountID, fromDate, toDate s
 	if toDate != "" {
 		q += ` AND ca.arqueo_date <= $` + strconv.Itoa(n) + `::date`
 		args = append(args, toDate)
-		n++
 	}
 	q += ` ORDER BY ca.created_at DESC, c.code`
 

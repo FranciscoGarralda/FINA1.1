@@ -34,7 +34,7 @@ func main() {
 		log.Printf("database migrations: skipped (SKIP_DB_MIGRATE set)")
 	}
 
-	router := apphttp.NewRouter(pool, cfg.JWTSecret)
+	router := apphttp.NewRouter(pool, cfg)
 
 	log.Printf("Fina API listening on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {

@@ -15,8 +15,11 @@ El archivo **`railway.json` en la raíz del monorepo** aplica al **servicio del 
 | Variable        | Obligatorio | Notas |
 |----------------|-------------|--------|
 | `DATABASE_URL` | Sí          | URL que provee Railway al vincular el plugin Postgres al servicio, o copiada desde la base. Sin esto el proceso termina en `log.Fatalf` al conectar y **no escucha** (el healthcheck falla). |
-| `JWT_SECRET`   | Sí (prod)   | Valor aleatorio fuerte. No usar `dev-secret-change-me` en producción. |
+| `JWT_SECRET`   | Sí (prod)   | Valor aleatorio fuerte. No usar `dev-secret-change-me`. Si `RAILWAY_ENVIRONMENT=production` (u otras reglas abajo), el API **no arranca** sin un secreto distinto al default de desarrollo. |
 | `PORT`         | Suele inyectarlo Railway | El API usa `PORT` (ver `backend/internal/config`). |
+| `CORS_ALLOWED_ORIGINS` | Recomendado si el front está en otro origen | Lista separada por comas de orígenes exactos (ej. `https://tu-front.up.railway.app`). Sin esto en local, el API solo acepta orígenes de desarrollo (`http://localhost:5173`, `5174`, `3000` y `127.0.0.1` con esos puertos). En producción con front en dominio distinto, **hay que definirla** o el navegador bloqueará las respuestas credentialed. |
+| `REQUIRE_JWT_SECRET` | No | Si es `1` / `true` / `yes`, obliga a `JWT_SECRET` fuerte aunque no sea prod (útil para staging). |
+| `FINA_ENV` / `APP_ENV` | No | Si alguno es `production` (sin distinguir mayúsculas), aplica la misma exigencia de `JWT_SECRET` que en Railway prod. |
 
 No commitear secretos; configurar solo en el panel de Railway.
 

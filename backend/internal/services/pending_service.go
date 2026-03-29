@@ -22,6 +22,44 @@ var (
 	ErrCompensatedPartialNotAllowed = errors.New("COMPENSATED_PARTIAL_NOT_ALLOWED")
 )
 
+// validatePendingResolvePreTx valida reglas de negocio antes de abrir transacción
+// (parcial, formato REAL, reglas COMPENSATED). Los importes ya deben ser coherentes con pending.Amount.
+func validatePendingResolvePreTx(
+	p *repositories.PendingDetail,
+	input ResolveInput,
+	mode string,
+	resolveAmt, pendingAmt *big.Rat,
+	isPartial, partialAllowed bool,
+) error {
+	if isPartial && !partialAllowed {
+		return ErrPartialNotAllowed
+	}
+	if mode == "REAL_EXECUTION" {
+		if input.Format != "CASH" && input.Format != "DIGITAL" {
+			return ErrInvalidResolveAmount
+		}
+	}
+	if mode == "COMPENSATED" {
+		if !p.CcEnabled {
+			return ErrCompensationOnlyForCC
+		}
+		if resolveAmt.Cmp(pendingAmt) != 0 {
+			return ErrCompensatedPartialNotAllowed
+		}
+		if input.ResolvedByMovementID == "" {
+			return ErrCompensatedRequiresRef
+		}
+	}
+	return nil
+}
+
+func validatePendingCancelable(p *repositories.PendingDetail) error {
+	if p.Status != "ABIERTO" {
+		return ErrPendingAlreadyResolved
+	}
+	return nil
+}
+
 type PendingService struct {
 	pool          *pgxpool.Pool
 	pendingRepo   *repositories.PendingRepo
@@ -85,17 +123,17 @@ func (s *PendingService) Resolve(ctx context.Context, pendingID string, input Re
 	}
 
 	isPartial := resolveAmt.Cmp(pendingAmt) < 0
+	partialAllowed := true
 	if isPartial {
 		allowed, _ := s.getSettingBool(ctx, "pending_allow_partial_resolution")
-		if !allowed {
-			return ErrPartialNotAllowed
-		}
+		partialAllowed = allowed
+	}
+
+	if err := validatePendingResolvePreTx(pending, input, mode, resolveAmt, pendingAmt, isPartial, partialAllowed); err != nil {
+		return err
 	}
 
 	if mode == "REAL_EXECUTION" {
-		if input.Format != "CASH" && input.Format != "DIGITAL" {
-			return ErrInvalidResolveAmount
-		}
 		if err := s.operationRepo.ValidateAccountCurrencyFormat(ctx, input.AccountID, pending.CurrencyID, input.Format); err != nil {
 			return err
 		}
@@ -113,16 +151,7 @@ func (s *PendingService) Resolve(ctx context.Context, pendingID string, input Re
 	defer tx.Rollback(ctx)
 
 	if mode == "COMPENSATED" {
-		if !pending.CcEnabled {
-			return ErrCompensationOnlyForCC
-		}
-		if resolveAmt.Cmp(pendingAmt) != 0 {
-			return ErrCompensatedPartialNotAllowed
-		}
 		ref := input.ResolvedByMovementID
-		if ref == "" {
-			return ErrCompensatedRequiresRef
-		}
 		note := input.ResolutionNote
 		if err := s.pendingRepo.MarkResolvedWithMode(ctx, tx, pendingID, callerID, "COMPENSATED", &ref, &note); err != nil {
 			return fmt.Errorf("mark compensated: %w", err)
@@ -194,8 +223,8 @@ func (s *PendingService) Cancel(ctx context.Context, pendingID string, callerID 
 	if err != nil {
 		return err
 	}
-	if pending.Status != "ABIERTO" {
-		return ErrPendingAlreadyResolved
+	if err := validatePendingCancelable(pending); err != nil {
+		return err
 	}
 
 	tx, err := s.pool.Begin(ctx)

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../api/client';
 import MoneyInput from '../common/MoneyInput';
 import { loadOperationDraft, saveOperationDraft } from '../../utils/operationDrafts';
-import { allowedFormatsFromList, formatLabel, resolveFormat, type MovementFormat } from '../../utils/accountCurrencyFormats';
+import { allowedFormatsFromList, formatLabel, type MovementFormat } from '../../utils/accountCurrencyFormats';
 
 interface Account { id: string; name: string; active: boolean; }
 interface AccountCurrency {

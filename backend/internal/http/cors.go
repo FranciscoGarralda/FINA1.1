@@ -1,13 +1,22 @@
 package http
 
-import "net/http"
+import (
+	"net/http"
 
-func CORSMiddleware(next http.Handler) http.Handler {
+	"fina/internal/config"
+)
+
+// CORSMiddleware applies CORS using cfg.CORSAllowOrigin (allowlist or dev localhost rules).
+// If the request Origin is not allowed, it does not set Access-Control-Allow-Origin nor credentials.
+func CORSMiddleware(next http.Handler, cfg *config.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+		origin := r.Header.Get("Origin")
+		if allowOrigin, ok := cfg.CORSAllowOrigin(origin); ok {
+			w.Header().Set("Access-Control-Allow-Origin", allowOrigin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)

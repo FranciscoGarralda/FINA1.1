@@ -117,7 +117,6 @@ func (r *MovementRepo) ListPaginated(ctx context.Context, f ListMovementsFilter)
 	if f.ClientName != "" {
 		where = append(where, fmt.Sprintf("(cl.first_name || ' ' || cl.last_name) ILIKE '%%' || $%d || '%%'", idx))
 		args = append(args, f.ClientName)
-		idx++
 	}
 
 	whereClause := strings.Join(where, " AND ")
@@ -194,7 +193,6 @@ func (r *MovementRepo) ListDraftsPaginated(ctx context.Context, f ListDraftsFilt
 	if f.ClientID != "" {
 		where = append(where, fmt.Sprintf("m.client_id::text = $%d", idx))
 		args = append(args, f.ClientID)
-		idx++
 	}
 
 	whereClause := strings.Join(where, " AND ")
