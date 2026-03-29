@@ -2,32 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import type { CurrencyAmount, DailySummary, ReportMetricKey } from '../types/reportes';
 import { formatMoneyAR } from '../utils/money';
-
-interface CurrencyAmount {
-  currency_id: string;
-  currency_code: string;
-  amount: string;
-}
-
-interface ReportSection {
-  by_currency: CurrencyAmount[];
-}
-
-interface DashboardDayMetrics {
-  utilidad: ReportSection;
-  profit: ReportSection;
-  gastos: ReportSection;
-  resultado: ReportSection;
-}
-
-interface DailySummary {
-  reference_date: string;
-  compare_date: string;
-  reference: DashboardDayMetrics;
-  compare: DashboardDayMetrics;
-  definitions: Record<string, string>;
-}
 
 interface Balance {
   currency_id: string;
@@ -72,9 +48,7 @@ function deltaClass(d: number) {
   return 'text-gray-500';
 }
 
-type MetricKey = 'utilidad' | 'profit' | 'gastos' | 'resultado';
-
-const METRIC_LABELS: Record<MetricKey, string> = {
+const METRIC_LABELS: Record<ReportMetricKey, string> = {
   utilidad: 'Utilidad FX',
   profit: 'Comisiones / profit',
   gastos: 'Gastos',
@@ -136,7 +110,7 @@ export default function InicioPage() {
     void fetchPositions();
   }, [canCash]);
 
-  function renderMetricBlock(key: MetricKey) {
+  function renderMetricBlock(key: ReportMetricKey) {
     if (!summary) return null;
     const refSec = summary.reference[key].by_currency ?? [];
     const cmpSec = summary.compare[key].by_currency ?? [];

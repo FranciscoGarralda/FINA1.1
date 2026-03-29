@@ -80,6 +80,7 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 	mux.HandleFunc("POST /api/login", loginHandler(authSvc))
+	// Login por PIN (p. ej. COURIER); el login web usa POST /api/login. Ver docs/api-pendientes-auth-permisos.md.
 	mux.HandleFunc("POST /api/login/pin", loginPINHandler(authSvc))
 
 	// Settings
@@ -146,6 +147,7 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 	mux.Handle("DELETE /api/movements/{id}/discard-draft", RequirePermission(jwtSecret, userPermissionsSvc, "operations.create_header", operationRoles, http.HandlerFunc(discardMovementDraftHandler(operationSvc))))
 	mux.Handle("POST /api/movements/{id}/modify", RequirePermission(jwtSecret, userPermissionsSvc, "operations.create_header", operationRoles, http.HandlerFunc(startModifyMovementHandler(operationSvc))))
 	mux.Handle("POST /api/movements/{id}/recreate", RequirePermission(jwtSecret, userPermissionsSvc, "operations.create_header", operationRoles, http.HandlerFunc(recreateFromCancelledHandler(operationSvc))))
+	// Anula la operación completa (distinto de PATCH /api/pendientes/{id}/cancelar, que solo cancela la fila pendiente).
 	mux.Handle("PATCH /api/movements/{id}/cancel", RequirePermission(jwtSecret, userPermissionsSvc, "pending.cancel", allRoles, http.HandlerFunc(cancelMovementHandler(operationSvc))))
 	mux.Handle("POST /api/movements/{id}/compra", RequirePermission(jwtSecret, userPermissionsSvc, "operations.compra.execute", operationRoles, http.HandlerFunc(compraHandler(compraSvc))))
 	mux.Handle("POST /api/movements/{id}/venta", RequirePermission(jwtSecret, userPermissionsSvc, "operations.venta.execute", operationRoles, http.HandlerFunc(ventaHandler(ventaSvc))))
@@ -172,7 +174,7 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 	reportRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN"}
 	mux.Handle("GET /api/reportes", RequirePermission(jwtSecret, userPermissionsSvc, "reportes.view", reportRoles, http.HandlerFunc(reportesHandler(reportesSvc))))
 
-	// Permissions matrix (SUPERADMIN by default)
+	// Permissions matrix (SUPERADMIN by default). Catálogo global; la UI de roles usa GET/PUT /api/permissions/roles/{role}.
 	mux.Handle("GET /api/permissions/catalog", RequirePermission(jwtSecret, userPermissionsSvc, "settings.edit", superOnly, http.HandlerFunc(listPermissionsCatalogHandler(permissionsSvc))))
 	mux.Handle("GET /api/permissions/roles/{role}", RequirePermission(jwtSecret, userPermissionsSvc, "settings.edit", superOnly, http.HandlerFunc(getRolePermissionsHandler(permissionsSvc))))
 	mux.Handle("PUT /api/permissions/roles/{role}", RequirePermission(jwtSecret, userPermissionsSvc, "settings.edit", superOnly, http.HandlerFunc(putRolePermissionsHandler(permissionsSvc))))
@@ -180,6 +182,7 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 	// Pendientes
 	mux.Handle("GET /api/pendientes", RequirePermission(jwtSecret, userPermissionsSvc, "pending.view", allRoles, http.HandlerFunc(listPendingHandler(pendingSvc))))
 	mux.Handle("PATCH /api/pendientes/{id}/resolver", RequirePermission(jwtSecret, userPermissionsSvc, "pending.resolve", allRoles, http.HandlerFunc(resolvePendingHandler(pendingSvc))))
+	// Solo cancela el pendiente ABIERTO; no anula el movimiento (vs PATCH /api/movements/{id}/cancel).
 	mux.Handle("PATCH /api/pendientes/{id}/cancelar", RequirePermission(jwtSecret, userPermissionsSvc, "pending.cancel", allRoles, http.HandlerFunc(cancelPendingHandler(pendingSvc))))
 
 	return CORSMiddleware(mux, cfg)

@@ -1,5 +1,6 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { api } from '../api/client';
+import ApiErrorBanner from '../components/common/ApiErrorBanner';
 
 interface MeData {
   username: string;
@@ -13,6 +14,7 @@ interface MeData {
 export default function MiPerfilPage() {
   const [me, setMe] = useState<MeData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -29,7 +31,17 @@ export default function MiPerfilPage() {
   const [pinSaving, setPinSaving] = useState(false);
 
   useEffect(() => {
-    api.get<MeData>('/auth/me').then(setMe).catch(() => {}).finally(() => setLoading(false));
+    setLoadError('');
+    api
+      .get<MeData>('/auth/me')
+      .then((data) => {
+        setMe(data);
+      })
+      .catch(() => {
+        setLoadError('No se pudo cargar el perfil. Revisá la conexión e intentá de nuevo.');
+        setMe(null);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const handlePasswordSubmit = async (e: FormEvent) => {
@@ -103,7 +115,12 @@ export default function MiPerfilPage() {
   }
 
   if (!me) {
-    return <p className="text-red-500">No se pudo cargar el perfil.</p>;
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold text-gray-800">Mi perfil</h2>
+        <ApiErrorBanner message={loadError || 'No se pudo cargar el perfil.'} />
+      </div>
+    );
   }
 
   return (

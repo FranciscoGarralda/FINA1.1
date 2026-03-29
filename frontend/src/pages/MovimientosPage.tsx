@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import ApiErrorBanner from '../components/common/ApiErrorBanner';
 import { formatMoneyAR } from '../utils/money';
 import { useAuth } from '../context/AuthContext';
 
@@ -45,6 +46,7 @@ export default function MovimientosPage() {
   const { can } = useAuth();
   const [data, setData] = useState<MovementsResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [actionError, setActionError] = useState('');
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [page, setPage] = useState(1);
@@ -57,6 +59,7 @@ export default function MovimientosPage() {
 
   const fetchData = useCallback(() => {
     setLoading(true);
+    setLoadError('');
     const params = new URLSearchParams();
     params.set('page', String(page));
     params.set('limit', String(PAGE_SIZE));
@@ -69,7 +72,10 @@ export default function MovimientosPage() {
     api
       .get<MovementsResult>(`/movements?${params.toString()}`)
       .then(setData)
-      .catch(() => {})
+      .catch(() => {
+        setLoadError('No se pudieron cargar los movimientos. Revisá la conexión e intentá de nuevo.');
+        setData(null);
+      })
       .finally(() => setLoading(false));
   }, [page, dateFrom, dateTo, typeFilter, clientSearch, sortBy, sortDir]);
 
@@ -147,6 +153,7 @@ export default function MovimientosPage() {
   return (
     <div>
       <h2 className="text-lg font-semibold text-gray-800 mb-4">Movimientos</h2>
+      <ApiErrorBanner message={loadError} />
       {actionError && (
         <div className="mb-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {actionError}
@@ -232,7 +239,7 @@ export default function MovimientosPage() {
       {/* Table */}
       {loading ? (
         <p className="text-gray-500 text-sm">Cargando...</p>
-      ) : !data || data.items.length === 0 ? (
+      ) : loadError ? null : !data || data.items.length === 0 ? (
         <p className="text-gray-500 text-sm">No se encontraron movimientos.</p>
       ) : (
         <>

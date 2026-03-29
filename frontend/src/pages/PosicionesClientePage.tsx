@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, downloadAuthenticated } from '../api/client';
+import ApiErrorBanner from '../components/common/ApiErrorBanner';
 import { useAuth } from '../context/AuthContext';
 import { formatMoneyAR } from '../utils/money';
 
@@ -35,7 +36,9 @@ export default function PosicionesClientePage() {
   const [entries, setEntries] = useState<CCEntry[]>([]);
   const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [balancesError, setBalancesError] = useState('');
   const [loadingEntries, setLoadingEntries] = useState(false);
+  const [entriesError, setEntriesError] = useState('');
   const [exportFrom, setExportFrom] = useState(() => {
     const t = new Date();
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-01`;
@@ -45,6 +48,7 @@ export default function PosicionesClientePage() {
 
   useEffect(() => {
     if (!clientId) return;
+    setBalancesError('');
     api
       .get<CurrencyBalance[]>(`/cc-balances/${clientId}`)
       .then((data) => {
@@ -53,7 +57,10 @@ export default function PosicionesClientePage() {
           setSelectedCurrency(data[0].currency_id);
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        setBalancesError('No se pudieron cargar los balances. Revisá la conexión e intentá de nuevo.');
+        setBalances([]);
+      })
       .finally(() => setLoading(false));
   }, [clientId]);
 
@@ -63,10 +70,14 @@ export default function PosicionesClientePage() {
       return;
     }
     setLoadingEntries(true);
+    setEntriesError('');
     api
       .get<CCEntry[]>(`/cc-entries?client_id=${clientId}&currency_id=${selectedCurrency}`)
       .then(setEntries)
-      .catch(() => {})
+      .catch(() => {
+        setEntriesError('No se pudieron cargar los movimientos CC. Revisá la conexión e intentá de nuevo.');
+        setEntries([]);
+      })
       .finally(() => setLoadingEntries(false));
   }, [clientId, selectedCurrency]);
 
@@ -108,9 +119,11 @@ export default function PosicionesClientePage() {
     <div>
       <h2 className="text-lg font-semibold text-gray-800 mb-4">Detalle de Posición</h2>
 
+      <ApiErrorBanner message={balancesError} />
+
       {loading ? (
         <p className="text-gray-500 text-sm">Cargando...</p>
-      ) : balances.length === 0 ? (
+      ) : balancesError ? null : balances.length === 0 ? (
         <p className="text-gray-500 text-sm">Este cliente no tiene posiciones CC.</p>
       ) : (
         <>
@@ -178,9 +191,10 @@ export default function PosicionesClientePage() {
             <h3 className="text-sm font-medium text-gray-600 mb-2">
               Movimientos CC — {selectedCode}
             </h3>
+            <ApiErrorBanner message={entriesError} />
             {loadingEntries ? (
               <p className="text-gray-500 text-sm">Cargando movimientos...</p>
-            ) : entries.length === 0 ? (
+            ) : entriesError ? null : entries.length === 0 ? (
               <p className="text-gray-500 text-sm">Sin movimientos para esta divisa.</p>
             ) : (
               <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">

@@ -1,15 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../api/client';
+import type { CurrencyAmount, ReportData } from '../types/reportes';
 import { formatMoneyAR } from '../utils/money';
-
-interface CurrencyAmount { currency_id: string; currency_code: string; amount: string; }
-interface ReportSection { by_currency: CurrencyAmount[]; }
-interface ReportData {
-  utilidad: ReportSection;
-  profit: ReportSection;
-  gastos: ReportSection;
-  resultado: ReportSection;
-}
 
 type TabMode = 'diario' | 'mensual' | 'anual';
 

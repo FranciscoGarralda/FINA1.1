@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
+import ApiErrorBanner from '../components/common/ApiErrorBanner';
 import { useAuth } from '../context/AuthContext';
 import { formatMoneyAR } from '../utils/money';
 
@@ -65,12 +66,18 @@ export default function CashArqueosPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+  const [accountsError, setAccountsError] = useState('');
 
   useEffect(() => {
     api
       .get<Account[]>('/accounts')
-      .then((a) => setAccounts((a || []).filter((x) => x.active)))
-      .catch(() => {});
+      .then((a) => {
+        setAccounts((a || []).filter((x) => x.active));
+        setAccountsError('');
+      })
+      .catch(() => {
+        setAccountsError('No se pudieron cargar las cuentas. Revisá la conexión e intentá de nuevo.');
+      });
   }, []);
 
   const loadTotals = useCallback(async () => {
@@ -175,6 +182,8 @@ export default function CashArqueosPage() {
           v1: conteo total por cuenta y divisa (CASH + DIGITAL en el saldo sistema). Se guarda snapshot y diferencia; auditoría en el alta.
         </p>
       </div>
+
+      <ApiErrorBanner message={accountsError} />
 
       {canCreate && (
         <section>

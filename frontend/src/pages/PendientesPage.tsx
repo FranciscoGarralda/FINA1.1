@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../api/client';
+import ApiErrorBanner from '../components/common/ApiErrorBanner';
 import MoneyInput from '../components/common/MoneyInput';
 import { formatMoneyAR } from '../utils/money';
 
@@ -98,7 +99,7 @@ export default function PendientesPage() {
     <div>
       <h2 className="text-lg font-semibold text-gray-800 mb-4">Pendientes</h2>
 
-      {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
+      <ApiErrorBanner message={error} />
 
       {loading ? (
         <p className="text-gray-500 text-sm">Cargando...</p>
@@ -225,6 +226,7 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
   const [resolutionNote, setResolutionNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [bootstrapError, setBootstrapError] = useState('');
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -232,12 +234,31 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
   }, []);
 
   useEffect(() => {
-    api.get<Account[]>('/accounts').then((accs) => {
-      const active = accs.filter((a) => a.active);
-      setAccounts(active);
-      if (active.length > 0) setAccountId(active[0].id);
-    });
-    api.get<SettingsMap>('/settings').then(setSettings).catch(() => {});
+    let cancelled = false;
+    setBootstrapError('');
+    const msg = 'No se pudieron cargar cuentas o configuración. Revisá la conexión e intentá de nuevo.';
+    api
+      .get<Account[]>('/accounts')
+      .then((accs) => {
+        if (cancelled) return;
+        const active = accs.filter((a) => a.active);
+        setAccounts(active);
+        if (active.length > 0) setAccountId(active[0].id);
+      })
+      .catch(() => {
+        if (!cancelled) setBootstrapError(msg);
+      });
+    api
+      .get<SettingsMap>('/settings')
+      .then((s) => {
+        if (!cancelled) setSettings(s);
+      })
+      .catch(() => {
+        if (!cancelled) setBootstrapError(msg);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const partialAllowed = settings.pending_allow_partial_resolution !== false;
@@ -316,6 +337,7 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
           <p className="text-xs text-gray-500 mb-4">Compensar cierra el pendiente sin mover cuentas reales ni CC.</p>
         )}
 
+        <ApiErrorBanner message={bootstrapError} />
         {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">

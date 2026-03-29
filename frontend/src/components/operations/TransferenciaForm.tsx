@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client';
 import MoneyInput from '../common/MoneyInput';
+import ApiErrorBanner from '../common/ApiErrorBanner';
 import { formatMoneyAR, numberToNormalizedMoney, roundTo } from '../../utils/money';
 import { saveOperationDraft } from '../../utils/operationDrafts';
 import { allowedFormatsFromList, formatLabel } from '../../utils/accountCurrencyFormats';
@@ -166,6 +167,7 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftLoading, setDraftLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currenciesLoadError, setCurrenciesLoadError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
   const [success, setSuccess] = useState(false);
   const [amountMirror, setAmountMirror] = useState<{ outManual: boolean; inManual: boolean }>({
@@ -181,9 +183,16 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
     const accountIds = [outLeg.account_id, inLeg.account_id, feeAccountId].filter(Boolean);
     accountIds.forEach((accountId) => {
       if (!accountId || acCache[accountId]) return;
-      api.get<AccountCurrency[]>(`/accounts/${accountId}/currencies`)
-        .then((ac) => setAcCache((p) => ({ ...p, [accountId]: ac })))
-        .catch(() => {});
+      api
+        .get<AccountCurrency[]>(`/accounts/${accountId}/currencies`)
+        .then((ac) => {
+          setAcCache((p) => ({ ...p, [accountId]: ac }));
+          setCurrenciesLoadError('');
+        })
+        .catch(() => {
+          setAcCache((p) => ({ ...p, [accountId]: [] }));
+          setCurrenciesLoadError('No se pudieron cargar las divisas de una cuenta. Revisá la conexión.');
+        });
     });
   }, [outLeg.account_id, inLeg.account_id, feeAccountId, acCache]);
 
@@ -573,6 +582,7 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
   return (
     <div className="border-t pt-4 space-y-6">
       {error && <p className="text-red-600 text-sm">{error}</p>}
+      <ApiErrorBanner message={currenciesLoadError} />
       {draftMessage && <p className="text-blue-600 text-sm">{draftMessage}</p>}
       {draftLoading && <p className="text-gray-500 text-sm">Cargando borrador...</p>}
 

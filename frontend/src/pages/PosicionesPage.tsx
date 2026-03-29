@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import ApiErrorBanner from '../components/common/ApiErrorBanner';
 import { formatMoneyAR } from '../utils/money';
 
 interface CurrencyBalance {
@@ -20,14 +21,20 @@ interface ClientBalanceSummary {
 export default function PosicionesPage() {
   const [items, setItems] = useState<ClientBalanceSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
+    setLoadError('');
     api
       .get<ClientBalanceSummary[]>('/cc-balances')
-      .then(setItems)
-      .catch(() => {})
+      .then((data) => {
+        setItems(data);
+      })
+      .catch(() => {
+        setLoadError('No se pudieron cargar las posiciones CC. Revisá la conexión e intentá de nuevo.');
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -52,6 +59,8 @@ export default function PosicionesPage() {
       <h2 className="text-lg font-semibold text-gray-800 mb-1">Estado de CC</h2>
       <p className="text-xs text-gray-500 mb-3">Saldos comerciales por cliente y divisa.</p>
 
+      <ApiErrorBanner message={loadError} />
+
       <input
         type="text"
         placeholder="Buscar por nombre o código..."
@@ -62,7 +71,7 @@ export default function PosicionesPage() {
 
       {loading ? (
         <p className="text-gray-500 text-sm">Cargando...</p>
-      ) : filtered.length === 0 ? (
+      ) : loadError ? null : filtered.length === 0 ? (
         <p className="text-gray-500 text-sm">No hay posiciones activas.</p>
       ) : (
         <div className="space-y-3">

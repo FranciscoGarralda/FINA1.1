@@ -2,6 +2,7 @@ import { useState, useEffect, FormEvent, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import type { UserPermissionMatrixItem, UserPermissionsResponse } from '../../types/userPermissions';
 
 const ROLES = ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR', 'COURIER'];
 
@@ -32,13 +33,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
   const [success, setSuccess] = useState('');
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<'datos' | 'seguridad' | 'permisos'>('datos');
-  const [permItems, setPermItems] = useState<Array<{
-    key: string;
-    module: string;
-    label: string;
-    source: 'USER' | 'ROLE' | 'FALLBACK';
-    allowed: boolean;
-  }>>([]);
+  const [permItems, setPermItems] = useState<UserPermissionMatrixItem[]>([]);
   const [permLoading, setPermLoading] = useState(false);
 
   useEffect(() => {
@@ -81,14 +76,8 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
     if (!user) return;
     setPermLoading(true);
     try {
-      const data = await api.get<{ items: any[] }>(`/users/${user.id}/permissions`);
-      setPermItems((data.items || []).map((i) => ({
-        key: i.key,
-        module: i.module,
-        label: i.label,
-        source: i.source,
-        allowed: i.allowed,
-      })));
+      const data = await api.get<UserPermissionsResponse>(`/users/${user.id}/permissions`);
+      setPermItems(data.items ?? []);
     } catch (err: any) {
       setError(err?.message || 'No se pudieron cargar los permisos.');
     } finally {

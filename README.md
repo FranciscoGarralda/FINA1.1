@@ -2,7 +2,7 @@
 
 ## Despliegue (Railway)
 
-Guía única: **[docs/deploy-railway.md](docs/deploy-railway.md)** (variables, migraciones, Docker, healthcheck, front en producción).
+Guía única: **[docs/deploy-railway.md](docs/deploy-railway.md)** (variables, migraciones, Docker, healthcheck, front en producción). Contrato API pendientes / login / permisos: **[docs/api-pendientes-auth-permisos.md](docs/api-pendientes-auth-permisos.md)**.
 
 ## Prerequisites
 
@@ -59,6 +59,8 @@ This starts PostgreSQL on `localhost:5432` with:
 
 ## Run Migrations
 
+Si ya levantás el API, las migraciones se aplican solas al inicio (ver **Run Backend**); los comandos de abajo sirven para ejecutar `migrate` a mano sin arrancar el servidor.
+
 ```bash
 migrate -path backend/migrations -database "postgres://fina:fina@localhost:5432/fina?sslmode=disable" up
 ```
@@ -76,6 +78,8 @@ cd backend
 go run ./cmd/api
 ```
 
+Al arrancar, el API ejecuta `migrate up` de forma automática e idempotente antes de escuchar HTTP, salvo `SKIP_DB_MIGRATE=true`. La carpeta de los `.sql` la define **`MIGRATIONS_PATH`**; si no está definida, se usa `migrations` o `backend/migrations` según el directorio de trabajo (`ResolveMigrationsDir` en el código). Producción, Docker y variables: **[docs/deploy-railway.md](docs/deploy-railway.md)**.
+
 ## Arranque local completo (Postgres + migraciones)
 
 1. Docker Desktop encendido.
@@ -86,6 +90,8 @@ go run ./cmd/api
 ```
 
 3. En dos terminales: API (`cd backend && go run ./cmd/api`) y front (`cd frontend && npm run dev`). Front: [http://localhost:5173](http://localhost:5173), API: puerto `8080`.
+
+**Alternativa (una sola orden, API + Vite en segundo plano):** con Docker Desktop abierto, desde la raíz ejecutá `chmod +x scripts/run-local-dev.sh && ./scripts/run-local-dev.sh` (levanta `docker compose`, espera `/health`, `npm ci` si hace falta, y en macOS abre el navegador). Logs en `/tmp/fina-local-api.log` y `/tmp/fina-local-front.log`.
 
 ### API: CORS y JWT en local vs producción
 

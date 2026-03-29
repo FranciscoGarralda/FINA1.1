@@ -1,15 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
-
-interface PermissionItem {
-  key: string;
-  module: string;
-  label: string;
-  description?: string;
-  source: 'USER' | 'ROLE' | 'FALLBACK';
-  allowed: boolean;
-}
+import type { UserPermissionMatrixItem, UserPermissionsResponse } from '../../types/userPermissions';
 
 interface Props {
   userId: string;
@@ -18,7 +10,7 @@ interface Props {
 }
 
 export default function UserPermissionsModal({ userId, username, onClose }: Props) {
-  const [items, setItems] = useState<PermissionItem[]>([]);
+  const [items, setItems] = useState<UserPermissionMatrixItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
@@ -28,7 +20,7 @@ export default function UserPermissionsModal({ userId, username, onClose }: Prop
     setLoading(true);
     setMsg('');
     try {
-      const data = await api.get<{ items: PermissionItem[] }>(`/users/${userId}/permissions`);
+      const data = await api.get<UserPermissionsResponse>(`/users/${userId}/permissions`);
       setItems(data.items || []);
     } catch {
       setItems([]);
@@ -46,7 +38,7 @@ export default function UserPermissionsModal({ userId, username, onClose }: Prop
   }, [userId]);
 
   const grouped = useMemo(() => {
-    const m: Record<string, PermissionItem[]> = {};
+    const m: Record<string, UserPermissionMatrixItem[]> = {};
     for (const item of items) {
       if (!m[item.module]) m[item.module] = [];
       m[item.module].push(item);
