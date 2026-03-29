@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
@@ -18,10 +19,10 @@ func NewCCRepo(pool *pgxpool.Pool) *CCRepo {
 }
 
 type CCBalanceSummary struct {
-	ClientID   string            `json:"client_id"`
-	ClientCode int64             `json:"client_code"`
-	FirstName  string            `json:"first_name"`
-	LastName   string            `json:"last_name"`
+	ClientID   string              `json:"client_id"`
+	ClientCode int64               `json:"client_code"`
+	FirstName  string              `json:"first_name"`
+	LastName   string              `json:"last_name"`
 	Balances   []CCCurrencyBalance `json:"balances"`
 }
 
@@ -77,15 +78,20 @@ func (r *CCRepo) ApplyCCEntry(ctx context.Context, tx pgx.Tx, clientID, currency
 	return newBalance, nil
 }
 
+// ListBalances devuelve un resumen por cliente con CC habilitada (activos).
+// Incluye clientes sin filas en cc_balances o con todos los saldos en cero (balances vacío),
+// para que "Estado de CC" liste el universo CC y no solo quienes tienen saldo != 0.
+// Solo se agregan monedas con balance distinto de cero.
 func (r *CCRepo) ListBalances(ctx context.Context) ([]CCBalanceSummary, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT cb.client_id::text, cl.client_code, cl.first_name, cl.last_name,
+		`SELECT cl.id::text, cl.client_code, cl.first_name, cl.last_name,
 		        cb.currency_id::text, c.code, cb.balance::text
-		 FROM cc_balances cb
-		 JOIN clients cl ON cl.id = cb.client_id
-		 JOIN currencies c ON c.id = cb.currency_id
-		 WHERE cb.balance != 0
-		 ORDER BY cl.last_name, cl.first_name, c.code`)
+		 FROM clients cl
+		 LEFT JOIN cc_balances cb ON cb.client_id = cl.id AND cb.balance != 0
+		 LEFT JOIN currencies c ON c.id = cb.currency_id
+		 WHERE COALESCE(cl.cc_enabled, false) = true
+		   AND cl.active = true
+		 ORDER BY cl.last_name, cl.first_name, c.code NULLS LAST`)
 	if err != nil {
 		return nil, err
 	}
@@ -95,9 +101,10 @@ func (r *CCRepo) ListBalances(ctx context.Context) ([]CCBalanceSummary, error) {
 	var order []string
 
 	for rows.Next() {
-		var clientID, currencyID, currencyCode, balance string
+		var clientID string
 		var clientCode int64
 		var firstName, lastName string
+		var currencyID, currencyCode, balance sql.NullString
 		if err := rows.Scan(&clientID, &clientCode, &firstName, &lastName, &currencyID, &currencyCode, &balance); err != nil {
 			return nil, err
 		}
@@ -114,11 +121,13 @@ func (r *CCRepo) ListBalances(ctx context.Context) ([]CCBalanceSummary, error) {
 			clientMap[clientID] = summary
 			order = append(order, clientID)
 		}
-		summary.Balances = append(summary.Balances, CCCurrencyBalance{
-			CurrencyID:   currencyID,
-			CurrencyCode: currencyCode,
-			Balance:      balance,
-		})
+		if currencyID.Valid && currencyCode.Valid && balance.Valid {
+			summary.Balances = append(summary.Balances, CCCurrencyBalance{
+				CurrencyID:   currencyID.String,
+				CurrencyCode: currencyCode.String,
+				Balance:      balance.String,
+			})
+		}
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

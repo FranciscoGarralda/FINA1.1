@@ -57,7 +57,9 @@ export default function PosicionesPage() {
   return (
     <div>
       <h2 className="text-lg font-semibold text-gray-800 mb-1">Estado de CC</h2>
-      <p className="text-xs text-gray-500 mb-3">Saldos comerciales por cliente y divisa.</p>
+      <p className="text-xs text-gray-500 mb-3">
+        Clientes con CC habilitada. Solo se muestran importes por divisa cuando el saldo es distinto de cero.
+      </p>
 
       <ApiErrorBanner message={loadError} />
 
@@ -72,7 +74,11 @@ export default function PosicionesPage() {
       {loading ? (
         <p className="text-gray-500 text-sm">Cargando...</p>
       ) : loadError ? null : filtered.length === 0 ? (
-        <p className="text-gray-500 text-sm">No hay posiciones activas.</p>
+        <p className="text-gray-500 text-sm">
+          {items.length === 0
+            ? 'No hay clientes activos con CC habilitada.'
+            : 'Ningún cliente coincide con la búsqueda.'}
+        </p>
       ) : (
         <div className="space-y-3">
           {filtered.map((client) => (
