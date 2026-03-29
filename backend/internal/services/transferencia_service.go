@@ -13,27 +13,27 @@ import (
 )
 
 var (
-	ErrDeliveryAmountInvalid = errors.New("DELIVERY_AMOUNT_INVALID")
-	ErrDeliveryNetInvalid    = errors.New("DELIVERY_NET_INVALID")
-	ErrCollectionsRequired   = errors.New("COLLECTIONS_REQUIRED")
-	ErrCollectionAmtInvalid  = errors.New("COLLECTION_AMOUNT_INVALID")
-	ErrFeeValueInvalid       = errors.New("FEE_VALUE_INVALID")
-	ErrTotalDueMismatch      = errors.New("TOTAL_DUE_MISMATCH")
-	ErrMixedCurrencyNotSupp  = errors.New("MIXED_CURRENCY_NOT_SUPPORTED")
-	ErrTransfClientRequired  = errors.New("TRANSF_CLIENT_REQUIRED")
-	ErrInvalidSettlement     = errors.New("INVALID_SETTLEMENT")
-	ErrCCSettlementNotAllowed = errors.New("CC_SETTLEMENT_NOT_ALLOWED")
-	ErrInvalidFeePayer       = errors.New("INVALID_FEE_PAYER")
-	ErrInvalidFeeTreatment   = errors.New("INVALID_FEE_TREATMENT")
-	ErrInvalidFeeSettlement  = errors.New("INVALID_FEE_SETTLEMENT")
+	ErrDeliveryAmountInvalid        = errors.New("DELIVERY_AMOUNT_INVALID")
+	ErrDeliveryNetInvalid           = errors.New("DELIVERY_NET_INVALID")
+	ErrCollectionsRequired          = errors.New("COLLECTIONS_REQUIRED")
+	ErrCollectionAmtInvalid         = errors.New("COLLECTION_AMOUNT_INVALID")
+	ErrFeeValueInvalid              = errors.New("FEE_VALUE_INVALID")
+	ErrTotalDueMismatch             = errors.New("TOTAL_DUE_MISMATCH")
+	ErrMixedCurrencyNotSupp         = errors.New("MIXED_CURRENCY_NOT_SUPPORTED")
+	ErrTransfClientRequired         = errors.New("TRANSF_CLIENT_REQUIRED")
+	ErrInvalidSettlement            = errors.New("INVALID_SETTLEMENT")
+	ErrCCSettlementNotAllowed       = errors.New("CC_SETTLEMENT_NOT_ALLOWED")
+	ErrInvalidFeePayer              = errors.New("INVALID_FEE_PAYER")
+	ErrInvalidFeeTreatment          = errors.New("INVALID_FEE_TREATMENT")
+	ErrInvalidFeeSettlement         = errors.New("INVALID_FEE_SETTLEMENT")
 	ErrFeeIncludedPendingNotAllowed = errors.New("FEE_INCLUDED_PENDING_NOT_ALLOWED")
-	ErrFeeCurrencyRequired   = errors.New("FEE_CURRENCY_REQUIRED")
-	ErrFeeAccountRequired    = errors.New("FEE_ACCOUNT_REQUIRED")
-	ErrFeeFormatRequired     = errors.New("FEE_FORMAT_REQUIRED")
-	ErrInvalidLegSettlement  = errors.New("INVALID_LEG_SETTLEMENT")
-	ErrLegAmountInvalid      = errors.New("LEG_AMOUNT_INVALID")
-	ErrLegsCannotBeEqual     = errors.New("LEGS_CANNOT_BE_EQUAL")
-	ErrFeePercentBaseInvalid = errors.New("FEE_PERCENT_BASE_INVALID")
+	ErrFeeCurrencyRequired          = errors.New("FEE_CURRENCY_REQUIRED")
+	ErrFeeAccountRequired           = errors.New("FEE_ACCOUNT_REQUIRED")
+	ErrFeeFormatRequired            = errors.New("FEE_FORMAT_REQUIRED")
+	ErrInvalidLegSettlement         = errors.New("INVALID_LEG_SETTLEMENT")
+	ErrLegAmountInvalid             = errors.New("LEG_AMOUNT_INVALID")
+	ErrLegsCannotBeEqual            = errors.New("LEGS_CANNOT_BE_EQUAL")
+	ErrFeePercentBaseInvalid        = errors.New("FEE_PERCENT_BASE_INVALID")
 	// keep old names referenced by handler for backward compat
 	ErrConfirmNoFXRequired  = errors.New("CONFIRM_NO_FX_REQUIRED")
 	ErrFeeSumMismatch       = errors.New("FEE_SUM_MISMATCH")
@@ -61,7 +61,7 @@ type TransfCollection struct {
 
 type TransfFeeConfig struct {
 	Enabled    bool   `json:"enabled"`
-	Mode       string `json:"mode"`       // PERCENT | FIXED
+	Mode       string `json:"mode"` // PERCENT | FIXED
 	Value      string `json:"value"`
 	Treatment  string `json:"treatment"`  // APARTE | INCLUIDA
 	Payer      string `json:"payer"`      // CLIENTE_PAGA | NOSOTROS_PAGAMOS
@@ -69,7 +69,8 @@ type TransfFeeConfig struct {
 	CurrencyID string `json:"currency_id"`
 	AccountID  string `json:"account_id"`
 	Format     string `json:"format"`
-	Sign       string `json:"sign"`       // legacy: PLUS | MINUS
+	// Sign: compatibilidad lectura drafts/API antiguos (TRANSFERENCIA); PLUS|MINUS mapea a feeTreatment en mapDraft.
+	Sign string `json:"sign"` // legacy: PLUS | MINUS
 }
 
 type TransfLeg struct {
@@ -92,7 +93,7 @@ type TransfTransfer struct {
 type TransferenciaInput struct {
 	OutLeg      TransfLeg          `json:"out_leg"`
 	InLeg       TransfLeg          `json:"in_leg"`
-	Transfer    TransfTransfer      `json:"transfer"`
+	Transfer    TransfTransfer     `json:"transfer"`
 	Delivery    TransfDelivery     `json:"delivery"`
 	Collections []TransfCollection `json:"collections"`
 	Fee         TransfFeeConfig    `json:"fee"`
@@ -616,17 +617,18 @@ func (s *TransferenciaService) executeDualLegTransfer(ctx context.Context, movem
 	if err := s.auditRepo.InsertTx(ctx, tx, "movement", &movementID, "transferencia",
 		nil,
 		map[string]interface{}{
-			"model":              "DUAL_LEG_TRANSFER",
-			"out_leg":            input.OutLeg,
-			"in_leg":             input.InLeg,
-			"fee_enabled":        input.Fee.Enabled,
-			"fee_mode":           feeMode,
-			"fee_treatment":      feeTreatment,
-			"fee_payer":          feePayer,
-			"fee_settlement":     feeSettlement,
-			"fee_currency_id":    feeCurrencyID,
-			"fee_account_id":     feeAccountID,
-			"payload_priority":   "out_leg_in_leg_over_legacy",
+			"model":           "DUAL_LEG_TRANSFER",
+			"out_leg":         input.OutLeg,
+			"in_leg":          input.InLeg,
+			"fee_enabled":     input.Fee.Enabled,
+			"fee_mode":        feeMode,
+			"fee_treatment":   feeTreatment,
+			"fee_payer":       feePayer,
+			"fee_settlement":  feeSettlement,
+			"fee_currency_id": feeCurrencyID,
+			"fee_account_id":  feeAccountID,
+			// payload_priority: trazabilidad auditoría — payload dual-leg vs. borradores antiguos.
+			"payload_priority": "out_leg_in_leg_over_legacy",
 		},
 		callerID); err != nil {
 		return fmt.Errorf("insert dual leg transferencia audit: %w", err)
@@ -808,21 +810,22 @@ func (s *TransferenciaService) executeSignedTransfer(ctx context.Context, moveme
 	if err := s.auditRepo.InsertTx(ctx, tx, "movement", &movementID, "transferencia",
 		nil,
 		map[string]interface{}{
-			"model":            "SIGNED_TRANSFER",
-			"direction":        side,
-			"transfer_amount":  input.Transfer.Amount,
-			"transfer_abs":     absTransferStr,
-			"currency_id":      input.Transfer.CurrencyID,
-			"account_id":       input.Transfer.AccountID,
-			"format":           input.Transfer.Format,
-			"pending":          isPending,
-			"fee_enabled":      input.Fee.Enabled,
-			"fee_mode":         feeMode,
-			"fee_treatment":    feeTreatment,
-			"fee_payer":        feePayer,
-			"fee_settlement":   feeSettlement,
-			"fee_sign_legacy":  legacyFeeSign,
-			"fee_amount":       ratTrim(feeAmt),
+			"model":           "SIGNED_TRANSFER",
+			"direction":       side,
+			"transfer_amount": input.Transfer.Amount,
+			"transfer_abs":    absTransferStr,
+			"currency_id":     input.Transfer.CurrencyID,
+			"account_id":      input.Transfer.AccountID,
+			"format":          input.Transfer.Format,
+			"pending":         isPending,
+			"fee_enabled":     input.Fee.Enabled,
+			"fee_mode":        feeMode,
+			"fee_treatment":   feeTreatment,
+			"fee_payer":       feePayer,
+			"fee_settlement":  feeSettlement,
+			"fee_sign_legacy": legacyFeeSign, // Sign legacy en draft (PLUS/MINUS); no eliminar sin migrar datos.
+			"fee_amount":      ratTrim(feeAmt),
+			// payload_priority: modelo signed transfer vs. estructura antigua en borradores.
 			"payload_priority": "transfer_over_legacy",
 		},
 		callerID); err != nil {

@@ -70,7 +70,11 @@ func (s *SettingsService) Update(ctx context.Context, input map[string]json.RawM
 		return err
 	}
 
-	afterMap, _ := s.GetAll(ctx)
+	// Si GetAll falla aquí, los valores ya persistieron en UpsertMany; no auditar un "after" falso.
+	afterMap, err := s.GetAll(ctx)
+	if err != nil {
+		return err
+	}
 	s.auditRepo.Insert(ctx, "settings", nil, "update", beforeMap, afterMap, userID)
 
 	return nil

@@ -3,8 +3,8 @@ import { api } from '../../api/client';
 import MoneyInput from '../common/MoneyInput';
 import { loadOperationDraft, saveOperationDraft } from '../../utils/operationDrafts';
 import { allowedFormatsFromList, formatLabel, resolveFormat, type MovementFormat } from '../../utils/accountCurrencyFormats';
+import { useActiveAccounts } from '../../hooks/useActiveAccounts';
 
-interface Account { id: string; name: string; active: boolean; }
 interface AccountCurrency {
   currency_id: string; currency_code: string; currency_name: string;
   cash_enabled: boolean; digital_enabled: boolean;
@@ -19,7 +19,7 @@ interface IngresoCapitalDraftData {
 }
 
 export default function IngresoCapitalForm({ movementId, onDone, onCancel }: { movementId: string; onDone: () => void; onCancel: () => void }) {
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const accounts = useActiveAccounts();
   const [accountId, setAccountId] = useState('');
   const [currencyId, setCurrencyId] = useState('');
   const [format, setFormat] = useState('CASH');
@@ -33,10 +33,6 @@ export default function IngresoCapitalForm({ movementId, onDone, onCancel }: { m
   const [error, setError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
   const [success, setSuccess] = useState(false);
-
-  useEffect(() => {
-    api.get<Account[]>('/accounts').then((a) => setAccounts(a.filter((x) => x.active)));
-  }, []);
 
   useEffect(() => {
     if (!accountId) { setAccountCurrencies([]); return; }

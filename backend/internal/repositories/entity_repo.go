@@ -158,10 +158,26 @@ func (r *EntityRepo) ToggleClientActive(ctx context.Context, id string, active b
 	return nil
 }
 
+// ErrInvalidEntityTable indica un nombre de tabla no permitido para GetEntityActiveStatus.
+var ErrInvalidEntityTable = errors.New("invalid entity table")
+
+func entityTableOrError(table string) (string, error) {
+	switch table {
+	case "users", "accounts", "currencies", "clients":
+		return table, nil
+	default:
+		return "", ErrInvalidEntityTable
+	}
+}
+
 func (r *EntityRepo) GetEntityActiveStatus(ctx context.Context, table, id string) (bool, error) {
+	safeTable, err := entityTableOrError(table)
+	if err != nil {
+		return false, err
+	}
 	var active bool
-	query := fmt.Sprintf(`SELECT active FROM %s WHERE id = $1`, table)
-	err := r.pool.QueryRow(ctx, query, id).Scan(&active)
+	query := fmt.Sprintf(`SELECT active FROM %s WHERE id = $1`, safeTable)
+	err = r.pool.QueryRow(ctx, query, id).Scan(&active)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, ErrNotFound

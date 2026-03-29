@@ -5,8 +5,8 @@ import ApiErrorBanner from '../common/ApiErrorBanner';
 import { formatMoneyAR, numberToNormalizedMoney, roundTo } from '../../utils/money';
 import { saveOperationDraft } from '../../utils/operationDrafts';
 import { allowedFormatsFromList, formatLabel } from '../../utils/accountCurrencyFormats';
+import { useActiveAccounts } from '../../hooks/useActiveAccounts';
 
-interface Account { id: string; name: string; active: boolean; }
 interface AccountCurrency { currency_id: string; currency_code: string; cash_enabled: boolean; digital_enabled: boolean; }
 
 interface Props {
@@ -148,7 +148,7 @@ function mapDraft(draft: TransferenciaDraftData | LegacyTransferenciaDraftData):
 
 export default function TransferenciaForm({ movementId, clientId: _clientId, clientCcEnabled, onDone, onCancel }: Props) {
   const localDraftKey = `transferencia_local_draft:${movementId}`;
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const accounts = useActiveAccounts();
   const [acCache, setAcCache] = useState<Record<string, AccountCurrency[]>>({});
 
   const [outLeg, setOutLeg] = useState<TransferState>(emptyLeg());
@@ -174,10 +174,6 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
     outManual: false,
     inManual: false,
   });
-
-  useEffect(() => {
-    api.get<Account[]>('/accounts').then((a) => setAccounts(a.filter((x) => x.active)));
-  }, []);
 
   useEffect(() => {
     const accountIds = [outLeg.account_id, inLeg.account_id, feeAccountId].filter(Boolean);
@@ -281,9 +277,9 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
     };
   }, [movementId, localDraftKey]);
 
-  const outAC = acCache[outLeg.account_id] || [];
-  const inAC = acCache[inLeg.account_id] || [];
-  const feeAC = acCache[feeAccountId] || [];
+  const outAC = useMemo(() => acCache[outLeg.account_id] || [], [acCache, outLeg.account_id]);
+  const inAC = useMemo(() => acCache[inLeg.account_id] || [], [acCache, inLeg.account_id]);
+  const feeAC = useMemo(() => acCache[feeAccountId] || [], [acCache, feeAccountId]);
 
   const outCurrCode = useMemo(() => outAC.find((c) => c.currency_id === outLeg.currency_id)?.currency_code || '', [outAC, outLeg.currency_id]);
   const inCurrCode = useMemo(() => inAC.find((c) => c.currency_id === inLeg.currency_id)?.currency_code || '', [inAC, inLeg.currency_id]);

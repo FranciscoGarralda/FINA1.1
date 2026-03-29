@@ -28,7 +28,8 @@ No commitear secretos; configurar solo en el panel de Railway.
 1. La base Postgres del entorno debe existir y ser alcanzable desde el API.
 2. **En producción (imagen Docker):** al arrancar, el binario **`fina-api` ejecuta `migrate up` automáticamente** usando los `.sql` empaquetados en `/app/migrations` (`MIGRATIONS_PATH`). Un deploy nuevo debería alinear el esquema sin pasos manuales. Si falla una migración, el proceso sale con error y Railway no deja el servicio “sano” hasta corregir la DB o el SQL.
 3. **Variable opcional:** `SKIP_DB_MIGRATE=true` desactiva ese paso (solo para depuración o entornos especiales).
-4. **Migración manual** desde tu Mac sigue siendo válida y útil para operar sin redeploy:
+4. **Entorno local:** estado *dirty* en `schema_migrations`, API sin `/health`, scripts y volumen Docker → guía **[local-dev.md](local-dev.md)** (no duplicar aquí ese checklist).
+5. **Migración manual** desde tu Mac sigue siendo válida y útil para operar sin redeploy:
 
 ### Desde tu Mac (manual, sin redeploy)
 
@@ -59,6 +60,15 @@ export DATABASE_URL='...'
 **Pre-deploy en Railway:** con **auto-migrate al arranque**, un deploy del API suele alinear la base solo; la migración manual sigue sirviendo si `SKIP_DB_MIGRATE` está activo o para corregir sin redeploy.
 
 **Síntoma `DB_SCHEMA_MISMATCH` / Postgres `42703`:** esquema viejo vs código nuevo. Con auto-migrate: **redeploy del API** (imagen nueva). Si usás `SKIP_DB_MIGRATE=true`, ejecutá `migrate up` manual contra esa `DATABASE_URL`.
+
+**Síntoma en logs de Postgres:** `column "department" does not exist` (u otra columna): la base no aplicó migraciones hasta el nivel del código desplegado (p. ej. falta `000012_client_department`). Opciones: **redeploy del API** sin `SKIP_DB_MIGRATE`, o desde tu Mac (misma URL pública que para bootstrap, **no compartir en chats**):
+
+```bash
+cd /ruta/al/repo
+export DATABASE_URL='pegar DATABASE_PUBLIC_URL solo aquí'
+chmod +x scripts/migrate-up-public-db.sh
+./scripts/migrate-up-public-db.sh
+```
 
 ### 3.1 Usuario de login en producción (bootstrap desde tu Mac)
 

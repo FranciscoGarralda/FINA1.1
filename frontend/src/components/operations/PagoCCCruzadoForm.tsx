@@ -4,9 +4,9 @@ import MoneyInput from '../common/MoneyInput';
 import { formatMoneyAR } from '../../utils/money';
 import { loadOperationDraft, saveOperationDraft } from '../../utils/operationDrafts';
 import { allowedFormatsFromList, formatLabel, resolveFormat, type MovementFormat } from '../../utils/accountCurrencyFormats';
+import { useActiveAccounts } from '../../hooks/useActiveAccounts';
+import { useActiveCurrencies } from '../../hooks/useActiveCurrencies';
 
-interface Account { id: string; name: string; active: boolean; }
-interface Currency { id: string; code: string; name: string; active: boolean; }
 interface AccountCurrency {
   currency_id: string; currency_code: string; currency_name: string;
   cash_enabled: boolean; digital_enabled: boolean;
@@ -31,8 +31,8 @@ interface Props {
 }
 
 export default function PagoCCCruzadoForm({ movementId, clientId, onDone, onCancel }: Props) {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const accounts = useActiveAccounts();
+  const currencies = useActiveCurrencies();
   const [ccBalances, setCCBalances] = useState<CCBalance[]>([]);
 
   // Real flow
@@ -55,10 +55,10 @@ export default function PagoCCCruzadoForm({ movementId, clientId, onDone, onCanc
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    api.get<Account[]>('/accounts').then((a) => setAccounts(a.filter((x) => x.active)));
-    api.get<Currency[]>('/currencies').then((c) => setCurrencies(c.filter((x) => x.active)));
     if (clientId) {
       api.get<CCBalance[]>(`/cc-balances/${clientId}`).then(setCCBalances).catch(() => setCCBalances([]));
+    } else {
+      setCCBalances([]);
     }
   }, [clientId]);
 

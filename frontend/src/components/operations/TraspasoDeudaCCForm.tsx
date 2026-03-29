@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client';
 import MoneyInput from '../common/MoneyInput';
 import { loadOperationDraft, saveOperationDraft } from '../../utils/operationDrafts';
+import { useActiveCurrencies } from '../../hooks/useActiveCurrencies';
 
 interface Client {
   id: string;
@@ -10,13 +11,6 @@ interface Client {
   last_name: string;
   active: boolean;
   cc_enabled: boolean;
-}
-
-interface Currency {
-  id: string;
-  code: string;
-  name: string;
-  active: boolean;
 }
 
 interface TraspasoDeudaCCDraftData {
@@ -35,7 +29,7 @@ interface Props {
 
 export default function TraspasoDeudaCCForm({ movementId, clientId, onDone, onCancel }: Props) {
   const [clients, setClients] = useState<Client[]>([]);
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const currencies = useActiveCurrencies(true);
   const [fromClient, setFromClient] = useState<Client | null>(null);
 
   const [toClientId, setToClientId] = useState('');
@@ -54,9 +48,6 @@ export default function TraspasoDeudaCCForm({ movementId, clientId, onDone, onCa
     api.get<Client[]>('/clients')
       .then((list) => setClients(list.filter((c) => c.active && c.cc_enabled)))
       .catch(() => setClients([]));
-    api.get<Currency[]>('/currencies')
-      .then((list) => setCurrencies(list.filter((c) => c.active)))
-      .catch(() => setCurrencies([]));
   }, []);
 
   useEffect(() => {

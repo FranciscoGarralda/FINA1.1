@@ -46,52 +46,36 @@ func putSettingsHandler(svc *services.SettingsService) http.HandlerFunc {
 			return
 		}
 
-		settings, _ := svc.GetAll(r.Context())
+		settings, err := svc.GetAll(r.Context())
+		if err != nil {
+			log.Printf("put settings: get after update: %v", err)
+			RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "error al leer configuración luego de guardar")
+			return
+		}
 		RespondJSON(w, http.StatusOK, settings)
 	}
 }
 
 // --- Entity list handlers ---
 
-func listUsersHandler(svc *services.SettingsService, entityRepo *repositories.EntityRepo) http.HandlerFunc {
+func listUsersHandler(entityRepo *repositories.EntityRepo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		items, err := entityRepo.ListUsers(r.Context())
-		if err != nil {
-			RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "error al obtener usuarios")
-			return
-		}
-		if items == nil {
-			items = []models.UserListItem{}
-		}
-		RespondJSON(w, http.StatusOK, items)
+		respondEntityListJSON(w, items, err, []models.UserListItem{}, "error al obtener usuarios")
 	}
 }
 
 func listAccountsHandler(entityRepo *repositories.EntityRepo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		items, err := entityRepo.ListAccounts(r.Context())
-		if err != nil {
-			RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "error al obtener cuentas")
-			return
-		}
-		if items == nil {
-			items = []models.AccountListItem{}
-		}
-		RespondJSON(w, http.StatusOK, items)
+		respondEntityListJSON(w, items, err, []models.AccountListItem{}, "error al obtener cuentas")
 	}
 }
 
 func listCurrenciesHandler(entityRepo *repositories.EntityRepo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		items, err := entityRepo.ListCurrencies(r.Context())
-		if err != nil {
-			RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "error al obtener divisas")
-			return
-		}
-		if items == nil {
-			items = []models.CurrencyListItem{}
-		}
-		RespondJSON(w, http.StatusOK, items)
+		respondEntityListJSON(w, items, err, []models.CurrencyListItem{}, "error al obtener divisas")
 	}
 }
 
@@ -108,10 +92,7 @@ func listClientsHandler(entityRepo *repositories.EntityRepo) http.HandlerFunc {
 			RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "error al obtener clientes")
 			return
 		}
-		if items == nil {
-			items = []models.ClientListItem{}
-		}
-		RespondJSON(w, http.StatusOK, items)
+		respondEntityListJSON(w, items, nil, []models.ClientListItem{}, "")
 	}
 }
 

@@ -4,13 +4,15 @@
 
 Guía única: **[docs/deploy-railway.md](docs/deploy-railway.md)** (variables, migraciones, Docker, healthcheck, front en producción). Contrato API pendientes / login / permisos: **[docs/api-pendientes-auth-permisos.md](docs/api-pendientes-auth-permisos.md)**.
 
-## Prerequisites
+Desarrollo local, troubleshooting y migraciones en local: **[docs/local-dev.md](docs/local-dev.md)**.
 
-- Docker & Docker Compose
+## Requisitos
+
+- Docker y Docker Compose
 - Go 1.22+
-- [golang-migrate CLI](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate)
+- [CLI golang-migrate](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate) (obligatoria para `./scripts/start-local.sh` y para comandos `migrate` manuales; **no** hace falta en PATH para `./scripts/run-local-dev.sh`, que solo migra vía el API)
 
-### Install golang-migrate (macOS)
+### Instalar golang-migrate (macOS)
 
 ```bash
 brew install golang-migrate
@@ -46,32 +48,37 @@ cd frontend
 npm run lint
 ```
 
-## Run PostgreSQL
+## PostgreSQL local
 
 ```bash
 docker compose up -d
 ```
 
-This starts PostgreSQL on `localhost:5432` with:
-- User: `fina`
-- Password: `fina`
-- Database: `fina`
+Levanta PostgreSQL en `localhost:5432` con:
 
-## Run Migrations
+- Usuario: `fina`
+- Contraseña: `fina`
+- Base: `fina`
 
-Si ya levantás el API, las migraciones se aplican solas al inicio (ver **Run Backend**); los comandos de abajo sirven para ejecutar `migrate` a mano sin arrancar el servidor.
+(Volumen Docker: `pgdata` en `docker-compose.yml`.)
+
+## Migraciones
+
+Si ya levantás el API, las migraciones se aplican solas al inicio (ver **Ejecutar el API**); los comandos de abajo sirven para ejecutar `migrate` a mano sin arrancar el servidor.
 
 ```bash
 migrate -path backend/migrations -database "postgres://fina:fina@localhost:5432/fina?sslmode=disable" up
 ```
 
-## Rollback Migrations
+## Revertir migraciones (`migrate down`)
 
 ```bash
 migrate -path backend/migrations -database "postgres://fina:fina@localhost:5432/fina?sslmode=disable" down
 ```
 
-## Run Backend
+**No uses `migrate down` para borrar datos operativos** (movimientos, clientes, etc.): revierte **esquema**, no sustituye un reset de datos. Para vaciar datos operativos con criterio, ver **[scripts/README-reset-operational-data.md](scripts/README-reset-operational-data.md)**.
+
+## Ejecutar el API
 
 ```bash
 cd backend
@@ -80,18 +87,20 @@ go run ./cmd/api
 
 Al arrancar, el API ejecuta `migrate up` de forma automática e idempotente antes de escuchar HTTP, salvo `SKIP_DB_MIGRATE=true`. La carpeta de los `.sql` la define **`MIGRATIONS_PATH`**; si no está definida, se usa `migrations` o `backend/migrations` según el directorio de trabajo (`ResolveMigrationsDir` en el código). Producción, Docker y variables: **[docs/deploy-railway.md](docs/deploy-railway.md)**.
 
-## Arranque local completo (Postgres + migraciones)
+## Arranque local: scripts, puertos y logs
 
-1. Docker Desktop encendido.
-2. Desde la raíz del repo:
+| Script | Requisitos en PATH / entorno | Migraciones | URLs / puertos | Logs (si aplica) | Detener |
+|--------|------------------------------|-------------|----------------|------------------|---------|
+| `./scripts/start-local.sh` | Docker, **`migrate`**, `nc` recomendado; **Go y Node** para las dos terminales que el script indica después | **`migrate up` explícito** en shell antes de indicarte las dos terminales | Postgres `5432`; luego vos: API **8080**, Vite **5173** | Salida de la misma terminal del script | Cerrar las terminales donde corren API y front |
+| `./scripts/run-local-dev.sh` | Docker, **Go**, **Node** (`npm ci` la primera vez si falta `node_modules`); `nc` y `curl` recomendados | Solo **vía API** al arrancar (`MigrateUp` en el proceso) | Front [http://localhost:5173](http://localhost:5173), API [http://localhost:8080/health](http://localhost:8080/health) | `/tmp/fina-local-api.log`, `/tmp/fina-local-front.log` | `kill "$(cat /tmp/fina-local-api.pid)" "$(cat /tmp/fina-local-front.pid)"` (también lo imprime el script al final) |
 
-```bash
-./scripts/start-local.sh
-```
+**Flujo recomendado con migraciones explícitas en terminal:** Docker Desktop encendido → desde la raíz `./scripts/start-local.sh` → en dos terminales: `cd backend && go run ./cmd/api` y `cd frontend && npm run dev`.
 
-3. En dos terminales: API (`cd backend && go run ./cmd/api`) y front (`cd frontend && npm run dev`). Front: [http://localhost:5173](http://localhost:5173), API: puerto `8080`.
+**Flujo en segundo plano (API + Vite):** Docker Desktop encendido → desde la raíz `chmod +x scripts/run-local-dev.sh && ./scripts/run-local-dev.sh` (en macOS puede abrir el navegador).
 
-**Alternativa (una sola orden, API + Vite en segundo plano):** con Docker Desktop abierto, desde la raíz ejecutá `chmod +x scripts/run-local-dev.sh && ./scripts/run-local-dev.sh` (levanta `docker compose`, espera `/health`, `npm ci` si hace falta, y en macOS abre el navegador). Logs en `/tmp/fina-local-api.log` y `/tmp/fina-local-front.log`.
+Si `./scripts/...` devuelve **Permission denied**, ejecutá `chmod +x scripts/*.sh` (ver **[docs/local-dev.md](docs/local-dev.md)**).
+
+**Problemas comunes (local):** **[docs/local-dev.md](docs/local-dev.md)** (`docker`, `/health`, `Dirty database version`, volumen `pgdata`, etc.).
 
 ### API: CORS y JWT en local vs producción
 

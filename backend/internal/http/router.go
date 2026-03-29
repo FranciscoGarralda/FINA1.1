@@ -88,7 +88,7 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 	mux.Handle("PUT /api/settings", RequirePermission(jwtSecret, userPermissionsSvc, "settings.edit", superOnly, http.HandlerFunc(putSettingsHandler(settingsSvc))))
 
 	// Entity lists
-	mux.Handle("GET /api/users", RequirePermission(jwtSecret, userPermissionsSvc, "users.view", viewRoles, http.HandlerFunc(listUsersHandler(settingsSvc, entityRepo))))
+	mux.Handle("GET /api/users", RequirePermission(jwtSecret, userPermissionsSvc, "users.view", viewRoles, http.HandlerFunc(listUsersHandler(entityRepo))))
 	mux.Handle("GET /api/accounts", RequirePermission(jwtSecret, userPermissionsSvc, "accounts.view", accountViewRoles, http.HandlerFunc(listAccountsHandler(entityRepo))))
 	mux.Handle("GET /api/currencies", RequirePermission(jwtSecret, userPermissionsSvc, "currencies.view", currencyViewRoles, http.HandlerFunc(listCurrenciesHandler(entityRepo))))
 	mux.Handle("GET /api/clients", RequirePermission(jwtSecret, userPermissionsSvc, "clients.view", clientViewRoles, http.HandlerFunc(listClientsHandler(entityRepo))))

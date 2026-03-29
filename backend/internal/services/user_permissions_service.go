@@ -161,7 +161,10 @@ func (s *UserPermissionsService) GetUserPermissionMatrix(ctx context.Context, us
 }
 
 func (s *UserPermissionsService) UpsertUserPermissions(ctx context.Context, targetUserID, updatedBy string, updates []UserPermissionUpdate) error {
-	beforeRole, beforeItems, _ := s.GetUserPermissionMatrix(ctx, targetUserID)
+	beforeRole, beforeItems, err := s.GetUserPermissionMatrix(ctx, targetUserID)
+	if err != nil {
+		return err
+	}
 
 	if _, err := s.userRepo.FindByID(ctx, targetUserID); err != nil {
 		if errors.Is(err, repositories.ErrNotFound) {
@@ -184,7 +187,11 @@ func (s *UserPermissionsService) UpsertUserPermissions(ctx context.Context, targ
 		return err
 	}
 
-	_, afterItems, _ := s.GetUserPermissionMatrix(ctx, targetUserID)
+	// Overrides ya persistidos; si falla la lectura de la matriz, el cliente recibe error (posible desalineación con audit).
+	_, afterItems, err := s.GetUserPermissionMatrix(ctx, targetUserID)
+	if err != nil {
+		return err
+	}
 	s.auditRepo.Insert(ctx, "user", &targetUserID, "update_user_permissions",
 		map[string]interface{}{"role": beforeRole, "items": beforeItems},
 		map[string]interface{}{"role": beforeRole, "items": afterItems},
@@ -193,7 +200,10 @@ func (s *UserPermissionsService) UpsertUserPermissions(ctx context.Context, targ
 }
 
 func (s *UserPermissionsService) ClearUserOverrides(ctx context.Context, targetUserID, updatedBy string) error {
-	beforeRole, beforeItems, _ := s.GetUserPermissionMatrix(ctx, targetUserID)
+	beforeRole, beforeItems, err := s.GetUserPermissionMatrix(ctx, targetUserID)
+	if err != nil {
+		return err
+	}
 
 	if _, err := s.userRepo.FindByID(ctx, targetUserID); err != nil {
 		if errors.Is(err, repositories.ErrNotFound) {
@@ -204,7 +214,11 @@ func (s *UserPermissionsService) ClearUserOverrides(ctx context.Context, targetU
 	if err := s.userPermRepo.DeleteOverrides(ctx, targetUserID); err != nil {
 		return err
 	}
-	_, afterItems, _ := s.GetUserPermissionMatrix(ctx, targetUserID)
+	// Borrado de overrides ya aplicado; si falla la matriz "after", el cliente recibe error sin audit completo.
+	_, afterItems, err := s.GetUserPermissionMatrix(ctx, targetUserID)
+	if err != nil {
+		return err
+	}
 	s.auditRepo.Insert(ctx, "user", &targetUserID, "reset_user_permissions",
 		map[string]interface{}{"role": beforeRole, "items": beforeItems},
 		map[string]interface{}{"role": beforeRole, "items": afterItems},

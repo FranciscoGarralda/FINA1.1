@@ -10,9 +10,9 @@ import {
   resolveFormat,
   type MovementFormat,
 } from '../../utils/accountCurrencyFormats';
+import { useActiveAccounts } from '../../hooks/useActiveAccounts';
+import { useActiveCurrencies } from '../../hooks/useActiveCurrencies';
 
-interface Account { id: string; name: string; active: boolean; }
-interface Currency { id: string; code: string; name: string; active: boolean; }
 interface AccountCurrency {
   currency_id: string; currency_code: string; currency_name: string;
   cash_enabled: boolean; digital_enabled: boolean;
@@ -37,8 +37,8 @@ interface ArbitrajeDraftData {
 }
 
 export default function ArbitrajeForm({ movementId, onDone, onCancel }: { movementId: string; onDone: () => void; onCancel: () => void }) {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const accounts = useActiveAccounts();
+  const currencies = useActiveCurrencies();
 
   // COSTO (OUT)
   const [costoAccountId, setCostoAccountId] = useState('');
@@ -70,11 +70,6 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
   const [error, setError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
   const [success, setSuccess] = useState(false);
-
-  useEffect(() => {
-    api.get<Account[]>('/accounts').then((a) => setAccounts(a.filter((x) => x.active)));
-    api.get<Currency[]>('/currencies').then((c) => setCurrencies(c.filter((x) => x.active)));
-  }, []);
 
   useEffect(() => {
     if (!costoAccountId) { setCostoAC([]); return; }

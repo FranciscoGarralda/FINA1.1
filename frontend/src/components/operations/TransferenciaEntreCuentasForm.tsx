@@ -4,8 +4,8 @@ import MoneyInput from '../common/MoneyInput';
 import { formatMoneyAR } from '../../utils/money';
 import { loadOperationDraft, saveOperationDraft } from '../../utils/operationDrafts';
 import { allowedFormatsFromList, formatLabel, resolveFormat } from '../../utils/accountCurrencyFormats';
+import { useActiveAccounts } from '../../hooks/useActiveAccounts';
 
-interface Account { id: string; name: string; active: boolean; }
 interface AccountCurrency {
   currency_id: string; currency_code: string; currency_name: string;
   cash_enabled: boolean; digital_enabled: boolean;
@@ -21,7 +21,7 @@ interface TransferenciaEntreCuentasDraftData {
 }
 
 export default function TransferenciaEntreCuentasForm({ movementId, onDone, onCancel }: { movementId: string; onDone: () => void; onCancel: () => void }) {
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const accounts = useActiveAccounts();
 
   // FROM (OUT)
   const [fromAccountId, setFromAccountId] = useState('');
@@ -41,10 +41,6 @@ export default function TransferenciaEntreCuentasForm({ movementId, onDone, onCa
   const [error, setError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
   const [success, setSuccess] = useState(false);
-
-  useEffect(() => {
-    api.get<Account[]>('/accounts').then((a) => setAccounts(a.filter((x) => x.active)));
-  }, []);
 
   useEffect(() => {
     if (!fromAccountId) { setFromAC([]); return; }

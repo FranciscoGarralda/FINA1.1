@@ -246,7 +246,13 @@ func (s *CashArqueoService) Create(ctx context.Context, in CashArqueoCreateInput
 		})
 	}
 
-	acc, _ := s.accountRepo.FindByID(ctx, in.AccountID)
+	acc, err := s.accountRepo.FindByID(ctx, in.AccountID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrNotFound) {
+			return nil, ErrCashArqueoAccountMissing
+		}
+		return nil, err
+	}
 	auditPayload := map[string]interface{}{
 		"id":           arqueoID,
 		"account_id":   in.AccountID,

@@ -117,7 +117,10 @@ func (s *PendingService) Resolve(ctx context.Context, pendingID string, input Re
 	if !ok || resolveAmt.Sign() <= 0 {
 		return ErrInvalidResolveAmount
 	}
-	pendingAmt, _ := new(big.Rat).SetString(pending.Amount)
+	pendingAmt, ok := new(big.Rat).SetString(pending.Amount)
+	if !ok {
+		return ErrInvalidResolveAmount
+	}
 	if resolveAmt.Cmp(pendingAmt) > 0 {
 		return ErrInvalidResolveAmount
 	}
@@ -125,7 +128,10 @@ func (s *PendingService) Resolve(ctx context.Context, pendingID string, input Re
 	isPartial := resolveAmt.Cmp(pendingAmt) < 0
 	partialAllowed := true
 	if isPartial {
-		allowed, _ := s.getSettingBool(ctx, "pending_allow_partial_resolution")
+		allowed, err := s.getSettingBool(ctx, "pending_allow_partial_resolution")
+		if err != nil {
+			return err
+		}
 		partialAllowed = allowed
 	}
 

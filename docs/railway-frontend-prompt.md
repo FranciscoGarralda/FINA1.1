@@ -1,5 +1,7 @@
 # Prompt: servicio del front en Railway
 
+**Fuente de verdad (VITE, CORS, Dockerfile, migraciones, Postgres):** [deploy-railway.md](deploy-railway.md). Este archivo solo añade texto copiable para el panel de Railway.
+
 **Checklist operativo y explicación:** **[deploy-railway.md](deploy-railway.md)** (sección *6. Frontend en producción*).
 
 Debajo: texto para copiar y pegar en el asistente de Railway o soporte (sin secretos; placeholders según tu panel).

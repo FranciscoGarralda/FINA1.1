@@ -265,6 +265,15 @@ func (s *ReportesService) computeFXUtility(ctx context.Context, from, to string)
 	return result, nil
 }
 
+// parseAggRat valida SUM(...)::text para agregados de reportes (profit / gastos).
+func parseAggRat(amtStr, label string) (*big.Rat, error) {
+	amt, ok := new(big.Rat).SetString(amtStr)
+	if !ok {
+		return nil, fmt.Errorf("monto inválido en agregado de reportes (%s)", label)
+	}
+	return amt, nil
+}
+
 func (s *ReportesService) computeProfit(ctx context.Context, from, to string) (map[string]*big.Rat, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT pe.currency_id::text, c.code, SUM(pe.amount)::text
@@ -284,7 +293,10 @@ func (s *ReportesService) computeProfit(ctx context.Context, from, to string) (m
 		if err := rows.Scan(&currID, &code, &amtStr); err != nil {
 			return nil, err
 		}
-		amt, _ := new(big.Rat).SetString(amtStr)
+		amt, err := parseAggRat(amtStr, "profit")
+		if err != nil {
+			return nil, err
+		}
 		result[currID] = amt
 		_ = code
 	}
@@ -311,7 +323,10 @@ func (s *ReportesService) computeGastos(ctx context.Context, from, to string) (m
 		if err := rows.Scan(&currID, &code, &amtStr); err != nil {
 			return nil, err
 		}
-		amt, _ := new(big.Rat).SetString(amtStr)
+		amt, err := parseAggRat(amtStr, "gastos")
+		if err != nil {
+			return nil, err
+		}
 		result[currID] = amt
 		_ = code
 	}

@@ -2,6 +2,10 @@
 backend/.env
 .agent-debug.log
 
+# Dependencias (npm ci en CI y en cada máquina; no versionar)
+node_modules/
+frontend/node_modules/
+
 # Build de Vite (se genera con npm run build / Docker del front)
 frontend/dist
 

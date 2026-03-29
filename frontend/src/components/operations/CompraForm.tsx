@@ -4,6 +4,8 @@ import MoneyInput from '../common/MoneyInput';
 import { formatMoneyAR, numberToNormalizedMoney } from '../../utils/money';
 import { calculateEquivalent, normalizeQuoteMode, type QuoteMode } from '../../utils/fx';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { useActiveAccounts } from '../../hooks/useActiveAccounts';
+import { useActiveCurrencies } from '../../hooks/useActiveCurrencies';
 import { resolveFirstLineAmountMode, type FirstLineAmountMode } from '../../utils/lineAutofill';
 import { loadOperationDraft, saveOperationDraft } from '../../utils/operationDrafts';
 import {
@@ -12,19 +14,6 @@ import {
   resolveFormat,
   type MovementFormat,
 } from '../../utils/accountCurrencyFormats';
-
-interface Account {
-  id: string;
-  name: string;
-  active: boolean;
-}
-
-interface Currency {
-  id: string;
-  code: string;
-  name: string;
-  active: boolean;
-}
 
 interface AccountCurrency {
   currency_id: string;
@@ -65,8 +54,8 @@ interface CompraDraftData {
 }
 
 export default function CompraForm({ movementId, onDone, onCancel }: { movementId: string; onDone: () => void; onCancel: () => void }) {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const accounts = useActiveAccounts();
+  const currencies = useActiveCurrencies();
 
   // IN
   const [inAccountId, setInAccountId] = useState('');
@@ -92,11 +81,6 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
   const [error, setError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
   const [success, setSuccess] = useState(false);
-
-  useEffect(() => {
-    api.get<Account[]>('/accounts').then((a) => setAccounts(a.filter((x) => x.active)));
-    api.get<Currency[]>('/currencies').then((c) => setCurrencies(c.filter((x) => x.active)));
-  }, []);
 
   useEffect(() => {
     if (!inAccountId) { setInAccountCurrencies([]); return; }
