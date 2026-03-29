@@ -89,5 +89,5 @@ go run ./cmd/api
 
 ### API: CORS y JWT en local vs producción
 
-- **CORS:** si no definís `CORS_ALLOWED_ORIGINS`, el API solo permite orígenes de desarrollo HTTP en `localhost` / `127.0.0.1` con puertos `5173`, `5174` o `3000` (coincide con Vite). Con front y API en orígenes distintos en prod, definí `CORS_ALLOWED_ORIGINS` con la URL exacta del front (ver [docs/deploy-railway.md](docs/deploy-railway.md)).
+- **CORS:** si no definís `CORS_ALLOWED_ORIGINS`, el API solo permite orígenes de desarrollo HTTP en `localhost` / `127.0.0.1` con puertos `5173`, `5174` o `3000` (coincide con Vite). Si definís la lista pero tu entorno local **no** exige JWT de producción (`REQUIRE_JWT_SECRET`, `FINA_ENV=production`, etc.), esos puertos de Vite se aceptan **además** de la lista (útil con `.env` copiado de Railway). En producción endurecida solo valen los orígenes explícitos. En prod con front en otro dominio, definí `CORS_ALLOWED_ORIGINS` (ver [docs/deploy-railway.md](docs/deploy-railway.md)).
 - **JWT:** sin variables de entorno, se usa un secreto por defecto solo para desarrollo. En Railway, `RAILWAY_ENVIRONMENT=production` hace que el proceso exija `JWT_SECRET` real; también podés forzar con `REQUIRE_JWT_SECRET=1` o `FINA_ENV=production` / `APP_ENV=production`.

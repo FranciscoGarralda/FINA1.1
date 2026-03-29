@@ -35,12 +35,34 @@ func TestCORSAllowOrigin_explicitList(t *testing.T) {
 	cfg := &Config{
 		CORSDevLocalhost:    false,
 		CORSExplicitOrigins: []string{"https://app.example.com", "https://other.net"},
+		RequireStrongJWT:    true, // prod-like: no mezclar localhost con la allowlist
 	}
 	if _, ok := cfg.CORSAllowOrigin("https://app.example.com"); !ok {
 		t.Fatal("expected allowed")
 	}
 	if _, ok := cfg.CORSAllowOrigin("https://evil.com"); ok {
 		t.Fatal("expected denied")
+	}
+	if _, ok := cfg.CORSAllowOrigin("http://localhost:5173"); ok {
+		t.Fatal("expected localhost denied when RequireStrongJWT")
+	}
+}
+
+func TestCORSAllowOrigin_explicitListMergesLocalDev(t *testing.T) {
+	t.Parallel()
+	cfg := &Config{
+		CORSDevLocalhost:    false,
+		CORSExplicitOrigins: []string{"https://app.up.railway.app"},
+		RequireStrongJWT:    false,
+	}
+	if _, ok := cfg.CORSAllowOrigin("https://app.up.railway.app"); !ok {
+		t.Fatal("expected explicit allowed")
+	}
+	if _, ok := cfg.CORSAllowOrigin("http://localhost:5173"); !ok {
+		t.Fatal("expected localhost allowed in dev merge")
+	}
+	if _, ok := cfg.CORSAllowOrigin("https://evil.com"); ok {
+		t.Fatal("expected unknown origin denied")
 	}
 }
 

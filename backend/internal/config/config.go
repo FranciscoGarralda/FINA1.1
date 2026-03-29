@@ -17,6 +17,9 @@ type Config struct {
 	Port             string
 	JWTSecret        string
 	SkipDBMigrate    bool
+	// RequireStrongJWT is true when the process enforces a non-default JWT_SECRET (prod-like).
+	// Used so CORS can still allow Vite localhost alongside CORS_ALLOWED_ORIGINS in dev.
+	RequireStrongJWT bool
 	// CORSExplicitOrigins is non-empty when CORS_ALLOWED_ORIGINS was set (comma-separated).
 	// When empty, CORSDevLocalhost selects the built-in localhost/127.0.0.1 dev allowlist.
 	CORSExplicitOrigins []string
@@ -33,11 +36,13 @@ func Load() *Config {
 
 	explicit, devLocal := parseCORSAllowedOrigins()
 
+	requireStrong := mustRequireStrongJWT()
 	cfg := &Config{
 		DatabaseURLValue:    dbURL,
 		Port:                getEnv("PORT", "8080"),
 		JWTSecret:           getEnv("JWT_SECRET", DefaultJWTSecret),
 		SkipDBMigrate:       isTruthyEnv("SKIP_DB_MIGRATE"),
+		RequireStrongJWT:    requireStrong,
 		CORSExplicitOrigins: explicit,
 		CORSDevLocalhost:    devLocal,
 	}
@@ -96,18 +101,27 @@ func (c *Config) CORSAllowOrigin(origin string) (allowOrigin string, ok bool) {
 	if origin == "" {
 		return "", false
 	}
-	if len(c.CORSExplicitOrigins) > 0 {
-		for _, o := range c.CORSExplicitOrigins {
-			if o == origin {
-				return origin, true
-			}
+	for _, o := range c.CORSExplicitOrigins {
+		if o == origin {
+			return origin, true
 		}
-		return "", false
 	}
-	if c.CORSDevLocalhost && isDevLocalhostOrigin(origin) {
+	// Sin lista explícita: solo orígenes de dev Vite. Con lista explícita en entorno no endurecido:
+	// unir también localhost (evita bloquear login local si .env trae solo URLs de Railway).
+	if c.corsAllowDevLocalhost() && isDevLocalhostOrigin(origin) {
 		return origin, true
 	}
 	return "", false
+}
+
+func (c *Config) corsAllowDevLocalhost() bool {
+	if c.CORSDevLocalhost {
+		return true
+	}
+	if len(c.CORSExplicitOrigins) == 0 {
+		return false
+	}
+	return !c.RequireStrongJWT
 }
 
 func isDevLocalhostOrigin(origin string) bool {
