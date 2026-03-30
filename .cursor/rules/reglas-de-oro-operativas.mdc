@@ -23,6 +23,10 @@ Aplicar siempre estas reglas ante cualquier cambio. Si hay conflicto entre rapid
 14. Evidencia de cierre obligatoria: go test ./..., npm run build, sin lints nuevos, checklist funcional y reinicio de backend/frontend con verificacion de arranque.
 15. Trazabilidad de decisiones: cada cambio critico debe explicar por que se eligio esa regla.
 16. Riesgo residual cero: no se cierra ninguna tarea con riesgo residual operativo abierto; el cierre requiere mitigacion completa y evidencia de riesgo residual 0%.
+17. Toolchain alineada: la version de Go usada en `backend/go.mod`, imagen de build (`backend/Dockerfile`) y CI (p. ej. GitHub Actions) debe ser coherente; si sube el minimo, actualizar README y docs de despliegue para no contradecir el repo.
+18. Cero secretos en el repositorio: jamas commitear `JWT_SECRET`, `DATABASE_URL`, claves API ni `.env` con credenciales; solo variables de entorno en hosting (Railway) o archivos gitignored localmente.
+19. CI como barrera: si el workflow define `go test`, lint, `govulncheck`, etc., no dar por cerrada la tarea con pipeline rojo salvo decision explicita, mitigacion y registro del riesgo residual (alineado con la regla 16).
+20. Despliegue y healthcheck: en produccion el API exige configuracion documentada (p. ej. `JWT_SECRET` fuerte, `DATABASE_URL` valida). Un healthcheck que falla por variables ausentes se corrige en el panel de hosting, no debilitando politicas de seguridad en codigo para "que levante".
 
 ## Activacion rapida
 
