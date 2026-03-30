@@ -17,7 +17,7 @@ Usar con modo Agent. Alineado con **Reglas de Oro** del proyecto (`.cursor/rules
 
 ## Tareas técnicas (orden)
 
-1. Elegir versión Go parcheada (preferir **última 1.24.x** estable que satisfaga `govulncheck` en CI; valorar **1.25.x** solo con decisión explícita).
+1. Elegir versión Go parcheada (preferir **última 1.24.x** estable; si `govulncheck` sigue marcando CVEs del stdlib solo corregidas en **1.25.8+** —p. ej. GO-2026-4602/4601—, subir a **1.25.8** y alinear Dockerfile + `go.mod`).
 2. Editar `backend/go.mod`: línea `go X.Y.Z`. Opcional: `toolchain goX.Y.Z` si mejora reproducibilidad local/CI.
 3. En `backend`: `go mod tidy` si aplica.
 4. Editar `backend/Dockerfile`: `FROM golang:X.Y.Z-alpine` coherente con `go.mod`.

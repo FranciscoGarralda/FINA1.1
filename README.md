@@ -9,7 +9,7 @@ Desarrollo local, troubleshooting y migraciones en local: **[docs/local-dev.md](
 ## Requisitos
 
 - Docker y Docker Compose
-- Go 1.22+
+- Go **1.25.8+** (alineado con `backend/go.mod` y `backend/Dockerfile`; cubre avisos recientes de `govulncheck` sobre stdlib)
 - [CLI golang-migrate](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate) (obligatoria para `./scripts/start-local.sh` y para comandos `migrate` manuales; **no** hace falta en PATH para `./scripts/run-local-dev.sh`, que solo migra vía el API)
 
 ### Instalar golang-migrate (macOS)
