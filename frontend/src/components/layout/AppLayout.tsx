@@ -71,19 +71,18 @@ export default function AppLayout() {
       {/* Barra app: fija (evita fallos de sticky con overflow-x en html/body) */}
       <header className="fixed top-0 left-0 right-0 z-30 bg-white shadow-sm border-b pt-[env(safe-area-inset-top,0px)]">
         <div className="h-14 min-h-[44px] px-4 flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition"
-            aria-label="Volver"
-            title="Volver"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h1 className="flex-1 min-w-0 text-center text-xl font-bold text-gray-800 truncate px-1">Fina</h1>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition"
+              aria-label="Volver"
+              title="Volver"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
@@ -94,6 +93,9 @@ export default function AppLayout() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
+          </div>
+          <h1 className="flex-1 min-w-0 text-center text-xl font-bold text-gray-800 truncate px-1">Fina</h1>
+          <div className="flex items-center justify-end shrink-0 min-w-[5.5rem]">
             <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded max-w-[5.5rem] truncate hidden sm:inline-block">
               {role}
             </span>
