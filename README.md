@@ -6,6 +6,26 @@ Guía única: **[docs/deploy-railway.md](docs/deploy-railway.md)** (variables, m
 
 Desarrollo local, troubleshooting y migraciones en local: **[docs/local-dev.md](docs/local-dev.md)**.
 
+## CI (GitHub Actions)
+
+En cada **push** y **pull request**, el workflow **[`.github/workflows/ci.yml`](.github/workflows/ci.yml)** ejecuta, en orden:
+
+1. **Backend:** `go vet ./...`, `go test ./...`, `go build ./...`
+2. **golangci-lint** v2 (config en [`backend/.golangci.yml`](backend/.golangci.yml))
+3. **govulncheck** sobre el módulo del API
+4. **Frontend:** `npm ci`, `npm run lint`, `npm run build` (Node 22)
+
+Si el workflow falla, revisá el log del step en **Actions** en GitHub.
+
+Simulación local equivalente (desde la raíz del repo):
+
+```bash
+cd backend && go vet ./... && go test ./... && go build ./...
+cd backend && golangci-lint run ./...
+cd backend && go install golang.org/x/vuln/cmd/govulncheck@latest && "$(go env GOPATH)/bin/govulncheck" ./...
+cd frontend && npm ci && npm run lint && npm run build
+```
+
 ## Requisitos
 
 - Docker y Docker Compose
@@ -28,18 +48,19 @@ cd backend
 govulncheck ./...
 ```
 
-`govulncheck` no modifica el código ni el `go.sum`; solo informa. Integrarlo en CI queda para el plan de workflows (p. ej. job en GitHub Actions).
+`govulncheck` no modifica el código ni el `go.sum`; solo informa. El mismo chequeo corre en **CI** (ver [CI (GitHub Actions)](#ci-github-actions)).
 
 ### Lint Go (opcional)
 
-Requiere [golangci-lint](https://golangci-lint.run/) instalado (`brew install golangci-lint` o `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`).
+El proyecto usa **golangci-lint v2** y `version: "2"` en [`backend/.golangci.yml`](backend/.golangci.yml). Instalación alineada con CI (ejemplo de versión pinneada):
 
 ```bash
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.0
 cd backend
 golangci-lint run ./...
 ```
 
-La configuración está en [`backend/.golangci.yml`](backend/.golangci.yml).
+Con Homebrew u otros métodos, asegurate de que el binario sea **v2** y compatible con la versión de Go del `go.mod`. Documentación: [golangci-lint.run](https://golangci-lint.run/welcome/install/).
 
 ### Lint frontend (ESLint)
 
