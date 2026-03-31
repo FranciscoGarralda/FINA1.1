@@ -33,9 +33,10 @@ func RequirePermission(jwtSecret string, permissionSvc *services.UserPermissions
 		}
 
 		allowed := allowedByFallback
-		if decision == services.PermissionAllow {
+		switch decision {
+		case services.PermissionAllow:
 			allowed = true
-		} else if decision == services.PermissionDeny {
+		case services.PermissionDeny:
 			allowed = false
 		}
 
