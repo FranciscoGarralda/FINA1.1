@@ -32,11 +32,13 @@ type PendingListItem struct {
 	AddressFloor    string    `json:"address_floor"`
 	Phone           string    `json:"phone"`
 	CurrencyID      string    `json:"currency_id"`
-	CurrencyCode    string    `json:"currency_code"`
-	Amount          string    `json:"amount"`
-	AccountName     string    `json:"account_name"`
-	CcEnabled       bool      `json:"cc_enabled"`
-	CreatedAt       time.Time `json:"created_at"`
+	CurrencyCode     string    `json:"currency_code"`
+	Amount           string    `json:"amount"`
+	AccountID        string    `json:"account_id"`
+	AccountName      string    `json:"account_name"`
+	MovementLineSide string    `json:"movement_line_side"`
+	CcEnabled        bool      `json:"cc_enabled"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 type PendingDetail struct {
@@ -51,6 +53,8 @@ type PendingDetail struct {
 	CcEnabled            bool
 	ResolutionMode       *string
 	ResolvedByMovementID *string
+	MovementLineSide      string
+	MovementLineAccountID string
 }
 
 func (r *PendingRepo) ListOpen(ctx context.Context) ([]PendingListItem, error) {
@@ -63,7 +67,9 @@ func (r *PendingRepo) ListOpen(ctx context.Context) ([]PendingListItem, error) {
 		        cl.phone,
 		        pi.currency_id::text, cu.code,
 		        pi.amount::text,
+		        ml.account_id::text,
 		        a.name,
+		        ml.side,
 		        cl.cc_enabled,
 		        pi.created_at
 		 FROM pending_items pi
@@ -89,7 +95,8 @@ func (r *PendingRepo) ListOpen(ctx context.Context) ([]PendingListItem, error) {
 			&item.AddressStreet, &item.AddressNumber, &item.AddressFloor,
 			&item.Phone,
 			&item.CurrencyID, &item.CurrencyCode,
-			&item.Amount, &item.AccountName,
+			&item.Amount, &item.AccountID, &item.AccountName,
+			&item.MovementLineSide,
 			&item.CcEnabled, &item.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -107,7 +114,9 @@ func (r *PendingRepo) FindByID(ctx context.Context, id string) (*PendingDetail, 
 		        pi.currency_id::text, pi.amount::text,
 		        cl.cc_enabled,
 		        pi.resolution_mode,
-		        pi.resolved_by_movement_id::text
+		        pi.resolved_by_movement_id::text,
+		        ml.side,
+		        ml.account_id::text
 		 FROM pending_items pi
 		 JOIN movement_lines ml ON ml.id = pi.movement_line_id
 		 JOIN clients cl ON cl.id = pi.client_id
@@ -115,7 +124,8 @@ func (r *PendingRepo) FindByID(ctx context.Context, id string) (*PendingDetail, 
 		Scan(&p.ID, &p.MovementLineID, &p.MovementID,
 			&p.Type, &p.Status, &p.ClientID,
 			&p.CurrencyID, &p.Amount, &p.CcEnabled,
-			&p.ResolutionMode, &p.ResolvedByMovementID)
+			&p.ResolutionMode, &p.ResolvedByMovementID,
+			&p.MovementLineSide, &p.MovementLineAccountID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound

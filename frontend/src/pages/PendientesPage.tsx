@@ -21,7 +21,10 @@ interface PendingItem {
   currency_id: string;
   currency_code: string;
   amount: string;
+  account_id?: string;
   account_name: string;
+  /** IN | OUT — línea origen del pendiente (misma al resolver en ejecución real) */
+  movement_line_side?: string;
   cc_enabled: boolean;
   created_at: string;
   /** Tipo de movimiento (COMPRA, VENTA, …): para etiquetar pendientes según operación */
@@ -243,7 +246,11 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
         if (cancelled) return;
         const active = accs.filter((a) => a.active);
         setAccounts(active);
-        if (active.length > 0) setAccountId(active[0].id);
+        const preferred =
+          item.account_id && active.some((a) => a.id === item.account_id)
+            ? item.account_id
+            : active[0]?.id ?? '';
+        setAccountId(preferred);
       })
       .catch(() => {
         if (!cancelled) setBootstrapError(msg);
@@ -259,15 +266,19 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [item.account_id, item.id]);
 
   const partialAllowed = settings.pending_allow_partial_resolution !== false;
   const maxAmount = parseFloat(item.amount);
-  const isPaymentPending = item.type === 'PENDIENTE_DE_PAGO' || item.type === 'PENDIENTE_DE_PAGO_COMISION';
-  const accountLabel = isPaymentPending ? 'Cuenta de salida' : 'Cuenta de ingreso';
-  const impactLabel = isPaymentPending
-    ? 'Al confirmar, el monto se descontará de la cuenta seleccionada.'
-    : 'Al confirmar, el monto ingresará en la cuenta seleccionada.';
+  const side = item.movement_line_side;
+  const hasLineSide = side === 'IN' || side === 'OUT';
+  const lineIsOut = hasLineSide
+    ? side === 'OUT'
+    : item.type === 'PENDIENTE_DE_PAGO' || item.type === 'PENDIENTE_DE_PAGO_COMISION';
+  const accountLabel = lineIsOut ? 'Cuenta de salida' : 'Cuenta de ingreso';
+  const impactLabel = lineIsOut
+    ? 'Al confirmar, el monto se descontará de la cuenta de la operación (misma línea que originó el pendiente).'
+    : 'Al confirmar, el monto ingresará en la cuenta de la operación (misma línea que originó el pendiente).';
   const canCompensate = item.cc_enabled;
 
   async function handleSubmit(e: React.FormEvent) {

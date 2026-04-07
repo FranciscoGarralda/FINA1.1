@@ -92,6 +92,10 @@ func handlePendingError(w http.ResponseWriter, err error) {
 		RespondError(w, http.StatusBadRequest, "FORMAT_NOT_ALLOWED", "El formato no está habilitado para esa cuenta/divisa.")
 	case errors.Is(err, repositories.ErrNotFound):
 		RespondError(w, http.StatusNotFound, "NOT_FOUND", "Pendiente no encontrado.")
+	case errors.Is(err, services.ErrResolveAccountMismatch):
+		RespondError(w, http.StatusBadRequest, "RESOLVE_ACCOUNT_MISMATCH", "La cuenta debe ser la misma que la línea del movimiento original.")
+	case errors.Is(err, services.ErrInvalidMovementLineSide):
+		RespondError(w, http.StatusInternalServerError, "INVALID_MOVEMENT_LINE_SIDE", "Línea de movimiento inválida para resolver.")
 	default:
 		RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Error interno del servidor.")
 	}

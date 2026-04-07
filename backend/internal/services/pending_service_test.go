@@ -105,3 +105,49 @@ func TestValidatePendingCancelable(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 }
+
+func TestValidateResolveRealExecutionLine_okOUT(t *testing.T) {
+	p := &repositories.PendingDetail{
+		MovementLineSide:      "OUT",
+		MovementLineAccountID: "acc-1",
+	}
+	in := ResolveInput{AccountID: "acc-1"}
+	if err := validateResolveRealExecutionLine(p, in); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestValidateResolveRealExecutionLine_okIN(t *testing.T) {
+	p := &repositories.PendingDetail{
+		MovementLineSide:      "IN",
+		MovementLineAccountID: "  uuid-here  ",
+	}
+	in := ResolveInput{AccountID: "uuid-here"}
+	if err := validateResolveRealExecutionLine(p, in); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestValidateResolveRealExecutionLine_accountMismatch(t *testing.T) {
+	p := &repositories.PendingDetail{
+		MovementLineSide:      "OUT",
+		MovementLineAccountID: "a",
+	}
+	in := ResolveInput{AccountID: "b"}
+	err := validateResolveRealExecutionLine(p, in)
+	if !errors.Is(err, ErrResolveAccountMismatch) {
+		t.Fatalf("got %v want ErrResolveAccountMismatch", err)
+	}
+}
+
+func TestValidateResolveRealExecutionLine_invalidSide(t *testing.T) {
+	p := &repositories.PendingDetail{
+		MovementLineSide:      "",
+		MovementLineAccountID: "a",
+	}
+	in := ResolveInput{AccountID: "a"}
+	err := validateResolveRealExecutionLine(p, in)
+	if !errors.Is(err, ErrInvalidMovementLineSide) {
+		t.Fatalf("got %v want ErrInvalidMovementLineSide", err)
+	}
+}

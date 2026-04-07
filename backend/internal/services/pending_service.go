@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"fina/internal/repositories"
 
@@ -20,6 +21,8 @@ var (
 	ErrCompensationOnlyForCC        = errors.New("COMPENSATION_ONLY_FOR_CC")
 	ErrCompensatedRequiresRef       = errors.New("COMPENSATED_REQUIRES_MOVEMENT_ID")
 	ErrCompensatedPartialNotAllowed = errors.New("COMPENSATED_PARTIAL_NOT_ALLOWED")
+	ErrResolveAccountMismatch       = errors.New("RESOLVE_ACCOUNT_MISMATCH")
+	ErrInvalidMovementLineSide      = errors.New("INVALID_MOVEMENT_LINE_SIDE")
 )
 
 // validatePendingResolvePreTx valida reglas de negocio antes de abrir transacción
@@ -56,6 +59,18 @@ func validatePendingResolvePreTx(
 func validatePendingCancelable(p *repositories.PendingDetail) error {
 	if p.Status != "ABIERTO" {
 		return ErrPendingAlreadyResolved
+	}
+	return nil
+}
+
+// validateResolveRealExecutionLine exige mismo account y side IN/OUT que la línea origen del pendiente.
+func validateResolveRealExecutionLine(p *repositories.PendingDetail, input ResolveInput) error {
+	side := strings.TrimSpace(p.MovementLineSide)
+	if side != "IN" && side != "OUT" {
+		return ErrInvalidMovementLineSide
+	}
+	if strings.TrimSpace(input.AccountID) != strings.TrimSpace(p.MovementLineAccountID) {
+		return ErrResolveAccountMismatch
 	}
 	return nil
 }
@@ -139,15 +154,14 @@ func (s *PendingService) Resolve(ctx context.Context, pendingID string, input Re
 		return err
 	}
 
+	side := strings.TrimSpace(pending.MovementLineSide)
 	if mode == "REAL_EXECUTION" {
+		if err := validateResolveRealExecutionLine(pending, input); err != nil {
+			return err
+		}
 		if err := s.operationRepo.ValidateAccountCurrencyFormat(ctx, input.AccountID, pending.CurrencyID, input.Format); err != nil {
 			return err
 		}
-	}
-
-	side := "IN"
-	if pending.Type == "PENDIENTE_DE_PAGO" || pending.Type == "PENDIENTE_DE_PAGO_COMISION" {
-		side = "OUT"
 	}
 
 	tx, err := s.pool.Begin(ctx)
@@ -180,7 +194,7 @@ func (s *PendingService) Resolve(ctx context.Context, pendingID string, input Re
 		}
 		return tx.Commit(ctx)
 	}
-	// 1) Create real movement_line
+	// 1) Línea real: mismo side que la línea origen del pendiente (todas las operaciones).
 	_, err = s.pendingRepo.InsertMovementLine(ctx, tx,
 		pending.MovementID, side, input.AccountID,
 		pending.CurrencyID, input.Format, input.Amount)
