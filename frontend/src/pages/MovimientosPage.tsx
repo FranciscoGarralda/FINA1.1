@@ -200,6 +200,7 @@ export default function MovimientosPage() {
             <option value="INGRESO_CAPITAL">Ingreso capital</option>
             <option value="RETIRO_CAPITAL">Retiro capital</option>
             <option value="PENDIENTE_INICIAL">Pendiente inicial</option>
+            <option value="SALDO_INICIAL_CAJA">Saldo inicial caja</option>
           </select>
         </div>
         <div className="min-w-0 w-full sm:w-auto flex-1 sm:flex-none sm:max-w-xs">

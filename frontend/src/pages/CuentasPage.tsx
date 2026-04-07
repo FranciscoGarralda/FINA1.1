@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import AccountFormModal from '../components/accounts/AccountFormModal';
+import CashOpeningBalanceModal from '../components/accounts/CashOpeningBalanceModal';
 
 interface Account {
   id: string;
@@ -14,11 +15,13 @@ export default function CuentasPage() {
   const canEdit = can('accounts.edit');
   const canToggle = can('accounts.toggle_active');
   const canCreate = can('accounts.create');
+  const canCashOpening = can('operations.saldo_inicial_caja.execute', ['SUPERADMIN', 'ADMIN', 'SUBADMIN']);
 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [modalAccount, setModalAccount] = useState<Account | null | 'new'>(null);
+  const [cashOpeningOpen, setCashOpeningOpen] = useState(false);
 
   const fetchAccounts = async () => {
     try {
@@ -60,14 +63,25 @@ export default function CuentasPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-48 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          {canCreate && (
-            <button
-              onClick={() => setModalAccount('new')}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium w-full sm:w-auto shrink-0"
-            >
-              + Nueva cuenta
-            </button>
-          )}
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
+            {canCashOpening && (
+              <button
+                type="button"
+                onClick={() => setCashOpeningOpen(true)}
+                className="border border-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-50 text-sm font-medium w-full sm:w-auto"
+              >
+                Saldo inicial caja
+              </button>
+            )}
+            {canCreate && (
+              <button
+                onClick={() => setModalAccount('new')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium w-full sm:w-auto"
+              >
+                + Nueva cuenta
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -132,6 +146,7 @@ export default function CuentasPage() {
           }}
         />
       )}
+      {cashOpeningOpen && <CashOpeningBalanceModal onClose={() => setCashOpeningOpen(false)} />}
     </div>
   );
 }

@@ -23,6 +23,8 @@ export function movementTypeLabel(type: string): string {
       return 'Retiro capital';
     case 'PENDIENTE_INICIAL':
       return 'Pendiente inicial';
+    case 'SALDO_INICIAL_CAJA':
+      return 'Saldo inicial caja';
     default:
       return type;
   }

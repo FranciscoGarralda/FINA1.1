@@ -40,6 +40,7 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 	operationRepo := repositories.NewOperationRepo(pool)
 	operationSvc := services.NewOperationService(pool, operationRepo, auditRepo)
 	openingPendingSvc := services.NewOpeningPendingService(pool, operationRepo, auditRepo)
+	cashOpeningBalanceSvc := services.NewCashOpeningBalanceService(pool, operationRepo, auditRepo)
 	permissionsRepo := repositories.NewPermissionsRepo(pool)
 	permissionsSvc := services.NewPermissionsService(permissionsRepo)
 	userPermissionsRepo := repositories.NewUserPermissionsRepo(pool)
@@ -75,6 +76,7 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 	movementViewRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN", "OPERATOR"}
 	operationRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN", "OPERATOR"}
 	pendingOpeningRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN"}
+	cashOpeningBalanceRoles := pendingOpeningRoles
 
 	// Public
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -143,6 +145,7 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 
 	// Operations (create movement header)
 	mux.Handle("POST /api/movements", RequirePermission(jwtSecret, userPermissionsSvc, "operations.create_header", operationRoles, http.HandlerFunc(createMovementHandler(operationSvc))))
+	mux.Handle("POST /api/movements/saldo-inicial-caja", RequirePermission(jwtSecret, userPermissionsSvc, "operations.saldo_inicial_caja.execute", cashOpeningBalanceRoles, http.HandlerFunc(createCashOpeningBalanceHandler(cashOpeningBalanceSvc))))
 	mux.Handle("PATCH /api/movements/{id}/header", RequirePermission(jwtSecret, userPermissionsSvc, "operations.create_header", operationRoles, http.HandlerFunc(patchMovementHeaderHandler(operationSvc))))
 	mux.Handle("PUT /api/movements/{id}/draft", RequirePermission(jwtSecret, userPermissionsSvc, "operations.create_header", operationRoles, http.HandlerFunc(saveMovementDraftHandler(operationSvc))))
 	mux.Handle("GET /api/movements/{id}/draft", RequirePermission(jwtSecret, userPermissionsSvc, "operations.create_header", operationRoles, http.HandlerFunc(getMovementDraftHandler(operationSvc))))
