@@ -5,19 +5,6 @@ import { useAuth } from '../context/AuthContext';
 import type { CurrencyAmount, DailySummary, ReportMetricKey } from '../types/reportes';
 import { formatMoneyAR } from '../utils/money';
 
-interface Balance {
-  currency_id: string;
-  currency_code: string;
-  format: string;
-  balance: string;
-}
-
-interface AccountPosition {
-  account_id: string;
-  account_name: string;
-  balances: Balance[];
-}
-
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -58,18 +45,11 @@ const METRIC_LABELS: Record<ReportMetricKey, string> = {
 export default function InicioPage() {
   const { can } = useAuth();
   const canReportes = can('reportes.view', ['SUPERADMIN', 'ADMIN', 'SUBADMIN']);
-  const canCash = can('cash_position.view', ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR']);
 
   const [refDate, setRefDate] = useState(todayStr);
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [sumLoading, setSumLoading] = useState(true);
   const [sumError, setSumError] = useState('');
-
-  const [positions, setPositions] = useState<AccountPosition[]>([]);
-  const [cashLoading, setCashLoading] = useState(false);
-  const [cashError, setCashError] = useState('');
-  const [asOf, setAsOf] = useState('');
-  const [appliedAsOf, setAppliedAsOf] = useState('');
 
   const loadSummary = useCallback(async () => {
     setSumLoading(true);
@@ -88,27 +68,6 @@ export default function InicioPage() {
   useEffect(() => {
     void loadSummary();
   }, [loadSummary]);
-
-  async function fetchPositions(dateFilter?: string) {
-    setCashLoading(true);
-    setCashError('');
-    try {
-      let url = '/cash-position';
-      if (dateFilter) url += `?as_of=${dateFilter}`;
-      const data = await api.get<AccountPosition[]>(url);
-      setPositions(data || []);
-      setAppliedAsOf(dateFilter || '');
-    } catch {
-      setCashError('Error al cargar posición de caja.');
-    } finally {
-      setCashLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (!canCash) return;
-    void fetchPositions();
-  }, [canCash]);
 
   function renderMetricBlock(key: ReportMetricKey) {
     if (!summary) return null;
@@ -201,95 +160,6 @@ export default function InicioPage() {
         <div className="grid gap-4 md:grid-cols-2">
           {(['utilidad', 'profit', 'gastos', 'resultado'] as const).map((k) => renderMetricBlock(k))}
         </div>
-      )}
-
-      {canCash && (
-        <details className="border border-gray-200 rounded-lg bg-white group">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-gray-800 bg-gray-50 rounded-lg group-open:rounded-b-none border-b border-transparent group-open:border-gray-200">
-            Posición de caja (detalle por cuenta)
-          </summary>
-          <div className="p-4 border-t border-gray-200">
-            <p className="text-xs text-gray-500 mb-3">
-              Saldos reales por cuenta, divisa y formato (movement_lines). No reemplaza el detalle de reportes arriba.
-            </p>
-            <div className="flex flex-wrap items-end gap-3 mb-4">
-              <div>
-                <label className="block text-xs text-gray-500 mb-0.5">Ver al día</label>
-                <input
-                  type="date"
-                  value={asOf}
-                  onChange={(e) => setAsOf(e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1.5 text-sm"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => void fetchPositions(asOf || undefined)}
-                className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-              >
-                Filtrar
-              </button>
-              {appliedAsOf && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAsOf('');
-                    void fetchPositions();
-                  }}
-                  className="px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
-                >
-                  Ver todo
-                </button>
-              )}
-            </div>
-            {cashError && <p className="text-red-600 text-sm mb-2">{cashError}</p>}
-            {cashLoading && <p className="text-gray-500 text-sm">Cargando caja…</p>}
-            {!cashLoading && positions.length === 0 && !cashError && (
-              <p className="text-gray-400 text-sm">Sin movimientos registrados.</p>
-            )}
-            {!cashLoading && positions.length > 0 && (
-              <div className="space-y-4">
-                {positions.map((acc) => (
-                  <div key={acc.account_id} className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                      <h3 className="text-sm font-semibold text-gray-700">{acc.account_name}</h3>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[280px] text-sm">
-                        <thead>
-                          <tr className="text-left text-gray-500 border-b bg-gray-50/50">
-                            <th className="px-4 py-1.5">Divisa</th>
-                            <th className="px-4 py-1.5">Formato</th>
-                            <th className="px-4 py-1.5 text-right">Saldo</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {acc.balances.map((b, i) => {
-                            const num = parseFloat(b.balance);
-                            const colorClass = num > 0 ? 'text-green-700' : num < 0 ? 'text-red-600' : 'text-gray-400';
-                            return (
-                              <tr key={`${b.currency_id}-${b.format}-${i}`} className="border-b last:border-0 hover:bg-gray-50">
-                                <td className="px-4 py-2 font-medium text-gray-800">{b.currency_code}</td>
-                                <td className="px-4 py-2">
-                                  <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
-                                    {b.format === 'CASH' ? 'Efectivo' : 'Digital'}
-                                  </span>
-                                </td>
-                                <td className={`px-4 py-2 text-right font-mono font-medium ${colorClass}`}>
-                                  {formatMoneyAR(b.balance)}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </details>
       )}
     </div>
   );

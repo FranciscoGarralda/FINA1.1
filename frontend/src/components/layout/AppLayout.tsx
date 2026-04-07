@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/posiciones',      label: 'Estado CC',       permission: 'cc.view' },
   { to: '/clientes',        label: 'Clientes',        permission: 'clients.view' },
   { to: '/cuentas',         label: 'Cuentas',         permission: 'accounts.view' },
+  { to: '/posicion-caja',   label: 'Posición de caja', permission: 'cash_position.view' },
   { to: '/caja-arqueos',    label: 'Arqueos caja',    permission: 'cash_arqueo.view' },
   { to: '/divisas',         label: 'Divisas',         permission: 'currencies.view' },
   { to: '/usuarios',        label: 'Usuarios',        permission: 'users.view' },
