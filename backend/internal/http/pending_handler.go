@@ -10,6 +10,47 @@ import (
 	"fina/internal/services"
 )
 
+func createOpeningPendingHandler(svc *services.OpeningPendingService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+		var input services.OpeningPendingInput
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			RespondError(w, http.StatusBadRequest, "BAD_REQUEST", "Datos inválidos.")
+			return
+		}
+		claims := r.Context().Value(auth.ClaimsKey).(*auth.Claims)
+		res, err := svc.Create(r.Context(), input, claims.UserID)
+		if err != nil {
+			handleOpeningPendingError(w, err)
+			return
+		}
+		RespondJSON(w, http.StatusCreated, res)
+	}
+}
+
+func handleOpeningPendingError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, services.ErrClientRequired):
+		RespondError(w, http.StatusBadRequest, "CLIENT_REQUIRED", "Cliente requerido.")
+	case errors.Is(err, services.ErrInvalidOpeningPendingKind):
+		RespondError(w, http.StatusBadRequest, "INVALID_PENDING_KIND", "Tipo inválido: use RETIRO o PAGO.")
+	case errors.Is(err, services.ErrOpeningPendingDate), errors.Is(err, services.ErrDateRequired):
+		RespondError(w, http.StatusBadRequest, "INVALID_DATE", "Fecha inválida.")
+	case errors.Is(err, services.ErrInvalidAmount):
+		RespondError(w, http.StatusBadRequest, "INVALID_AMOUNT", "Monto inválido.")
+	case errors.Is(err, repositories.ErrCurrencyNotEnabled):
+		RespondError(w, http.StatusBadRequest, "CURRENCY_NOT_ENABLED", "La cuenta no tiene habilitada la divisa seleccionada.")
+	case errors.Is(err, repositories.ErrFormatNotAllowed):
+		RespondError(w, http.StatusBadRequest, "FORMAT_NOT_ALLOWED", "El formato no está habilitado para esa cuenta/divisa.")
+	case errors.Is(err, repositories.ErrClientInactive):
+		RespondError(w, http.StatusBadRequest, "CLIENT_INACTIVE", "El cliente está inactivo.")
+	case errors.Is(err, repositories.ErrNotFound):
+		RespondError(w, http.StatusNotFound, "NOT_FOUND", "Recurso no encontrado.")
+	default:
+		RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Error interno del servidor.")
+	}
+}
+
 func listPendingHandler(svc *services.PendingService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		items, err := svc.List(r.Context())

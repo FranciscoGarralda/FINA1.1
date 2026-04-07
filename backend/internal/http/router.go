@@ -39,6 +39,7 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 	movementSvc := services.NewMovementService(movementRepo)
 	operationRepo := repositories.NewOperationRepo(pool)
 	operationSvc := services.NewOperationService(pool, operationRepo, auditRepo)
+	openingPendingSvc := services.NewOpeningPendingService(pool, operationRepo, auditRepo)
 	permissionsRepo := repositories.NewPermissionsRepo(pool)
 	permissionsSvc := services.NewPermissionsService(permissionsRepo)
 	userPermissionsRepo := repositories.NewUserPermissionsRepo(pool)
@@ -73,6 +74,7 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 	ccViewRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN", "OPERATOR"}
 	movementViewRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN", "OPERATOR"}
 	operationRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN", "OPERATOR"}
+	pendingOpeningRoles := []string{"SUPERADMIN", "ADMIN", "SUBADMIN"}
 
 	// Public
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -180,6 +182,7 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 	mux.Handle("PUT /api/permissions/roles/{role}", RequirePermission(jwtSecret, userPermissionsSvc, "settings.edit", superOnly, http.HandlerFunc(putRolePermissionsHandler(permissionsSvc))))
 
 	// Pendientes
+	mux.Handle("POST /api/pendientes/apertura", RequirePermission(jwtSecret, userPermissionsSvc, "pending.opening.create", pendingOpeningRoles, http.HandlerFunc(createOpeningPendingHandler(openingPendingSvc))))
 	mux.Handle("GET /api/pendientes", RequirePermission(jwtSecret, userPermissionsSvc, "pending.view", allRoles, http.HandlerFunc(listPendingHandler(pendingSvc))))
 	mux.Handle("PATCH /api/pendientes/{id}/resolver", RequirePermission(jwtSecret, userPermissionsSvc, "pending.resolve", allRoles, http.HandlerFunc(resolvePendingHandler(pendingSvc))))
 	// Solo cancela el pendiente ABIERTO; no anula el movimiento (vs PATCH /api/movements/{id}/cancel).

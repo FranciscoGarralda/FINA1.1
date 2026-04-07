@@ -3,6 +3,9 @@ import { createPortal } from 'react-dom';
 import { api } from '../api/client';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
 import MoneyInput from '../components/common/MoneyInput';
+import { useAuth } from '../context/AuthContext';
+import { useActiveAccounts } from '../hooks/useActiveAccounts';
+import { allowedFormatsFromList, formatLabel, resolveFormat } from '../utils/accountCurrencyFormats';
 import { formatMoneyAR } from '../utils/money';
 
 interface PendingItem {
@@ -44,6 +47,11 @@ interface SettingsMap {
 type ResolveMode = 'REAL_EXECUTION' | 'COMPENSATED';
 
 function pendingTypeLabel(type: string, movementType?: string) {
+  if (movementType === 'PENDIENTE_INICIAL') {
+    // RETIRO BD = OUT / entrega; PAGO BD = IN / cobro hacia la casa.
+    if (type === 'PENDIENTE_DE_RETIRO') return 'Entrega (apertura)';
+    if (type === 'PENDIENTE_DE_PAGO') return 'Cobro (apertura)';
+  }
   // VENTA: salida (divisa vendida) = entrega al cliente; entrada (cobro) = retiro del cliente hacia la casa
   if (movementType === 'VENTA') {
     if (type === 'PENDIENTE_DE_RETIRO') return 'Entrega';
@@ -56,10 +64,28 @@ function pendingTypeLabel(type: string, movementType?: string) {
   return type;
 }
 
+interface ClientOption {
+  id: string;
+  first_name: string;
+  last_name: string;
+  active: boolean;
+}
+
+interface AccountCurrencyRow {
+  currency_id: string;
+  currency_code: string;
+  currency_name: string;
+  cash_enabled: boolean;
+  digital_enabled: boolean;
+}
+
 export default function PendientesPage() {
+  const { can } = useAuth();
+  const canOpening = can('pending.opening.create', ['SUPERADMIN', 'ADMIN', 'SUBADMIN']);
   const [items, setItems] = useState<PendingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [openingModalOpen, setOpeningModalOpen] = useState(false);
   const [resolveTarget, setResolveTarget] = useState<PendingItem | null>(null);
   const [resolveMode, setResolveMode] = useState<ResolveMode>('REAL_EXECUTION');
   const [cancelTarget, setCancelTarget] = useState<PendingItem | null>(null);
@@ -100,7 +126,18 @@ export default function PendientesPage() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">Pendientes</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h2 className="text-lg font-semibold text-gray-800">Pendientes</h2>
+        {canOpening && (
+          <button
+            type="button"
+            onClick={() => setOpeningModalOpen(true)}
+            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Registrar pendiente inicial
+          </button>
+        )}
+      </div>
 
       <ApiErrorBanner message={error} />
 
@@ -214,7 +251,235 @@ export default function PendientesPage() {
           onDone={() => { setCancelTarget(null); fetchItems(); }}
         />
       )}
+
+      {openingModalOpen && (
+        <OpeningPendingModal
+          onClose={() => setOpeningModalOpen(false)}
+          onDone={() => { setOpeningModalOpen(false); fetchItems(); }}
+        />
+      )}
     </div>
+  );
+}
+
+function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const accounts = useActiveAccounts();
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [clientId, setClientId] = useState('');
+  const [pendingKind, setPendingKind] = useState<'RETIRO' | 'PAGO'>('RETIRO');
+  const [accountId, setAccountId] = useState('');
+  const [currencyId, setCurrencyId] = useState('');
+  const [format, setFormat] = useState('CASH');
+  const [amount, setAmount] = useState('');
+  const [dateStr, setDateStr] = useState(() => new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState('');
+  const [accountCurrencies, setAccountCurrencies] = useState<AccountCurrencyRow[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [loadErr, setLoadErr] = useState('');
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  useEffect(() => {
+    api
+      .get<ClientOption[]>('/clients')
+      .then((list) => setClients(list.filter((c) => c.active)))
+      .catch(() => setLoadErr('No se pudieron cargar clientes.'));
+  }, []);
+
+  useEffect(() => {
+    if (!accountId) {
+      setAccountCurrencies([]);
+      return;
+    }
+    api
+      .get<AccountCurrencyRow[]>(`/accounts/${accountId}/currencies`)
+      .then(setAccountCurrencies)
+      .catch(() => setAccountCurrencies([]));
+  }, [accountId]);
+
+  useEffect(() => {
+    if (!currencyId) return;
+    const allowed = allowedFormatsFromList(accountCurrencies, currencyId);
+    if (allowed.length === 0) return;
+    const next = resolveFormat(allowed, format);
+    if (next && next !== format) setFormat(next);
+  }, [accountCurrencies, currencyId, format]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    if (!clientId || !accountId || !currencyId || !amount.trim()) {
+      setError('Completá cliente, cuenta, divisa y monto.');
+      return;
+    }
+    if (parseFloat(amount) <= 0) {
+      setError('El monto debe ser mayor a 0.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const body: Record<string, unknown> = {
+        client_id: clientId,
+        pending_kind: pendingKind,
+        account_id: accountId,
+        currency_id: currencyId,
+        format,
+        amount: amount.trim(),
+        date: dateStr || undefined,
+      };
+      const n = note.trim();
+      if (n) body.note = n;
+      await api.post('/pendientes/apertura', body);
+      onDone();
+    } catch (err: unknown) {
+      const m = err && typeof err === 'object' && 'message' in err ? String((err as { message?: string }).message) : '';
+      setError(m || 'No se pudo registrar el pendiente inicial.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return createPortal(
+    <div className="modal-backdrop">
+      <div className="modal-panel max-w-lg w-full p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] max-h-[90vh] overflow-y-auto">
+        <h3 className="text-lg font-semibold text-gray-800 mb-1">Pendiente inicial (apertura)</h3>
+        <p className="text-xs text-gray-500 mb-4">
+          Obligación de caja previa al sistema; sin impacto en cuenta corriente ni utilidad. Misma resolución que el resto de pendientes.
+        </p>
+        {loadErr && <p className="text-amber-700 text-sm mb-2">{loadErr}</p>}
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-0.5">Cliente</label>
+            <select
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              required
+            >
+              <option value="">Elegir…</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.last_name}, {c.first_name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-0.5">Tipo</label>
+            <select
+              value={pendingKind}
+              onChange={(e) => setPendingKind(e.target.value as 'RETIRO' | 'PAGO')}
+              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+            >
+              <option value="RETIRO">
+                Entrega / pago pendiente — al concretar sale plata de la cuenta (OUT)
+              </option>
+              <option value="PAGO">
+                Cobro pendiente — al concretar ingresa plata a la cuenta (IN)
+              </option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1 leading-snug">
+              {pendingKind === 'RETIRO'
+                ? 'Equivale a entregar o pagar desde caja: al resolver, la línea real es salida (OUT), igual que una entrega en venta.'
+                : 'Equivale a cobrar a favor de la casa: al resolver, la línea real es ingreso (IN), igual que un cobro pendiente en venta.'}
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-0.5">Cuenta</label>
+            <select
+              value={accountId}
+              onChange={(e) => { setAccountId(e.target.value); setCurrencyId(''); }}
+              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              required
+            >
+              <option value="">Elegir…</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-0.5">Divisa</label>
+            <select
+              value={currencyId}
+              onChange={(e) => setCurrencyId(e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              required
+            >
+              <option value="">Elegir…</option>
+              {accountCurrencies.map((c) => (
+                <option key={c.currency_id} value={c.currency_id}>
+                  {c.currency_code} — {c.currency_name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {currencyId && (
+            <div>
+              <span className="block text-sm font-medium text-gray-700 mb-1">Formato</span>
+              <div className="flex flex-wrap gap-4">
+                {allowedFormatsFromList(accountCurrencies, currencyId).map((f) => (
+                  <label key={f} className="flex items-center gap-1.5 text-sm">
+                    <input
+                      type="radio"
+                      name="op-format"
+                      value={f}
+                      checked={format === f}
+                      onChange={() => setFormat(f)}
+                    />
+                    {formatLabel(f)}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-0.5">Monto</label>
+            <MoneyInput value={amount} onValueChange={setAmount} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-0.5">Fecha del movimiento</label>
+            <input
+              type="date"
+              value={dateStr}
+              onChange={(e) => setDateStr(e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-0.5">Nota (opcional)</label>
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              placeholder="Ej. arrastre desde sistema anterior"
+            />
+          </div>
+          {error && <p className="text-red-600 text-sm">{error}</p>}
+          <div className="flex flex-wrap justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              {submitting ? 'Guardando…' : 'Registrar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
   );
 }
 

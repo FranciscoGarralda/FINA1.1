@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -92,6 +93,20 @@ func (r *OperationRepo) GetMovementMetaTx(ctx context.Context, tx pgx.Tx, moveme
 		return nil, err
 	}
 	return &m, nil
+}
+
+func (r *OperationRepo) UpdateMovementNoteTx(ctx context.Context, tx pgx.Tx, movementID string, note *string) error {
+	var v interface{}
+	if note != nil {
+		t := strings.TrimSpace(*note)
+		if t != "" {
+			v = t
+		}
+	}
+	_, err := tx.Exec(ctx,
+		`UPDATE movements SET note = $2, updated_at = now() WHERE id = $1::uuid`,
+		movementID, v)
+	return err
 }
 
 func (r *OperationRepo) TransitionMovementStatusTx(ctx context.Context, tx pgx.Tx, movementID, fromStatus, toStatus string) (bool, error) {

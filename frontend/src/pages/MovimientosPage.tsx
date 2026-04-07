@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
+import { movementTypeLabel } from '../utils/movementTypeLabels';
 import { formatMoneyAR } from '../utils/money';
 import { useAuth } from '../context/AuthContext';
 
@@ -198,6 +199,7 @@ export default function MovimientosPage() {
             <option value="GASTO">Gasto</option>
             <option value="INGRESO_CAPITAL">Ingreso capital</option>
             <option value="RETIRO_CAPITAL">Retiro capital</option>
+            <option value="PENDIENTE_INICIAL">Pendiente inicial</option>
           </select>
         </div>
         <div className="min-w-0 w-full sm:w-auto flex-1 sm:flex-none sm:max-w-xs">
@@ -267,7 +269,7 @@ export default function MovimientosPage() {
                     <td className="px-3 py-2 text-gray-600">{m.date}</td>
                     <td className="px-3 py-2">
                       <span className="text-xs bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
-                        {m.type}
+                        {movementTypeLabel(m.type)}
                       </span>
                     </td>
                     <td className="px-3 py-2">{m.client_name ?? '(Interno)'}</td>

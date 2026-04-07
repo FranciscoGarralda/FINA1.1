@@ -174,6 +174,11 @@ func computeDayNameES(dateStr string) (string, error) {
 	return names[int(t.Weekday())], nil
 }
 
+// MovementDayNameES devuelve el nombre del día en español para una fecha YYYY-MM-DD (mismo criterio que encabezados de movimiento).
+func MovementDayNameES(dateStr string) (string, error) {
+	return computeDayNameES(dateStr)
+}
+
 func movementDraftHasUsablePayload(payloadJSON string) bool {
 	if strings.TrimSpace(payloadJSON) == "" {
 		return false

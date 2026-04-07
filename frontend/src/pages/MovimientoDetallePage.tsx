@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { movementTypeLabel } from '../utils/movementTypeLabels';
 import { formatMoneyAR } from '../utils/money';
 import { useAuth } from '../context/AuthContext';
 
@@ -210,7 +211,7 @@ export default function MovimientoDetallePage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-2 gap-x-4 text-sm">
           <div>
             <span className="text-gray-500">Tipo:</span>{' '}
-            <span className="font-medium">{detail.type}</span>
+            <span className="font-medium">{movementTypeLabel(detail.type)}</span>
           </div>
           <div>
             <span className="text-gray-500">Fecha:</span>{' '}
