@@ -1,5 +1,5 @@
 # Railway: build context = repo root (`docker build -f backend/Dockerfile .`)
-FROM golang:1.25.8-alpine AS build
+FROM golang:1.25.7-alpine AS build
 WORKDIR /src
 
 RUN apk add --no-cache git ca-certificates
