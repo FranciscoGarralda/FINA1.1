@@ -95,7 +95,7 @@ Si el usuario ya existe, se actualiza `password_hash`, rol, activo y se limpian 
 
 - Raíz del repo: `docker build -f backend/Dockerfile .`
 - `.dockerignore` en la raíz reduce contexto (node_modules, .env, etc.).
-- La imagen de build del API usa la misma línea de Go que `backend/go.mod` (p. ej. `golang:1.25.7-alpine`); mantener alineado con CI (`govulncheck`).
+- La imagen de build del API usa la misma línea de Go que `backend/go.mod` (p. ej. `golang:1.25.9-alpine`); mantener alineado con CI (`govulncheck`).
 
 ## 5. Healthcheck falla (`/health`)
 
