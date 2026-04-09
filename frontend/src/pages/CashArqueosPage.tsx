@@ -17,6 +17,33 @@ interface SystemTotal {
   balance: string;
 }
 
+/** Respuesta de GET /cash-position: una entrada por cuenta con balances por divisa/formato. */
+interface CashPositionAccount {
+  account_id: string;
+  account_name: string;
+  balances: Array<{
+    currency_id: string;
+    currency_code: string;
+    format: string;
+    balance: string;
+  }>;
+}
+
+/** Normaliza filas del API (acepta `format` o `Format`) y strings seguros. */
+function normalizeTotalsFromSystemAPI(raw: unknown[]): SystemTotal[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((row) => {
+    const r = row as Record<string, unknown>;
+    const fmt = r.format ?? r.Format;
+    return {
+      currency_id: String(r.currency_id ?? ''),
+      currency_code: String(r.currency_code ?? ''),
+      format: typeof fmt === 'string' ? fmt : '',
+      balance: String(r.balance ?? '0'),
+    };
+  });
+}
+
 interface LineOut {
   currency_id: string;
   currency_code: string;
@@ -69,6 +96,8 @@ export default function CashArqueosPage() {
   const { can } = useAuth();
   const canView = can('cash_arqueo.view', ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR']);
   const canCreate = can('cash_arqueo.create', ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR']);
+  /** Fallback si system-totals viene sin `format` (API viejo en :8080): mismo criterio que posición de caja. */
+  const canCashPosition = can('cash_position.view', ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR']);
 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountId, setAccountId] = useState('');
@@ -108,10 +137,31 @@ export default function CashArqueosPage() {
     setLoadingTotals(true);
     setErr('');
     try {
-      const res = await api.get<{ totals: SystemTotal[] }>(
+      const res = await api.get<{ totals: unknown[] }>(
         `/cash-arqueos/system-totals?account_id=${encodeURIComponent(accountId)}&as_of=${encodeURIComponent(arqueoDate)}`
       );
-      const t = res.totals || [];
+      let t = normalizeTotalsFromSystemAPI(res.totals || []);
+      const allLegacyNoFormat = t.length > 0 && t.every((row) => !row.format?.trim());
+      if (allLegacyNoFormat && canCashPosition) {
+        try {
+          const pos = await api.get<CashPositionAccount[]>(
+            `/cash-position?as_of=${encodeURIComponent(arqueoDate)}`
+          );
+          const acc = (pos || []).find((a) => a.account_id === accountId);
+          const rows = acc?.balances ?? [];
+          const hasFormat = rows.some((p) => p.format && String(p.format).trim());
+          if (rows.length > 0 && hasFormat) {
+            t = rows.map((p) => ({
+              currency_id: p.currency_id,
+              currency_code: p.currency_code,
+              format: p.format,
+              balance: p.balance,
+            }));
+          }
+        } catch {
+          /* seguir con t legacy; puede mostrarse el banner */
+        }
+      }
       setTotals(t);
       setCounts((prev) => {
         const next = { ...prev };
@@ -127,7 +177,7 @@ export default function CashArqueosPage() {
     } finally {
       setLoadingTotals(false);
     }
-  }, [accountId, arqueoDate]);
+  }, [accountId, arqueoDate, canCashPosition]);
 
   useEffect(() => {
     if (canView) void loadTotals();
