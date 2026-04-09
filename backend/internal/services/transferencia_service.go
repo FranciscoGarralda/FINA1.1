@@ -603,7 +603,8 @@ func (s *TransferenciaService) executeDualLegTransfer(ctx context.Context, movem
 			}
 		}
 
-		if ccEnabled {
+		// INCLUIDA: la comisión va dentro del monto de pata(s); no duplicar impacto CC sobre el mismo fee (regla no doble impacto).
+		if ccEnabled && feeTreatment == "APARTE" {
 			if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, feeCurrencyID, feeStr, movementID, feeCCSide, "Transferencia — comisión", callerID); err != nil {
 				return fmt.Errorf("apply cc fee: %w", err)
 			}
@@ -795,7 +796,7 @@ func (s *TransferenciaService) executeSignedTransfer(ctx context.Context, moveme
 			}
 		}
 
-		if ccEnabled {
+		if ccEnabled && feeTreatment == "APARTE" {
 			if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Transfer.CurrencyID, feeStr, movementID, feeCCSide, "Transferencia — comisión", callerID); err != nil {
 				return fmt.Errorf("apply signed transfer cc fee impact: %w", err)
 			}

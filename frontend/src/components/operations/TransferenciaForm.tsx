@@ -340,7 +340,8 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
     add(inLeg.currency_id, inCurrCode, 'pending', inLeg.settlement === 'PENDIENTE' ? inAbs : 0);
 
     if (feeEnabled && expectedFee > 0 && feeCurrCode) {
-      if (clientCcEnabled) {
+      // Comisión incluida: el fee ya está representado en el monto de pata(s); no sumar otra línea CC de comisión.
+      if (clientCcEnabled && feeTreatment === 'APARTE') {
         add(feeCurrencyId, feeCurrCode, 'cc', feeAmountSigned);
       }
       add(feeCurrencyId, feeCurrCode, 'real', feeRealSigned);
@@ -352,7 +353,7 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
     clientCcEnabled,
     outLeg.currency_id, outCurrCode, outAbs, outLeg.settlement,
     inLeg.currency_id, inCurrCode, inAbs, inLeg.settlement,
-    feeEnabled, expectedFee, feeCurrCode, feeCurrencyId, feeAmountSigned, feeRealSigned, feePendingSigned,
+    feeEnabled, feeTreatment, expectedFee, feeCurrCode, feeCurrencyId, feeAmountSigned, feeRealSigned, feePendingSigned,
   ]);
 
   function formatsFor(accountId: string, currencyId: string): Array<'CASH' | 'DIGITAL'> {
