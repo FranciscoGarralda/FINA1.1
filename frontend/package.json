@@ -15,6 +15,7 @@
     }
   },
   "scripts": {
+    "postinstall": "node scripts/rm-dup-at-types.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",

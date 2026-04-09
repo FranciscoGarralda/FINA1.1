@@ -13,6 +13,7 @@ import GastoForm from '../components/operations/GastoForm';
 import PagoCCCruzadoForm from '../components/operations/PagoCCCruzadoForm';
 import TransferenciaForm from '../components/operations/TransferenciaForm';
 import TraspasoDeudaCCForm from '../components/operations/TraspasoDeudaCCForm';
+import { clearOperationDraftCache } from '../utils/operationDrafts';
 
 interface Client {
   id: string;
@@ -436,6 +437,7 @@ export default function NuevaOperacionPage() {
   }
 
   function resetWizard() {
+    if (movementId) clearOperationDraftCache(movementId);
     lastSyncedHeaderRef.current = null;
     setMovementId(null);
     setOperationNumber(null);
@@ -565,6 +567,7 @@ export default function NuevaOperacionPage() {
         };
         setConfirmClearOpen(false);
         if (confirmClearPayload) {
+          clearOperationDraftCache(movementId);
           setFormRemountKey((k) => k + 1);
         }
       } catch (err: any) {
@@ -680,6 +683,8 @@ export default function NuevaOperacionPage() {
       if (movementId === draftId) {
         clearDraftSession();
         resetWizard();
+      } else {
+        clearOperationDraftCache(draftId);
       }
       fetchDrafts();
     } catch (err: any) {
