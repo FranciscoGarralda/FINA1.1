@@ -209,6 +209,18 @@ func handleOperationError(w http.ResponseWriter, err error) {
 	case errors.Is(err, services.ErrCCNotEnabledForClient):
 		RespondError(w, http.StatusBadRequest, "CC_NOT_ENABLED_FOR_CLIENT",
 			"El cliente no tiene cuenta corriente habilitada; no puede aplicarse impacto CC.")
+	case errors.Is(err, services.ErrFXInsufficientInventory):
+		RespondError(w, http.StatusConflict, "FX_INSUFFICIENT_INVENTORY",
+			"No hay stock suficiente de la divisa vendida para registrar la venta con el inventario FX.")
+	case errors.Is(err, services.ErrFXQuoteNotFunctional):
+		RespondError(w, http.StatusBadRequest, "FX_QUOTE_CURRENCY_NOT_FUNCTIONAL",
+			"La cotización debe estar en la moneda funcional del inventario FX (configuración fx_functional_currency_code).")
+	case errors.Is(err, services.ErrFXFunctionalCurrencyUnset):
+		RespondError(w, http.StatusInternalServerError, "FX_FUNCTIONAL_CURRENCY_UNSET",
+			"Falta o es inválida la moneda funcional del inventario FX en configuración.")
+	case errors.Is(err, services.ErrFXInvalidMovementLines):
+		RespondError(w, http.StatusBadRequest, "FX_INVALID_MOVEMENT_LINES",
+			"Las líneas del movimiento no permiten calcular inventario FX (COMPRA/VENTA).")
 	default:
 		RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Error interno del servidor.")
 	}

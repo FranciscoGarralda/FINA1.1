@@ -60,208 +60,36 @@ func (s *ReportesService) Generate(ctx context.Context, from, to string) (*Repor
 	}, nil
 }
 
-type currencyInfo struct {
-	id   string
-	code string
-}
-
-// computeFXUtility uses sequential moving weighted average for COMPRA/VENTA.
+// computeFXUtility suma utilidad realizada de inventario FX (solo COMPRA/VENTA) desde fx_inventory_ledger.
+// Incluye APPLY y REVERSE por fecha de operación del movimiento (anulaciones en el período netean).
 func (s *ReportesService) computeFXUtility(ctx context.Context, from, to string) (map[string]*big.Rat, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT m.id::text, m.type, ml.side, ml.currency_id::text, c.code, ml.amount::text
-		 FROM movements m
-		 JOIN movement_lines ml ON ml.movement_id = m.id
-		 JOIN currencies c ON c.id = ml.currency_id
+		`SELECT l.functional_currency_id::text, COALESCE(SUM(l.realized_pnl_functional), 0)::text
+		 FROM fx_inventory_ledger l
+		 INNER JOIN movements m ON m.id = l.movement_id
 		 WHERE m.type IN ('COMPRA','VENTA')
 		   AND m.date >= $1::date AND m.date <= $2::date
-		 ORDER BY m.date ASC, m.operation_number ASC, ml.side ASC`, from, to)
+		 GROUP BY l.functional_currency_id`, from, to)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	type movLine struct {
-		movID      string
-		movType    string
-		side       string
-		currencyID string
-		currCode   string
-		amount     *big.Rat
-	}
-
-	var lines []movLine
+	result := map[string]*big.Rat{}
 	for rows.Next() {
-		var ml movLine
-		var amtStr string
-		if err := rows.Scan(&ml.movID, &ml.movType, &ml.side, &ml.currencyID, &ml.currCode, &amtStr); err != nil {
+		var currID, amtStr string
+		if err := rows.Scan(&currID, &amtStr); err != nil {
 			return nil, err
 		}
-		ml.amount, _ = new(big.Rat).SetString(amtStr)
-		lines = append(lines, ml)
-	}
-
-	// Group lines by movement
-	type movGroup struct {
-		movType string
-		lines   []movLine
-	}
-	movOrder := []string{}
-	movMap := map[string]*movGroup{}
-	for _, l := range lines {
-		if _, ok := movMap[l.movID]; !ok {
-			movOrder = append(movOrder, l.movID)
-			movMap[l.movID] = &movGroup{movType: l.movType}
+		amt, err := parseAggRat(amtStr, "utilidad_fx")
+		if err != nil {
+			return nil, err
 		}
-		movMap[l.movID].lines = append(movMap[l.movID].lines, l)
+		result[currID] = amt
 	}
-
-	// Per-currency accumulators for moving weighted average
-	// Key: traded currency ID (the one being bought/sold, NOT the quote currency)
-	type accumulator struct {
-		code      string
-		unitsIn   *big.Rat // total units bought
-		costTotal *big.Rat // total cost in quote currency
-		unitsOut  *big.Rat // total units sold
-		revenue   *big.Rat // total revenue in quote currency
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
-
-	accum := map[string]*accumulator{}
-	getAccum := func(currID, code string) *accumulator {
-		if a, ok := accum[currID]; ok {
-			return a
-		}
-		a := &accumulator{
-			code:      code,
-			unitsIn:   new(big.Rat),
-			costTotal: new(big.Rat),
-			unitsOut:  new(big.Rat),
-			revenue:   new(big.Rat),
-		}
-		accum[currID] = a
-		return a
-	}
-
-	// Utility is accumulated in the quote currency of each movement.
-	// We need to know which currency is the "traded" one (IN for COMPRA, OUT for VENTA)
-	// and which is the "quote" one (OUT for COMPRA, IN for VENTA).
-	// The utility result is per QUOTE currency.
-
-	// Actually, re-reading the spec:
-	// "Utility must be accumulated in QUOTE currency (no FX conversion)."
-	// result_real[currency] = profit[currency] - expenses[currency] + fx_utility[currency]
-	// So fx_utility is keyed by QUOTE currency.
-
-	// For COMPRA: IN side = traded currency, OUT side(s) = quote currency
-	//   units_in (traded) += IN.amount
-	//   cost_total (quote) += SUM(OUT.amount)
-	// For VENTA: OUT side = traded currency, IN side(s) = quote currency
-	//   units_out (traded) += OUT.amount
-	//   revenue_total (quote) += SUM(IN.amount)
-	// avg_cost = cost_total / units_in (per traded currency)
-	// realized_cost = units_out * avg_cost
-	// utility[quote_currency] = revenue - realized_cost
-
-	// The challenge: utility is in quote currency, but avg_cost is per traded currency.
-	// Since COMPRA and VENTA for the same traded currency should use the same quote currency
-	// (in practice, e.g., buy USD with ARS, sell USD for ARS), the utility lands in ARS.
-
-	// We need to track per TRADED currency: units, cost, revenue (all in the respective quote currency).
-	// Then compute utility per traded currency, and the result currency is the quote currency.
-
-	// Track quote currency per traded currency (assume consistent within the period)
-	quoteCurrMap := map[string]currencyInfo{}
-
-	for _, movID := range movOrder {
-		mg := movMap[movID]
-		if mg.movType == "COMPRA" {
-			// IN lines = traded currency (should be one)
-			// OUT lines = quote currency
-			var tradedCurrID, tradedCode string
-			var tradedAmount *big.Rat
-			quoteTotal := new(big.Rat)
-			var quoteCurrID, quoteCode string
-
-			for _, l := range mg.lines {
-				if l.side == "IN" {
-					tradedCurrID = l.currencyID
-					tradedCode = l.currCode
-					tradedAmount = l.amount
-				} else {
-					quoteCurrID = l.currencyID
-					quoteCode = l.currCode
-					quoteTotal.Add(quoteTotal, l.amount)
-				}
-			}
-			if tradedAmount == nil || tradedCurrID == "" {
-				continue
-			}
-
-			a := getAccum(tradedCurrID, tradedCode)
-			a.unitsIn.Add(a.unitsIn, tradedAmount)
-			a.costTotal.Add(a.costTotal, quoteTotal)
-			if quoteCurrID != "" {
-				quoteCurrMap[tradedCurrID] = currencyInfo{id: quoteCurrID, code: quoteCode}
-			}
-
-		} else if mg.movType == "VENTA" {
-			// OUT line = traded currency (should be one)
-			// IN lines = quote currency
-			var tradedCurrID, tradedCode string
-			var tradedAmount *big.Rat
-			quoteTotal := new(big.Rat)
-			var quoteCurrID, quoteCode string
-
-			for _, l := range mg.lines {
-				if l.side == "OUT" {
-					tradedCurrID = l.currencyID
-					tradedCode = l.currCode
-					tradedAmount = l.amount
-				} else {
-					quoteCurrID = l.currencyID
-					quoteCode = l.currCode
-					quoteTotal.Add(quoteTotal, l.amount)
-				}
-			}
-			if tradedAmount == nil || tradedCurrID == "" {
-				continue
-			}
-
-			a := getAccum(tradedCurrID, tradedCode)
-			a.unitsOut.Add(a.unitsOut, tradedAmount)
-			a.revenue.Add(a.revenue, quoteTotal)
-			if quoteCurrID != "" {
-				quoteCurrMap[tradedCurrID] = currencyInfo{id: quoteCurrID, code: quoteCode}
-			}
-		}
-	}
-
-	// Compute utility per traded currency → result in quote currency
-	result := map[string]*big.Rat{}
-	for tradedCurrID, a := range accum {
-		qi, ok := quoteCurrMap[tradedCurrID]
-		if !ok {
-			continue
-		}
-
-		utility := new(big.Rat)
-		if a.unitsIn.Sign() > 0 && a.unitsOut.Sign() > 0 {
-			avgCost := new(big.Rat).Quo(a.costTotal, a.unitsIn)
-			realizedCost := new(big.Rat).Mul(a.unitsOut, avgCost)
-			utility.Sub(a.revenue, realizedCost)
-		} else if a.unitsOut.Sign() == 0 {
-			// No sales → no realized utility
-		} else {
-			// Units out but no units in (shouldn't happen but handle gracefully)
-			utility.Set(a.revenue)
-		}
-
-		if existing, ok := result[qi.id]; ok {
-			existing.Add(existing, utility)
-		} else {
-			result[qi.id] = utility
-		}
-	}
-
 	return result, nil
 }
 
@@ -470,7 +298,7 @@ func (s *ReportesService) DailySummary(ctx context.Context, referenceDate string
 	}
 
 	defs := map[string]string{
-		"utilidad":  "Utilidad FX (COMPRA/VENTA, costo medio móvil en divisa cotización). Backend: reportes_service.computeFXUtility — misma regla que GET /api/reportes.",
+		"utilidad":  "Utilidad compra-venta: P&L realizado con inventario y costo promedio (moneda funcional, p. ej. ARS). Fuente: fx_inventory_ledger + fx_positions. Sin arbitraje ni profit_entries.",
 		"profit":    "Suma de profit_entries del día por divisa (p. ej. comisiones). Backend: reportes_service.computeProfit.",
 		"gastos":    "Suma de líneas OUT en movimientos tipo GASTO. Backend: reportes_service.computeGastos.",
 		"resultado": "Por divisa: utilidad + profit − gastos. Backend: reportes_service.computeResultado.",

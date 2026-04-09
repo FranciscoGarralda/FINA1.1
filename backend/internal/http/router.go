@@ -38,6 +38,7 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 	movementRepo := repositories.NewMovementRepo(pool)
 	movementSvc := services.NewMovementService(movementRepo)
 	operationRepo := repositories.NewOperationRepo(pool)
+	services.SetFxInventoryMovementHook(services.NewFxInventoryService(pool, operationRepo))
 	operationSvc := services.NewOperationService(pool, operationRepo, auditRepo)
 	openingPendingSvc := services.NewOpeningPendingService(pool, operationRepo, auditRepo)
 	cashOpeningBalanceSvc := services.NewCashOpeningBalanceService(pool, operationRepo, auditRepo)

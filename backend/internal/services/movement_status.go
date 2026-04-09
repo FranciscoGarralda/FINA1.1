@@ -62,6 +62,11 @@ func confirmMovementDraftTx(ctx context.Context, tx pgx.Tx, pool *pgxpool.Pool, 
 			return err
 		}
 	}
+	if fxInventoryMovementHook != nil {
+		if err := fxInventoryMovementHook.ApplyOnMovementConfirmed(ctx, tx, movementID); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -133,6 +138,12 @@ func cancelMovementWithinTx(ctx context.Context, tx pgx.Tx, opRepo *repositories
 			return fmt.Errorf("insert reversal profit entry: %w", err)
 		}
 		createdReversalProfitEntries++
+	}
+
+	if fxInventoryMovementHook != nil {
+		if err := fxInventoryMovementHook.ReverseOnMovementCancelled(ctx, tx, movementID); err != nil {
+			return fmt.Errorf("fx inventory reverse: %w", err)
+		}
 	}
 
 	cancelledPendingCount, err := opRepo.CancelPendingItemsByMovementTx(ctx, tx, movementID, callerID)

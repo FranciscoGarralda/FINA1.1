@@ -221,17 +221,6 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Número del contacto de referencia</label>
-                <input type="tel" value={referenceContact} onChange={(e) => setReferenceContact(e.target.value)} className={inputCls} required autoComplete="tel" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de quien lo recomienda</label>
-                <input type="text" value={referredBy} onChange={(e) => setReferredBy(e.target.value)} className={inputCls} required />
-              </div>
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
               <input
@@ -243,6 +232,17 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
                 maxLength={255}
                 autoComplete="organization"
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Número del contacto de referencia</label>
+                <input type="tel" value={referenceContact} onChange={(e) => setReferenceContact(e.target.value)} className={inputCls} required autoComplete="tel" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de quien lo recomienda</label>
+                <input type="text" value={referredBy} onChange={(e) => setReferredBy(e.target.value)} className={inputCls} required />
+              </div>
             </div>
 
             <div className="flex items-center gap-3 pt-1">
