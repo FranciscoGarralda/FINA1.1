@@ -10,7 +10,6 @@ import NuevaOperacionPage from './pages/NuevaOperacionPage';
 import MovimientosPage from './pages/MovimientosPage';
 import MovimientoDetallePage from './pages/MovimientoDetallePage';
 import PendientesPage from './pages/PendientesPage';
-import ReportesPage from './pages/ReportesPage';
 import PosicionesPage from './pages/PosicionesPage';
 import PosicionesClientePage from './pages/PosicionesClientePage';
 import ClientesPage from './pages/ClientesPage';
@@ -154,14 +153,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/reportes"
-          element={
-            <ProtectedRoute requiredPermission="reportes.view" fallbackRoles={['SUPERADMIN', 'ADMIN', 'SUBADMIN']}>
-              <ReportesPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/reportes" element={<Navigate to="/inicio" replace />} />
         <Route
           path="/posiciones"
           element={

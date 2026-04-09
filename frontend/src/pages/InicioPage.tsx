@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import type { CurrencyAmount, DailySummary, ReportMetricKey } from '../types/reportes';
+import type { CurrencyAmount, DailySummary, ReportData, ReportMetricKey } from '../types/reportes';
 import { formatMoneyAR } from '../utils/money';
 
 function todayStr() {
@@ -13,6 +12,14 @@ function parseAmt(s: string | undefined): number {
   if (s == null || s === '') return 0;
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : 0;
+}
+
+function sumSection(rows: CurrencyAmount[]): number {
+  let t = 0;
+  for (const x of rows) {
+    t += parseAmt(x.amount);
+  }
+  return t;
 }
 
 function mergedRows(ref: CurrencyAmount[], cmp: CurrencyAmount[]) {
@@ -35,11 +42,39 @@ function deltaClass(d: number) {
   return 'text-gray-500';
 }
 
-const METRIC_LABELS: Record<ReportMetricKey, string> = {
-  utilidad: 'Utilidad FX',
+/** Títulos fijos en tarjetas (no usar solo definitions como título). */
+const CARD_TITLES: Record<ReportMetricKey, string> = {
+  utilidad: 'Utilidad compra-venta',
   profit: 'Comisiones / profit',
   gastos: 'Gastos',
-  resultado: 'Neto (resultado)',
+  resultado: 'Resultado neto',
+};
+
+const CARD_STYLE: Record<ReportMetricKey, { border: string; bg: string; title: string; accent: string }> = {
+  utilidad: {
+    border: 'border-blue-200',
+    bg: 'bg-blue-50/80',
+    title: 'text-blue-900',
+    accent: 'text-blue-700',
+  },
+  profit: {
+    border: 'border-purple-200',
+    bg: 'bg-purple-50/80',
+    title: 'text-purple-900',
+    accent: 'text-purple-700',
+  },
+  gastos: {
+    border: 'border-red-200',
+    bg: 'bg-red-50/80',
+    title: 'text-red-900',
+    accent: 'text-red-700',
+  },
+  resultado: {
+    border: 'border-emerald-200',
+    bg: 'bg-emerald-50/80',
+    title: 'text-emerald-900',
+    accent: 'text-emerald-700',
+  },
 };
 
 export default function InicioPage() {
@@ -50,6 +85,13 @@ export default function InicioPage() {
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [sumLoading, setSumLoading] = useState(true);
   const [sumError, setSumError] = useState('');
+
+  const [detailKey, setDetailKey] = useState<ReportMetricKey | null>(null);
+  const [detailFrom, setDetailFrom] = useState(todayStr);
+  const [detailTo, setDetailTo] = useState(todayStr);
+  const [rangeData, setRangeData] = useState<ReportData | null>(null);
+  const [rangeLoading, setRangeLoading] = useState(false);
+  const [rangeError, setRangeError] = useState('');
 
   const loadSummary = useCallback(async () => {
     setSumLoading(true);
@@ -69,47 +111,228 @@ export default function InicioPage() {
     void loadSummary();
   }, [loadSummary]);
 
-  function renderMetricBlock(key: ReportMetricKey) {
+  const loadRangeReport = async (from: string, to: string) => {
+    setRangeLoading(true);
+    setRangeError('');
+    try {
+      const d = await api.get<ReportData>(
+        `/reportes?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+      );
+      setRangeData(d);
+    } catch (e: unknown) {
+      const status = (e as { status?: number })?.status;
+      if (status === 403) {
+        setRangeError('No tenés permiso para ver reportes por rango.');
+      } else {
+        setRangeError('No se pudo cargar el reporte para el período.');
+      }
+      setRangeData(null);
+    } finally {
+      setRangeLoading(false);
+    }
+  };
+
+  const openDetail = (key: ReportMetricKey) => {
+    setDetailKey(key);
+    setDetailFrom(refDate);
+    setDetailTo(refDate);
+    setRangeData(null);
+    setRangeError('');
+    if (canReportes) {
+      void loadRangeReport(refDate, refDate);
+    }
+  };
+
+  const closeDetail = useCallback(() => {
+    setDetailKey(null);
+    setRangeData(null);
+    setRangeError('');
+  }, []);
+
+  useEffect(() => {
+    if (!detailKey) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeDetail();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [detailKey, closeDetail]);
+
+  function renderMetricCard(key: ReportMetricKey) {
     if (!summary) return null;
     const refSec = summary.reference[key].by_currency ?? [];
     const cmpSec = summary.compare[key].by_currency ?? [];
-    const rows = mergedRows(refSec, cmpSec);
-    const def = summary.definitions[key] ?? '';
+    const totalRef = sumSection(refSec);
+    const totalCmp = sumSection(cmpSec);
+    const dTotal = totalRef - totalCmp;
+    const st = CARD_STYLE[key];
 
     return (
-      <div key={key} className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-        <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-800">{METRIC_LABELS[key]}</h3>
-          <p className="text-xs text-gray-500 mt-1 leading-snug">{def}</p>
-        </div>
-        <div className="overflow-x-auto">
-          {rows.length === 0 ? (
-            <p className="text-sm text-gray-400 px-4 py-3">Sin movimientos este día.</p>
-          ) : (
-            <table className="w-full min-w-[320px] text-sm">
-              <thead>
-                <tr className="text-left text-gray-500 border-b bg-white">
-                  <th className="px-4 py-2">Divisa</th>
-                  <th className="px-4 py-2 text-right">Día ({summary.reference_date})</th>
-                  <th className="px-4 py-2 text-right">Ayer ({summary.compare_date})</th>
-                  <th className="px-4 py-2 text-right">Δ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={`${key}-${r.id}`} className="border-b last:border-0 hover:bg-gray-50/80">
-                    <td className="px-4 py-2 font-medium text-gray-800">{r.code}</td>
-                    <td className="px-4 py-2 text-right font-mono">{formatMoneyAR(String(r.refN))}</td>
-                    <td className="px-4 py-2 text-right font-mono text-gray-600">{formatMoneyAR(String(r.cmpN))}</td>
-                    <td className={`px-4 py-2 text-right font-mono font-medium ${deltaClass(r.delta)}`}>
-                      {r.delta > 0 ? '+' : ''}
-                      {formatMoneyAR(String(r.delta))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+      <button
+        key={key}
+        type="button"
+        onClick={() => openDetail(key)}
+        className={`text-left rounded-xl border-2 ${st.border} ${st.bg} p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2`}
+      >
+        <h3 className={`text-sm font-semibold ${st.title} mb-2`}>{CARD_TITLES[key]}</h3>
+        <p className={`text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight ${st.accent}`}>
+          {formatMoneyAR(String(totalRef))}
+        </p>
+        <p className={`text-xs sm:text-sm mt-2 font-medium ${deltaClass(dTotal)}`}>
+          vs día anterior: {dTotal > 0 ? '+' : ''}
+          {formatMoneyAR(String(dTotal))}
+        </p>
+        <p className="text-xs text-gray-500 mt-3">
+          {canReportes
+            ? 'Tocá para ver detalle por divisa y otro rango de fechas.'
+            : 'Tocá para ver detalle por divisa (día vs ayer).'}
+        </p>
+      </button>
+    );
+  }
+
+  function renderDetailModal() {
+    if (!detailKey || !summary) return null;
+    const refSec = summary.reference[detailKey].by_currency ?? [];
+    const cmpSec = summary.compare[detailKey].by_currency ?? [];
+    const rows = mergedRows(refSec, cmpSec);
+    const def = summary.definitions[detailKey] ?? '';
+    const rangeSection = rangeData ? rangeData[detailKey].by_currency : [];
+
+    return (
+      <div
+        className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="inicio-detail-title"
+        onClick={closeDetail}
+      >
+        <div
+          className="bg-white rounded-t-xl sm:rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-4 py-3 border-b border-gray-200 flex items-start justify-between gap-3">
+            <div>
+              <h3 id="inicio-detail-title" className="text-lg font-semibold text-gray-900">
+                {CARD_TITLES[detailKey]}
+              </h3>
+              {def ? (
+                <p className="text-xs text-gray-600 mt-1 leading-relaxed">{def}</p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={closeDetail}
+              className="shrink-0 rounded-lg px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
+            >
+              Cerrar
+            </button>
+          </div>
+
+          <div className="overflow-y-auto px-4 py-3 space-y-6">
+            <div>
+              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Día {summary.reference_date} vs {summary.compare_date}
+              </h4>
+              <div className="overflow-x-auto rounded-lg border border-gray-200">
+                {rows.length === 0 ? (
+                  <p className="text-sm text-gray-400 px-4 py-6 text-center">Sin datos para este día.</p>
+                ) : (
+                  <table className="w-full min-w-[320px] text-sm">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b bg-gray-50">
+                        <th className="px-3 py-2">Divisa</th>
+                        <th className="px-3 py-2 text-right">Día</th>
+                        <th className="px-3 py-2 text-right">Ayer</th>
+                        <th className="px-3 py-2 text-right">Δ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => (
+                        <tr key={r.id} className="border-b last:border-0">
+                          <td className="px-3 py-2 font-medium text-gray-800">{r.code}</td>
+                          <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(String(r.refN))}</td>
+                          <td className="px-3 py-2 text-right font-mono text-gray-600">
+                            {formatMoneyAR(String(r.cmpN))}
+                          </td>
+                          <td className={`px-3 py-2 text-right font-mono font-medium ${deltaClass(r.delta)}`}>
+                            {r.delta > 0 ? '+' : ''}
+                            {formatMoneyAR(String(r.delta))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+
+            {canReportes ? (
+              <div>
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Período personalizado
+                </h4>
+                <div className="flex flex-wrap items-end gap-3 mb-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-0.5">Desde</label>
+                    <input
+                      type="date"
+                      value={detailFrom}
+                      onChange={(e) => setDetailFrom(e.target.value)}
+                      className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-0.5">Hasta</label>
+                    <input
+                      type="date"
+                      value={detailTo}
+                      onChange={(e) => setDetailTo(e.target.value)}
+                      className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void loadRangeReport(detailFrom, detailTo)}
+                    className="px-3 py-1.5 text-sm bg-gray-800 text-white rounded hover:bg-gray-900 min-h-[44px] sm:min-h-0"
+                  >
+                    Actualizar período
+                  </button>
+                </div>
+                {rangeLoading && <p className="text-sm text-gray-500">Cargando período…</p>}
+                {rangeError && <p className="text-sm text-red-600">{rangeError}</p>}
+                {!rangeLoading && rangeData && (
+                  <div className="rounded-lg border border-gray-200 divide-y">
+                    {rangeSection.length === 0 ? (
+                      <p className="text-sm text-gray-400 px-4 py-4">Sin datos en el período.</p>
+                    ) : (
+                      rangeSection.map((item) => {
+                        const num = parseFloat(item.amount);
+                        const isNeg = num < 0;
+                        return (
+                          <div
+                            key={item.currency_id}
+                            className="flex flex-wrap justify-between gap-2 px-4 py-2.5"
+                          >
+                            <span className="text-sm font-medium text-gray-700">{item.currency_code}</span>
+                            <span
+                              className={`font-mono text-sm ${isNeg ? 'text-red-600' : 'text-gray-900'}`}
+                            >
+                              {formatMoneyAR(item.amount)}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500">
+                Para cargar totales por rango de fechas necesitás permiso de reportes. Pedile acceso a un administrador.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -119,19 +342,9 @@ export default function InicioPage() {
     <div className="space-y-8">
       <div>
         <h2 className="text-xl font-semibold text-gray-800 mb-1">Inicio</h2>
-        <p className="text-sm text-gray-600 mb-1">
-          Resumen del día: utilidad FX, comisiones (profit), gastos y neto. Mismas definiciones que el módulo Reportes
-          (un día = <code className="text-xs bg-gray-100 px-1 rounded">from</code> ={' '}
-          <code className="text-xs bg-gray-100 px-1 rounded">to</code>).
+        <p className="text-sm text-gray-600">
+          Resultados del día: tocá una tarjeta para ver detalle por divisa y, si tenés permiso, otro rango de fechas.
         </p>
-        {canReportes && (
-          <p className="text-xs text-gray-500">
-            <Link to="/reportes" className="text-blue-600 hover:text-blue-800">
-              Ir a Reportes
-            </Link>{' '}
-            para otros rangos y el detalle por divisa.
-          </p>
-        )}
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -147,7 +360,7 @@ export default function InicioPage() {
         <button
           type="button"
           onClick={() => void loadSummary()}
-          className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 min-h-[44px] sm:min-h-0"
         >
           Actualizar
         </button>
@@ -157,10 +370,12 @@ export default function InicioPage() {
       {sumLoading && <p className="text-gray-500 text-sm">Cargando resumen…</p>}
 
       {!sumLoading && summary && (
-        <div className="grid gap-4 md:grid-cols-2">
-          {(['utilidad', 'profit', 'gastos', 'resultado'] as const).map((k) => renderMetricBlock(k))}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {(['utilidad', 'profit', 'gastos', 'resultado'] as const).map((k) => renderMetricCard(k))}
         </div>
       )}
+
+      {detailKey ? renderDetailModal() : null}
     </div>
   );
 }

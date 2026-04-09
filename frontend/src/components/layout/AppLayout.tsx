@@ -7,7 +7,6 @@ const NAV_ITEMS = [
   { to: '/nueva-operacion', label: 'Nueva operación', permission: 'operations.create_header' },
   { to: '/movimientos',     label: 'Movimientos',     permission: 'movements.view' },
   { to: '/pendientes',      label: 'Pendientes',      permission: 'pending.view' },
-  { to: '/reportes',        label: 'Reportes',        permission: 'reportes.view' },
   { to: '/posiciones',      label: 'Estado CC',       permission: 'cc.view' },
   { to: '/clientes',        label: 'Clientes',        permission: 'clients.view' },
   { to: '/cuentas',         label: 'Cuentas',         permission: 'accounts.view' },
