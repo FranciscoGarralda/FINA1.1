@@ -4,6 +4,8 @@ FROM node:22-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
+# postinstall ejecuta scripts/rm-dup-at-types.mjs; debe existir antes de npm ci.
+COPY scripts ./scripts/
 RUN npm ci
 
 COPY . .

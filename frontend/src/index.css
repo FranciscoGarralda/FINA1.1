@@ -31,15 +31,16 @@ body {
   }
 
   /*
-   * Filas de acción: sin overflow horizontal; en viewport angosto se apilan.
-   * Los botones conservan sus clases de color; solo se fuerza ancho y apilado.
+   * Filas de acción: columna hasta viewport ancho de escritorio.
+   * sm (640px) activaba fila en móvil apaisado; 4 botones (Guardar / borrador / …)
+   * no cabían y se cortaba el overflow. lg (1024px) mantiene apilado en phones/tablets.
    */
   .form-actions {
-    @apply flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center;
+    @apply flex w-full min-w-0 flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center;
   }
 
   .form-actions > button {
-    @apply w-full min-h-[44px] shrink-0 sm:w-auto;
+    @apply w-full min-h-[44px] max-w-full shrink-0 lg:w-auto lg:max-w-none;
   }
 
   /* Overlay + panel con scroll y safe-area inferior (iPhone / home indicator) */

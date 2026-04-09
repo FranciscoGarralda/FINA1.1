@@ -122,6 +122,8 @@ Vite incrusta `VITE_*` solo en **`npm run build`**. Si el build no ve `VITE_API_
 
 **Confirmación en el repo:** la rama/commit conectado al servicio del front debe incluir `frontend/Dockerfile`; si no, el build fallará hasta merge/deploy del commit correcto.
 
+**`npm ci` y `postinstall` en la imagen:** con **Root Directory = `frontend`**, el contexto de Docker es solo esa carpeta (correcto). El `package.json` del front define **`postinstall`** → `node scripts/rm-dup-at-types.mjs` (limpia carpetas duplicadas `* 2` en `node_modules/@types` en desarrollo). El **`frontend/Dockerfile`** debe copiar **`scripts/`** antes de **`RUN npm ci`**; si solo se copian `package.json` y `package-lock.json`, el build falla con `Cannot find module '/app/scripts/rm-dup-at-types.mjs'`. Prueba local con el mismo contexto que Railway: `cd frontend && docker build -t fina-front-test .` (y `VITE_API_BASE` vía `--build-arg` si hace falta).
+
 ### 6.2 Build local (sin Docker)
 
 ```bash
