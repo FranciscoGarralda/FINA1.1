@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client';
 import MoneyInput from '../common/MoneyInput';
 import { loadOperationDraft, saveOperationDraft } from '../../utils/operationDrafts';
+import OperationFormActions from './OperationFormActions';
 import { useActiveCurrencies } from '../../hooks/useActiveCurrencies';
 
 interface Client {
@@ -198,35 +199,15 @@ export default function TraspasoDeudaCCForm({ movementId, clientId, onDone, onCa
         </div>
       </fieldset>
 
-      <div className="flex gap-3">
-        <button
-          onClick={handleSubmit}
-          disabled={submitting || savingDraft || draftLoading}
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 transition"
-        >
-          {submitting ? 'Guardando...' : 'Guardar'}
-        </button>
-        <button
-          onClick={handleSaveDraft}
-          disabled={submitting || savingDraft || draftLoading}
-          className="px-4 py-2 text-sm text-blue-700 border border-blue-300 rounded hover:bg-blue-50 disabled:opacity-50 transition"
-        >
-          {savingDraft ? 'Guardando borrador...' : 'Guardar borrador'}
-        </button>
-        <button
-          onClick={handleClear}
-          disabled={submitting || savingDraft}
-          className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 transition"
-        >
-          Limpiar
-        </button>
-        <button
-          onClick={onCancel}
-          className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition"
-        >
-          Cancelar
-        </button>
-      </div>
+      <OperationFormActions
+        onSubmit={handleSubmit}
+        onSaveDraft={handleSaveDraft}
+        onClear={handleClear}
+        onCancel={onCancel}
+        submitting={submitting}
+        savingDraft={savingDraft}
+        draftLoading={draftLoading}
+      />
     </div>
   );
 }

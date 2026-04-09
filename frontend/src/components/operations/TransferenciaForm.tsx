@@ -6,6 +6,7 @@ import { formatMoneyAR, numberToNormalizedMoney, roundTo } from '../../utils/mon
 import { saveOperationDraft } from '../../utils/operationDrafts';
 import { allowedFormatsFromList, formatLabel } from '../../utils/accountCurrencyFormats';
 import { useActiveAccounts } from '../../hooks/useActiveAccounts';
+import OperationFormActions from './OperationFormActions';
 
 interface AccountCurrency { currency_id: string; currency_code: string; cash_enabled: boolean; digital_enabled: boolean; }
 
@@ -844,39 +845,15 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
         </div>
       </fieldset>
 
-      <div className="form-actions pt-2">
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={submitting || savingDraft || draftLoading}
-          className="rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:text-base"
-        >
-          {submitting ? 'Guardando...' : 'Guardar'}
-        </button>
-        <button
-          type="button"
-          onClick={handleSaveDraft}
-          disabled={submitting || savingDraft || draftLoading}
-          className="rounded-md border border-blue-300 px-4 text-sm text-blue-700 hover:bg-blue-50 disabled:opacity-50 sm:text-base"
-        >
-          {savingDraft ? 'Guardando borrador...' : 'Guardar borrador'}
-        </button>
-        <button
-          type="button"
-          onClick={handleClear}
-          disabled={submitting || savingDraft}
-          className="rounded-md border border-gray-300 px-4 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 sm:text-base"
-        >
-          Limpiar
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md border border-gray-300 px-4 text-sm text-gray-600 hover:bg-gray-50 sm:text-base"
-        >
-          Cancelar
-        </button>
-      </div>
+      <OperationFormActions
+        onSubmit={handleSubmit}
+        onSaveDraft={handleSaveDraft}
+        onClear={handleClear}
+        onCancel={onCancel}
+        submitting={submitting}
+        savingDraft={savingDraft}
+        draftLoading={draftLoading}
+      />
     </div>
   );
 }
