@@ -60,7 +60,7 @@ func (r *CashPositionRepo) ListPositions(ctx context.Context, asOfDate string) (
 	return result, rows.Err()
 }
 
-// AccountCurrencyTotal saldo sistema agregado (CASH + DIGITAL) por divisa en la cuenta, al corte as_of (vacío = sin tope de fecha).
+// AccountCurrencyTotal saldo sistema agregado (CASH + DIGITAL) por divisa en la cuenta (legado; arqueos usan AccountCurrencyFormatTotal).
 type AccountCurrencyTotal struct {
 	CurrencyID   string `json:"currency_id"`
 	CurrencyCode string `json:"currency_code"`
@@ -93,6 +93,54 @@ func (r *CashPositionRepo) ListAccountCurrencyTotals(ctx context.Context, accoun
 	for rows.Next() {
 		var row AccountCurrencyTotal
 		if err := rows.Scan(&row.CurrencyID, &row.CurrencyCode, &row.Balance); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
+// AccountCurrencyFormatTotal saldo sistema por divisa y formato (CASH/DIGITAL), solo combinaciones habilitadas en account_currencies.
+type AccountCurrencyFormatTotal struct {
+	CurrencyID   string `json:"currency_id"`
+	CurrencyCode string `json:"currency_code"`
+	Format       string `json:"format"`
+	Balance      string `json:"balance"`
+}
+
+// ListAccountCurrencyFormatTotals una fila por (divisa, formato) habilitado; saldo al corte as_of (vacío = sin tope de fecha).
+func (r *CashPositionRepo) ListAccountCurrencyFormatTotals(ctx context.Context, accountID, asOfDate string) ([]AccountCurrencyFormatTotal, error) {
+	q := `
+		SELECT c.id::text, c.code, f.fmt, COALESCE(agg.bal, 0)::text AS balance
+		FROM account_currencies ac
+		JOIN currencies c ON c.id = ac.currency_id
+		CROSS JOIN LATERAL (
+			SELECT 'CASH'::text AS fmt WHERE ac.cash_enabled
+			UNION ALL
+			SELECT 'DIGITAL'::text AS fmt WHERE ac.digital_enabled
+		) f
+		LEFT JOIN (
+			SELECT ml.account_id, ml.currency_id, ml.format,
+			       SUM(CASE WHEN ml.side = 'IN' THEN ml.amount ELSE -ml.amount END) AS bal
+			FROM movement_lines ml
+			INNER JOIN movements m ON m.id = ml.movement_id
+			WHERE ml.is_pending = false
+			  AND ml.account_id = $1::uuid
+			  AND ($2::text = '' OR m.date <= $2::date)
+			GROUP BY ml.account_id, ml.currency_id, ml.format
+		) agg ON agg.account_id = ac.account_id AND agg.currency_id = ac.currency_id AND agg.format = f.fmt
+		WHERE ac.account_id = $1::uuid
+		ORDER BY c.code, f.fmt`
+	rows, err := r.pool.Query(ctx, q, accountID, asOfDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []AccountCurrencyFormatTotal
+	for rows.Next() {
+		var row AccountCurrencyFormatTotal
+		if err := rows.Scan(&row.CurrencyID, &row.CurrencyCode, &row.Format, &row.Balance); err != nil {
 			return nil, err
 		}
 		out = append(out, row)

@@ -13,15 +13,25 @@ interface Account {
 interface SystemTotal {
   currency_id: string;
   currency_code: string;
+  format: string;
   balance: string;
 }
 
 interface LineOut {
   currency_id: string;
   currency_code: string;
+  format: string;
   system_balance_snapshot: string;
   counted_total: string;
   difference: string;
+}
+
+function lineKey(currencyId: string, format: string) {
+  return `${currencyId}|${format}`;
+}
+
+function formatLabel(format: string) {
+  return format === 'CASH' ? 'Efectivo' : format === 'DIGITAL' ? 'Digital' : format;
 }
 
 interface ArqueoSummary {
@@ -56,6 +66,7 @@ export default function CashArqueosPage() {
   const [arqueoDate, setArqueoDate] = useState(todayStr);
   const [note, setNote] = useState('');
   const [totals, setTotals] = useState<SystemTotal[]>([]);
+  /** Conteo por `currency_id|format` */
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [listFilterAccount, setListFilterAccount] = useState('');
   const [listFrom, setListFrom] = useState('');
@@ -96,7 +107,8 @@ export default function CashArqueosPage() {
       setCounts((prev) => {
         const next = { ...prev };
         for (const row of t) {
-          if (next[row.currency_id] === undefined) next[row.currency_id] = '';
+          const k = lineKey(row.currency_id, row.format);
+          if (next[k] === undefined) next[k] = '';
         }
         return next;
       });
@@ -142,7 +154,8 @@ export default function CashArqueosPage() {
     const lines = totals
       .map((t) => ({
         currency_id: t.currency_id,
-        counted_total: (counts[t.currency_id] ?? '').trim(),
+        format: t.format,
+        counted_total: (counts[lineKey(t.currency_id, t.format)] ?? '').trim(),
       }))
       .filter((l) => l.counted_total !== '');
     if (lines.length === 0) {
@@ -179,7 +192,7 @@ export default function CashArqueosPage() {
       <div>
         <h2 className="text-xl font-semibold text-gray-800 mb-1">Arqueos de caja</h2>
         <p className="text-sm text-gray-600">
-          v1: conteo total por cuenta y divisa (CASH + DIGITAL en el saldo sistema). Se guarda snapshot y diferencia; auditoría en el alta.
+          Saldo sistema y conteo por divisa y formato (efectivo / digital), alineados al ledger. Se guarda snapshot y diferencia; auditoría en el alta.
         </p>
       </div>
 
@@ -241,29 +254,34 @@ export default function CashArqueosPage() {
                   <thead>
                     <tr className="bg-gray-50 text-left text-gray-600 border-b">
                       <th className="px-3 py-2">Divisa</th>
+                      <th className="px-3 py-2">Formato</th>
                       <th className="px-3 py-2 text-right">Saldo sistema</th>
                       <th className="px-3 py-2 text-right">Conteo real</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {totals.map((t) => (
-                      <tr key={t.currency_id} className="border-b last:border-0">
-                        <td className="px-3 py-2 font-medium">{t.currency_code}</td>
-                        <td className="px-3 py-2 text-right font-mono text-gray-700">{formatMoneyAR(t.balance)}</td>
-                        <td className="px-3 py-2 text-right">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            className="w-28 border border-gray-300 rounded px-2 py-1 text-right font-mono text-sm"
-                            placeholder="0"
-                            value={counts[t.currency_id] ?? ''}
-                            onChange={(e) =>
-                              setCounts((c) => ({ ...c, [t.currency_id]: e.target.value }))
-                            }
-                          />
-                        </td>
-                      </tr>
-                    ))}
+                    {totals.map((t) => {
+                      const k = lineKey(t.currency_id, t.format);
+                      return (
+                        <tr key={k} className="border-b last:border-0">
+                          <td className="px-3 py-2 font-medium">{t.currency_code}</td>
+                          <td className="px-3 py-2 text-gray-700">{formatLabel(t.format)}</td>
+                          <td className="px-3 py-2 text-right font-mono text-gray-700">{formatMoneyAR(t.balance)}</td>
+                          <td className="px-3 py-2 text-right">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="w-28 border border-gray-300 rounded px-2 py-1 text-right font-mono text-sm"
+                              placeholder="0"
+                              value={counts[k] ?? ''}
+                              onChange={(e) =>
+                                setCounts((c) => ({ ...c, [k]: e.target.value }))
+                              }
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -286,7 +304,10 @@ export default function CashArqueosPage() {
 
       {canView && (
         <section>
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Historial</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-1">Historial</h3>
+          <p className="text-xs text-gray-500 mb-3">
+            Arqueos registrados antes del desglose efectivo/digital pueden figurar solo como efectivo en formato (dato histórico).
+          </p>
           <div className="flex flex-wrap gap-3 mb-4">
             <select
               value={listFilterAccount}
@@ -337,10 +358,11 @@ export default function CashArqueosPage() {
                   {aq.note && <p className="text-xs text-gray-600 mt-1">Nota: {aq.note}</p>}
                 </div>
                 <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[320px]">
+                <table className="w-full text-sm min-w-[380px]">
                   <thead>
                     <tr className="text-left text-gray-500 border-b">
                       <th className="px-4 py-2">Divisa</th>
+                      <th className="px-4 py-2">Formato</th>
                       <th className="px-4 py-2 text-right">Sistema (snapshot)</th>
                       <th className="px-4 py-2 text-right">Conteo</th>
                       <th className="px-4 py-2 text-right">Dif.</th>
@@ -349,9 +371,11 @@ export default function CashArqueosPage() {
                   <tbody>
                     {aq.lines.map((ln) => {
                       const d = parseFloat(ln.difference);
+                      const rowK = lineKey(ln.currency_id, ln.format || 'CASH');
                       return (
-                        <tr key={ln.currency_id} className="border-b last:border-0">
+                        <tr key={rowK} className="border-b last:border-0">
                           <td className="px-4 py-2 font-medium">{ln.currency_code}</td>
+                          <td className="px-4 py-2 text-gray-600">{formatLabel(ln.format || 'CASH')}</td>
                           <td className="px-4 py-2 text-right font-mono">{formatMoneyAR(ln.system_balance_snapshot)}</td>
                           <td className="px-4 py-2 text-right font-mono">{formatMoneyAR(ln.counted_total)}</td>
                           <td className={`px-4 py-2 text-right font-mono font-medium ${deltaClass(d)}`}>

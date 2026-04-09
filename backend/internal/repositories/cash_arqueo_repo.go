@@ -26,11 +26,11 @@ func (r *CashArqueoRepo) InsertArqueoTx(ctx context.Context, tx pgx.Tx, accountI
 	return id, err
 }
 
-func (r *CashArqueoRepo) InsertLineTx(ctx context.Context, tx pgx.Tx, arqueoID, currencyID, systemSnap, counted string) error {
+func (r *CashArqueoRepo) InsertLineTx(ctx context.Context, tx pgx.Tx, arqueoID, currencyID, lineFormat, systemSnap, counted string) error {
 	_, err := tx.Exec(ctx,
-		`INSERT INTO cash_arqueo_lines (cash_arqueo_id, currency_id, system_balance_snapshot, counted_total)
-		 VALUES ($1::uuid, $2::uuid, $3::numeric, $4::numeric)`,
-		arqueoID, currencyID, systemSnap, counted)
+		`INSERT INTO cash_arqueo_lines (cash_arqueo_id, currency_id, line_format, system_balance_snapshot, counted_total)
+		 VALUES ($1::uuid, $2::uuid, $3, $4::numeric, $5::numeric)`,
+		arqueoID, currencyID, lineFormat, systemSnap, counted)
 	return err
 }
 
@@ -48,13 +48,14 @@ type CashArqueoListRow struct {
 	CurrencyCode   string
 	SystemSnapshot string
 	CountedTotal   string
+	LineFormat     string
 }
 
 func (r *CashArqueoRepo) List(ctx context.Context, accountID, fromDate, toDate string) ([]CashArqueoListRow, error) {
 	q := `
 		SELECT ca.id::text, a.id::text, a.name, ca.arqueo_date::text, ca.note,
 		       u.id::text, u.username, ca.created_at::text,
-		       l.id::text, c.id::text, c.code, l.system_balance_snapshot::text, l.counted_total::text
+		       l.id::text, c.id::text, c.code, l.system_balance_snapshot::text, l.counted_total::text, l.line_format
 		FROM cash_arqueos ca
 		JOIN accounts a ON a.id = ca.account_id
 		JOIN users u ON u.id = ca.created_by_user_id
@@ -77,7 +78,7 @@ func (r *CashArqueoRepo) List(ctx context.Context, accountID, fromDate, toDate s
 		q += ` AND ca.arqueo_date <= $` + strconv.Itoa(n) + `::date`
 		args = append(args, toDate)
 	}
-	q += ` ORDER BY ca.created_at DESC, c.code`
+	q += ` ORDER BY ca.created_at DESC, c.code, l.line_format`
 
 	rows, err := r.pool.Query(ctx, q, args...)
 	if err != nil {
@@ -90,7 +91,7 @@ func (r *CashArqueoRepo) List(ctx context.Context, accountID, fromDate, toDate s
 		var row CashArqueoListRow
 		if err := rows.Scan(&row.ArqueoID, &row.AccountID, &row.AccountName, &row.ArqueoDate, &row.Note,
 			&row.CreatedByID, &row.CreatedByName, &row.CreatedAt,
-			&row.LineID, &row.CurrencyID, &row.CurrencyCode, &row.SystemSnapshot, &row.CountedTotal); err != nil {
+			&row.LineID, &row.CurrencyID, &row.CurrencyCode, &row.SystemSnapshot, &row.CountedTotal, &row.LineFormat); err != nil {
 			return nil, err
 		}
 		out = append(out, row)

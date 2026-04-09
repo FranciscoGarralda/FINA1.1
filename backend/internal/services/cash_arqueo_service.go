@@ -8,17 +8,20 @@ import (
 	"strings"
 	"time"
 
+	"fina/internal/models"
 	"fina/internal/repositories"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var (
-	ErrCashArqueoInvalidInput    = errors.New("datos de arqueo inválidos")
-	ErrCashArqueoNoLines       = errors.New("al menos una línea por divisa")
-	ErrCashArqueoDupCurrency   = errors.New("divisa duplicada en el arqueo")
-	ErrCashArqueoBadCurrency   = errors.New("divisa no habilitada en la cuenta")
-	ErrCashArqueoAccountMissing = errors.New("cuenta no encontrada")
+	ErrCashArqueoInvalidInput       = errors.New("datos de arqueo inválidos")
+	ErrCashArqueoNoLines            = errors.New("al menos una línea por divisa")
+	ErrCashArqueoDupLine            = errors.New("combinación divisa y formato repetida en el arqueo")
+	ErrCashArqueoBadCurrency        = errors.New("divisa no habilitada en la cuenta")
+	ErrCashArqueoBadFormat          = errors.New("formato inválido (use CASH o DIGITAL)")
+	ErrCashArqueoFormatNotAllowed   = errors.New("formato no habilitado para esa divisa en la cuenta")
+	ErrCashArqueoAccountMissing     = errors.New("cuenta no encontrada")
 )
 
 // DifferenceCountedMinusSystem conteo real − saldo sistema (texto decimal).
@@ -46,6 +49,7 @@ func ratToMoneyString(r *big.Rat) string {
 
 type CashArqueoLineInput struct {
 	CurrencyID   string `json:"currency_id"`
+	Format       string `json:"format"`
 	CountedTotal string `json:"counted_total"`
 }
 
@@ -57,11 +61,12 @@ type CashArqueoCreateInput struct {
 }
 
 type CashArqueoLineOut struct {
-	CurrencyID           string `json:"currency_id"`
-	CurrencyCode         string `json:"currency_code"`
+	CurrencyID            string `json:"currency_id"`
+	CurrencyCode          string `json:"currency_code"`
+	Format                string `json:"format"`
 	SystemBalanceSnapshot string `json:"system_balance_snapshot"`
-	CountedTotal         string `json:"counted_total"`
-	Difference           string `json:"difference"`
+	CountedTotal          string `json:"counted_total"`
+	Difference            string `json:"difference"`
 }
 
 type CashArqueoSummary struct {
@@ -94,7 +99,7 @@ func NewCashArqueoService(pool *pgxpool.Pool, arqueoRepo *repositories.CashArque
 	}
 }
 
-func (s *CashArqueoService) SystemTotalsForAccount(ctx context.Context, accountID, asOfDate string) ([]repositories.AccountCurrencyTotal, error) {
+func (s *CashArqueoService) SystemTotalsForAccount(ctx context.Context, accountID, asOfDate string) ([]repositories.AccountCurrencyFormatTotal, error) {
 	if accountID == "" {
 		return nil, ErrCashArqueoInvalidInput
 	}
@@ -104,7 +109,72 @@ func (s *CashArqueoService) SystemTotalsForAccount(ctx context.Context, accountI
 		}
 		return nil, err
 	}
-	return s.cashPosRepo.ListAccountCurrencyTotals(ctx, accountID, asOfDate)
+	return s.cashPosRepo.ListAccountCurrencyFormatTotals(ctx, accountID, asOfDate)
+}
+
+func normalizeArqueoFormat(s string) (string, error) {
+	f := strings.ToUpper(strings.TrimSpace(s))
+	if f != "CASH" && f != "DIGITAL" {
+		return "", ErrCashArqueoBadFormat
+	}
+	return f, nil
+}
+
+func arqueoLineKey(currencyID, format string) string {
+	return currencyID + "\x00" + format
+}
+
+type parsedArqueoLine struct {
+	CurrencyID   string
+	Format       string
+	CountedTotal string
+}
+
+func parseCashArqueoLines(in []CashArqueoLineInput) ([]parsedArqueoLine, error) {
+	if len(in) == 0 {
+		return nil, ErrCashArqueoNoLines
+	}
+	seen := map[string]bool{}
+	out := make([]parsedArqueoLine, 0, len(in))
+	for _, ln := range in {
+		if ln.CurrencyID == "" {
+			return nil, ErrCashArqueoInvalidInput
+		}
+		f, err := normalizeArqueoFormat(ln.Format)
+		if err != nil {
+			return nil, err
+		}
+		k := arqueoLineKey(ln.CurrencyID, f)
+		if seen[k] {
+			return nil, ErrCashArqueoDupLine
+		}
+		seen[k] = true
+		if _, ok := new(big.Rat).SetString(ln.CountedTotal); !ok {
+			return nil, ErrCashArqueoInvalidInput
+		}
+		out = append(out, parsedArqueoLine{CurrencyID: ln.CurrencyID, Format: f, CountedTotal: ln.CountedTotal})
+	}
+	return out, nil
+}
+
+func validateFormatsAgainstAccount(lines []parsedArqueoLine, acctCurrencies []models.AccountCurrencyItem) error {
+	byCurr := map[string]models.AccountCurrencyItem{}
+	for _, ac := range acctCurrencies {
+		byCurr[ac.CurrencyID] = ac
+	}
+	for _, ln := range lines {
+		ac, ok := byCurr[ln.CurrencyID]
+		if !ok {
+			return ErrCashArqueoBadCurrency
+		}
+		if ln.Format == "CASH" && !ac.CashEnabled {
+			return ErrCashArqueoFormatNotAllowed
+		}
+		if ln.Format == "DIGITAL" && !ac.DigitalEnabled {
+			return ErrCashArqueoFormatNotAllowed
+		}
+	}
+	return nil
 }
 
 func (s *CashArqueoService) List(ctx context.Context, accountID, fromDate, toDate string) ([]CashArqueoSummary, error) {
@@ -141,6 +211,7 @@ func groupArqueoRows(rows []repositories.CashArqueoListRow) ([]CashArqueoSummary
 		lineByArqueo[row.ArqueoID] = append(lineByArqueo[row.ArqueoID], CashArqueoLineOut{
 			CurrencyID:            row.CurrencyID,
 			CurrencyCode:          row.CurrencyCode,
+			Format:                row.LineFormat,
 			SystemBalanceSnapshot: row.SystemSnapshot,
 			CountedTotal:          row.CountedTotal,
 			Difference:            diff,
@@ -163,22 +234,10 @@ func (s *CashArqueoService) Create(ctx context.Context, in CashArqueoCreateInput
 	if _, err := time.Parse("2006-01-02", in.ArqueoDate); err != nil {
 		return nil, ErrCashArqueoInvalidInput
 	}
-	if len(in.Lines) == 0 {
-		return nil, ErrCashArqueoNoLines
-	}
 
-	seen := map[string]bool{}
-	for _, ln := range in.Lines {
-		if ln.CurrencyID == "" {
-			return nil, ErrCashArqueoInvalidInput
-		}
-		if seen[ln.CurrencyID] {
-			return nil, ErrCashArqueoDupCurrency
-		}
-		seen[ln.CurrencyID] = true
-		if _, ok := new(big.Rat).SetString(ln.CountedTotal); !ok {
-			return nil, ErrCashArqueoInvalidInput
-		}
+	parsed, err := parseCashArqueoLines(in.Lines)
+	if err != nil {
+		return nil, err
 	}
 
 	if _, err := s.accountRepo.FindByID(ctx, in.AccountID); err != nil {
@@ -192,24 +251,18 @@ func (s *CashArqueoService) Create(ctx context.Context, in CashArqueoCreateInput
 	if err != nil {
 		return nil, err
 	}
-	allowed := map[string]bool{}
-	for _, ac := range acctCurrencies {
-		allowed[ac.CurrencyID] = true
-	}
-	for _, ln := range in.Lines {
-		if !allowed[ln.CurrencyID] {
-			return nil, ErrCashArqueoBadCurrency
-		}
+	if err := validateFormatsAgainstAccount(parsed, acctCurrencies); err != nil {
+		return nil, err
 	}
 
-	totals, err := s.cashPosRepo.ListAccountCurrencyTotals(ctx, in.AccountID, in.ArqueoDate)
+	totals, err := s.cashPosRepo.ListAccountCurrencyFormatTotals(ctx, in.AccountID, in.ArqueoDate)
 	if err != nil {
 		return nil, err
 	}
-	sysByCurr := map[string]string{}
+	sysByKey := map[string]string{}
 	codeByCurr := map[string]string{}
 	for _, t := range totals {
-		sysByCurr[t.CurrencyID] = t.Balance
+		sysByKey[arqueoLineKey(t.CurrencyID, t.Format)] = t.Balance
 		codeByCurr[t.CurrencyID] = t.CurrencyCode
 	}
 
@@ -224,13 +277,14 @@ func (s *CashArqueoService) Create(ctx context.Context, in CashArqueoCreateInput
 		return nil, err
 	}
 
-	linesOut := make([]CashArqueoLineOut, 0, len(in.Lines))
-	for _, ln := range in.Lines {
-		sys := sysByCurr[ln.CurrencyID]
+	linesOut := make([]CashArqueoLineOut, 0, len(parsed))
+	for _, ln := range parsed {
+		k := arqueoLineKey(ln.CurrencyID, ln.Format)
+		sys := sysByKey[k]
 		if sys == "" {
 			sys = "0"
 		}
-		if err := s.arqueoRepo.InsertLineTx(ctx, tx, arqueoID, ln.CurrencyID, sys, ln.CountedTotal); err != nil {
+		if err := s.arqueoRepo.InsertLineTx(ctx, tx, arqueoID, ln.CurrencyID, ln.Format, sys, ln.CountedTotal); err != nil {
 			return nil, err
 		}
 		diff, err := DifferenceCountedMinusSystem(ln.CountedTotal, sys)
@@ -240,6 +294,7 @@ func (s *CashArqueoService) Create(ctx context.Context, in CashArqueoCreateInput
 		linesOut = append(linesOut, CashArqueoLineOut{
 			CurrencyID:            ln.CurrencyID,
 			CurrencyCode:          codeByCurr[ln.CurrencyID],
+			Format:                ln.Format,
 			SystemBalanceSnapshot: sys,
 			CountedTotal:          ln.CountedTotal,
 			Difference:            diff,

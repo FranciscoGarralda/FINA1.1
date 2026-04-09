@@ -47,7 +47,7 @@ func cashArqueoSystemTotalsHandler(svc *services.CashArqueoService) http.Handler
 			return
 		}
 		if totals == nil {
-			totals = []repositories.AccountCurrencyTotal{}
+			totals = []repositories.AccountCurrencyFormatTotal{}
 		}
 		RespondJSON(w, http.StatusOK, map[string]interface{}{"totals": totals})
 	}
@@ -69,8 +69,12 @@ func createCashArqueoHandler(svc *services.CashArqueoService) http.HandlerFunc {
 				RespondError(w, http.StatusBadRequest, "BAD_REQUEST", "Datos inválidos o fecha incorrecta.")
 			case errors.Is(err, services.ErrCashArqueoNoLines):
 				RespondError(w, http.StatusBadRequest, "BAD_REQUEST", "Agregá al menos una divisa con conteo.")
-			case errors.Is(err, services.ErrCashArqueoDupCurrency):
-				RespondError(w, http.StatusBadRequest, "BAD_REQUEST", "Divisa repetida en el mismo arqueo.")
+			case errors.Is(err, services.ErrCashArqueoDupLine):
+				RespondError(w, http.StatusBadRequest, "BAD_REQUEST", "Misma divisa y formato repetidos en el arqueo.")
+			case errors.Is(err, services.ErrCashArqueoBadFormat):
+				RespondError(w, http.StatusBadRequest, "BAD_REQUEST", "Formato inválido: usá CASH o DIGITAL.")
+			case errors.Is(err, services.ErrCashArqueoFormatNotAllowed):
+				RespondError(w, http.StatusBadRequest, "BAD_REQUEST", "Ese formato no está habilitado para la divisa en la cuenta.")
 			case errors.Is(err, services.ErrCashArqueoBadCurrency):
 				RespondError(w, http.StatusBadRequest, "BAD_REQUEST", "Divisa no asignada a la cuenta.")
 			case errors.Is(err, services.ErrCashArqueoAccountMissing):
