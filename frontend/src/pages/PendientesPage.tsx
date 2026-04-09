@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../api/client';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
+import FormActionsRow from '../components/common/FormActionsRow';
 import MoneyInput from '../components/common/MoneyInput';
 import { useAuth } from '../context/AuthContext';
 import { useActiveAccounts } from '../hooks/useActiveAccounts';
@@ -460,22 +461,27 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
             />
           </div>
           {error && <p className="text-red-600 text-sm">{error}</p>}
-          <div className="flex flex-wrap justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-            >
-              {submitting ? 'Guardando…' : 'Registrar'}
-            </button>
-          </div>
+          <FormActionsRow
+            variant="modal"
+            cancel={
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+            }
+            primary={
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {submitting ? 'Guardando…' : 'Registrar'}
+              </button>
+            }
+          />
         </form>
       </div>
     </div>,
@@ -723,22 +729,27 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
             </>
           )}
 
-          <div className="flex flex-wrap justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-touch bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-            >
-              {submitting ? 'Guardando...' : (mode === 'COMPENSATED' ? 'Confirmar compensación' : 'Confirmar')}
-            </button>
-          </div>
+          <FormActionsRow
+            variant="modal"
+            cancel={
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+            }
+            primary={
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn-touch bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+              >
+                {submitting ? 'Guardando...' : (mode === 'COMPENSATED' ? 'Confirmar compensación' : 'Confirmar')}
+              </button>
+            }
+          />
         </form>
       </div>
     </div>,
@@ -781,23 +792,28 @@ function CancelModal({ item, onClose, onDone }: { item: PendingItem; onClose: ()
 
         {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
-        <div className="flex flex-wrap justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-          >
-            Volver
-          </button>
-          <button
-            type="button"
-            onClick={handleCancel}
-            disabled={submitting}
-            className="btn-touch bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
-          >
-            {submitting ? 'Anulando...' : 'Confirmar anulación'}
-          </button>
-        </div>
+        <FormActionsRow
+          variant="modal"
+          cancel={
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Volver
+            </button>
+          }
+          primary={
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={submitting}
+              className="btn-touch bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+            >
+              {submitting ? 'Anulando...' : 'Confirmar anulación'}
+            </button>
+          }
+        />
       </div>
     </div>,
     document.body,

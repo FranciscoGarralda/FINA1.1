@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 import MoneyInput from '../common/MoneyInput';
+import FormActionsRow from '../common/FormActionsRow';
 import { allowedFormatsFromList, formatLabel, resolveFormat } from '../../utils/accountCurrencyFormats';
 import { useActiveAccounts } from '../../hooks/useActiveAccounts';
 
@@ -256,22 +257,27 @@ export default function CashOpeningBalanceModal({ onClose }: { onClose: () => vo
             + Línea
           </button>
 
-          <div className="flex flex-wrap gap-2 pt-2">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-60"
-            >
-              {submitting ? 'Guardando…' : 'Confirmar'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="border border-gray-300 px-4 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-          </div>
+          <FormActionsRow
+            variant="modal"
+            primary={
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn-touch bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 disabled:opacity-60"
+              >
+                {submitting ? 'Guardando…' : 'Confirmar'}
+              </button>
+            }
+            cancel={
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-touch border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+            }
+          />
         </form>
       </div>
     </div>,

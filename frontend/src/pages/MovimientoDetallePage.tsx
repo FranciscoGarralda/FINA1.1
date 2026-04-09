@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { movementTypeLabel } from '../utils/movementTypeLabels';
 import { formatMoneyAR } from '../utils/money';
 import { useAuth } from '../context/AuthContext';
+import FormActionsRow from '../components/common/FormActionsRow';
 
 interface MovementLine {
   id: string;
@@ -186,7 +187,7 @@ export default function MovimientoDetallePage() {
             </span>
           </div>
           {(canStartCorrection || canCancelOperation) && detail.status === 'CONFIRMADA' && (
-            <div className="flex w-full min-w-0 flex-col gap-1.5 sm:max-w-xs sm:flex-row sm:items-stretch sm:gap-2">
+            <FormActionsRow variant="table">
               {canStartCorrection && (
                 <button
                   type="button"
@@ -205,10 +206,10 @@ export default function MovimientoDetallePage() {
                   Anular
                 </button>
               )}
-            </div>
+            </FormActionsRow>
           )}
           {canStartCorrection && detail.status === 'CANCELADA' && (
-            <div className="flex w-full min-w-0 flex-col gap-1.5 sm:max-w-xs">
+            <FormActionsRow variant="table">
               <button
                 type="button"
                 onClick={() => setPendingAction('recreate')}
@@ -216,7 +217,7 @@ export default function MovimientoDetallePage() {
               >
                 Recrear desde esta
               </button>
-            </div>
+            </FormActionsRow>
           )}
         </div>
 
@@ -262,24 +263,29 @@ export default function MovimientoDetallePage() {
             <h3 className="mb-2 text-lg font-semibold text-gray-800">{actionTitle(pendingAction)}</h3>
             <p className="mb-3 text-sm text-gray-600">{actionDescription(pendingAction)}</p>
             <p className="mb-4 text-sm text-gray-500">Operación #{detail.operation_number}</p>
-            <div className="flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setPendingAction(null)}
-                className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Volver
-              </button>
-              <button
-                type="button"
-                onClick={executePendingAction}
-                className={`btn-touch text-white rounded-md ${
-                  pendingAction === 'cancel' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-              >
-                Confirmar
-              </button>
-            </div>
+            <FormActionsRow
+              variant="modal"
+              cancel={
+                <button
+                  type="button"
+                  onClick={() => setPendingAction(null)}
+                  className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Volver
+                </button>
+              }
+              primary={
+                <button
+                  type="button"
+                  onClick={executePendingAction}
+                  className={`btn-touch text-white rounded-md ${
+                    pendingAction === 'cancel' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  Confirmar
+                </button>
+              }
+            />
           </div>
         </div>
       )}

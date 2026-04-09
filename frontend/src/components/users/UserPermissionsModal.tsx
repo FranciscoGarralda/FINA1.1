@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
+import FormActionsRow from '../common/FormActionsRow';
 import type { UserPermissionMatrixItem, UserPermissionsResponse } from '../../types/userPermissions';
 
 interface Props {
@@ -141,25 +142,33 @@ export default function UserPermissionsModal({ userId, username, onClose }: Prop
           </div>
         )}
 
-        <div className="pt-4 mt-4 border-t flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={save}
-            disabled={saving || loading || items.length === 0}
-            className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-          >
-            {saving ? 'Guardando...' : 'Guardar permisos'}
-          </button>
-          <button
-            type="button"
-            onClick={resetOverrides}
-            disabled={saving || loading || items.length === 0}
-            className="btn-touch border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-          >
-            Restaurar permisos al rol
-          </button>
+        <div className="mt-4 border-t pt-4 space-y-2">
+          <FormActionsRow
+            variant="modal"
+            className="!pt-0"
+            primary={
+              <button
+                type="button"
+                onClick={save}
+                disabled={saving || loading || items.length === 0}
+                className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {saving ? 'Guardando...' : 'Guardar permisos'}
+              </button>
+            }
+            secondary={
+              <button
+                type="button"
+                onClick={resetOverrides}
+                disabled={saving || loading || items.length === 0}
+                className="btn-touch border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+              >
+                Restaurar permisos al rol
+              </button>
+            }
+          />
           {msg && (
-            <span className={`text-xs ${msgType === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
+            <span className={`block text-xs ${msgType === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
               {msg}
             </span>
           )}

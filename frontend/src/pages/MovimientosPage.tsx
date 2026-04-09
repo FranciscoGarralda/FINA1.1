@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
+import FormActionsRow from '../components/common/FormActionsRow';
 import { movementTypeLabel } from '../utils/movementTypeLabels';
 import { formatMoneyAR } from '../utils/money';
 import { useAuth } from '../context/AuthContext';
@@ -296,7 +297,7 @@ export default function MovimientosPage() {
                       )}
                     </td>
                     <td className="px-3 py-2 align-top">
-                      <div className="flex w-full min-w-0 flex-col gap-1.5 sm:max-w-xs sm:flex-row sm:items-stretch sm:gap-2">
+                      <FormActionsRow variant="table">
                         {canStartCorrection && m.status === 'CONFIRMADA' && (
                           <button
                             type="button"
@@ -324,7 +325,7 @@ export default function MovimientosPage() {
                             Recrear desde esta
                           </button>
                         )}
-                      </div>
+                      </FormActionsRow>
                     </td>
                   </tr>
                 ))}
@@ -368,24 +369,29 @@ export default function MovimientosPage() {
             <p className="mb-4 text-sm text-gray-500">
               Operación #{pendingAction.operationNumber}
             </p>
-            <div className="flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setPendingAction(null)}
-                className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Volver
-              </button>
-              <button
-                type="button"
-                onClick={executePendingAction}
-                className={`btn-touch text-white rounded-md ${
-                  pendingAction.kind === 'cancel' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-              >
-                Confirmar
-              </button>
-            </div>
+            <FormActionsRow
+              variant="modal"
+              cancel={
+                <button
+                  type="button"
+                  onClick={() => setPendingAction(null)}
+                  className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Volver
+                </button>
+              }
+              primary={
+                <button
+                  type="button"
+                  onClick={executePendingAction}
+                  className={`btn-touch text-white rounded-md ${
+                    pendingAction.kind === 'cancel' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  Confirmar
+                </button>
+              }
+            />
           </div>
         </div>
       )}

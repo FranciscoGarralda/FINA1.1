@@ -1,6 +1,9 @@
+import FormActionsRow from '../common/FormActionsRow';
+
 /**
  * Barra estándar: Guardar → Guardar borrador → Limpiar → Cancelar.
- * Usa .form-actions + .btn-touch de index.css (responsive, altura táctil).
+ * Layout unificado vía FormActionsRow (inline) + .form-actions + .btn-touch en index.css.
+ * Todas las acciones son type="button" para no enviar el form con Enter; el padre debe manejar submit si aplica.
  */
 export interface OperationFormActionsProps {
   onSubmit: () => void;
@@ -27,10 +30,8 @@ export default function OperationFormActions({
   const blockMain = submitting || savingDraft || draftLoading;
   const blockClear = submitting || savingDraft;
 
-  const wrap = ['form-actions', className].filter(Boolean).join(' ');
-
   return (
-    <div className={wrap}>
+    <FormActionsRow variant="inline" className={className}>
       <button
         type="button"
         onClick={onSubmit}
@@ -62,6 +63,6 @@ export default function OperationFormActions({
       >
         Cancelar
       </button>
-    </div>
+    </FormActionsRow>
   );
 }

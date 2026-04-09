@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import type { UserPermissionMatrixItem, UserPermissionsResponse } from '../../types/userPermissions';
+import FormActionsRow from '../common/FormActionsRow';
 
 const ROLES = ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR', 'COURIER'];
 
@@ -380,9 +381,18 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
           {error && <p className="text-red-600 text-sm">{error}</p>}
           {success && <p className="text-green-600 text-sm">{success}</p>}
 
-          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-between sm:items-center">
-            <div className="flex flex-wrap gap-2">
-              {isEdit && tab === 'datos' && (
+          <FormActionsRow
+            variant="modal"
+            primary={
+              !isEdit ? (
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
+                >
+                  {saving ? 'Guardando...' : 'Guardar'}
+                </button>
+              ) : tab === 'datos' ? (
                 <button
                   type="button"
                   onClick={handleSaveData}
@@ -391,8 +401,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                 >
                   Guardar cambios
                 </button>
-              )}
-              {isEdit && tab === 'seguridad' && (
+              ) : tab === 'seguridad' ? (
                 <button
                   type="button"
                   onClick={handleSaveSecurity}
@@ -401,8 +410,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                 >
                   Guardar seguridad
                 </button>
-              )}
-              {isEdit && tab === 'permisos' && canEditPermissions && (
+              ) : tab === 'permisos' && canEditPermissions ? (
                 <button
                   type="button"
                   onClick={handleSavePermissions}
@@ -411,8 +419,10 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                 >
                   Guardar permisos
                 </button>
-              )}
-              {isEdit && tab === 'permisos' && canResetOverrides && (
+              ) : null
+            }
+            secondary={
+              isEdit && tab === 'permisos' && canResetOverrides ? (
                 <button
                   type="button"
                   onClick={handleResetPermissions}
@@ -421,25 +431,18 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                 >
                   Restaurar permisos al rol
                 </button>
-              )}
-              {!isEdit && (
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
-                >
-                  {saving ? 'Guardando...' : 'Guardar'}
-                </button>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-touch border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 w-full sm:w-auto"
-            >
-              Cancelar
-            </button>
-          </div>
+              ) : null
+            }
+            cancel={
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-touch border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+            }
+          />
         </form>
       </div>
     </div>,

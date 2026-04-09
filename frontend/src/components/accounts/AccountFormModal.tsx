@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
+import FormActionsRow from '../common/FormActionsRow';
 
 interface Account {
   id: string;
@@ -226,22 +227,27 @@ export default function AccountFormModal({ account, onClose, onSaved }: Props) {
 
           {error && <p className="text-red-600 text-sm">{error}</p>}
 
-          <div className="flex flex-wrap justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-touch border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
-            >
-              {saving ? 'Guardando...' : 'Guardar'}
-            </button>
-          </div>
+          <FormActionsRow
+            variant="modal"
+            cancel={
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-touch border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+            }
+            primary={
+              <button
+                type="submit"
+                disabled={saving}
+                className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
+              >
+                {saving ? 'Guardando...' : 'Guardar'}
+              </button>
+            }
+          />
         </form>
       </div>
     </div>,
