@@ -25,6 +25,8 @@ Sin **`frontend/.env.local`**, Vite proxifica **`/api`** a **`http://127.0.0.1:8
 
 Si usás **`VITE_API_BASE`** en **`.env.local`**, el front llama directo a esa URL; el mensaje entonces apunta a desplegar **ese** entorno, no al proceso local.
 
+En **Arqueos de caja**, si `system-totals` respondiera sin `format` (API viejo), el front intenta un **fallback** con **`GET /cash-position`** (mismos saldos por formato que el ledger) para esa cuenta, si tenés permiso `cash_position.view`.
+
 ## Problemas comunes (local)
 
 ### `docker` no está en el PATH / Docker Desktop apagado
