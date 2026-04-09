@@ -17,6 +17,14 @@ El archivo **`.env.local`** está en **`.gitignore`**: no lo subas al repo ni pe
 
 **CORS:** si el navegador bloquea las peticiones al API, revisá **`CORS_ALLOWED_ORIGINS`** y la sección de CORS en **[deploy-railway.md](deploy-railway.md)**. En desarrollo el backend suele aceptar orígenes como `http://localhost:5173`; si solo definiste orígenes de producción en Railway, puede hacer falta incluir localhost o ajustar la política según el entorno.
 
+### Banner ámbar en Arqueos (“El API no incluye format…”)
+
+Sin **`frontend/.env.local`**, Vite proxifica **`/api`** a **`http://127.0.0.1:8080`** (ver **`frontend/vite.config.ts`**). Si el proceso del API quedó de **antes** de un `git pull` que cambia el contrato de respuesta, puede no venir **`format`** por fila en `system-totals`.
+
+**Qué hacer:** pará el API (por ejemplo `kill "$(cat /tmp/fina-local-api.pid)"` o liberá el puerto 8080 con `lsof -ti :8080 | xargs kill`) y volvé a levantar desde la raíz del repo: **`./scripts/run-local-dev.sh`**, o manualmente `go run ./cmd/api` en **`backend/`**. Recargá el navegador en **http://localhost:5173** con recarga fuerte (Cmd+Shift+R).
+
+Si usás **`VITE_API_BASE`** en **`.env.local`**, el front llama directo a esa URL; el mensaje entonces apunta a desplegar **ese** entorno, no al proceso local.
+
 ## Problemas comunes (local)
 
 ### `docker` no está en el PATH / Docker Desktop apagado

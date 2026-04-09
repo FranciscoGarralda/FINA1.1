@@ -265,9 +265,20 @@ export default function CashArqueosPage() {
             {loadingTotals && <p className="text-xs text-gray-400">Cargando saldos…</p>}
             {accountId && totals.some((t) => !(t.format && String(t.format).trim())) && totals.length > 0 && (
               <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-                El API no incluye <code className="text-xs">format</code> por fila (versión vieja desplegada). Hacé deploy del
-                backend con migración <code className="text-xs">000020</code> y del frontend actual para ver Efectivo / Digital
-                por separado.
+                El API no incluye <code className="text-xs">format</code> por fila. En producción: deploy del backend con migración{' '}
+                <code className="text-xs">000020</code> y del frontend actual.
+                {import.meta.env.DEV && !import.meta.env.VITE_API_BASE && (
+                  <span className="block mt-2 text-xs text-amber-900">
+                    En local, el proxy usa <code className="text-[11px]">127.0.0.1:8080</code>. Reiniciá el API tras actualizar el
+                    repo (p. ej. <code className="text-[11px]">./scripts/run-local-dev.sh</code>) y recargá con Cmd+Shift+R.
+                  </span>
+                )}
+                {import.meta.env.DEV && import.meta.env.VITE_API_BASE && (
+                  <span className="block mt-2 text-xs text-amber-900">
+                    Tenés <code className="text-[11px]">VITE_API_BASE</code> en <code className="text-[11px]">.env.local</code>: ese
+                    servidor debe ser la versión nueva del API.
+                  </span>
+                )}
               </p>
             )}
             {accountId && totals.length > 0 && (
