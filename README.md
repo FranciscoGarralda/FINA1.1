@@ -4,7 +4,7 @@
 
 Guía única: **[docs/deploy-railway.md](docs/deploy-railway.md)** (variables, migraciones, Docker, healthcheck, front en producción). Contrato API pendientes / login / permisos: **[docs/api-pendientes-auth-permisos.md](docs/api-pendientes-auth-permisos.md)**.
 
-Desarrollo local, troubleshooting y migraciones en local: **[docs/local-dev.md](docs/local-dev.md)**.
+Desarrollo local, troubleshooting y migraciones en local: **[docs/local-dev.md](docs/local-dev.md)** (incluye [front local contra API en la nube](docs/local-dev.md#front-local-contra-api-en-la-nube) con `VITE_API_BASE`).
 
 ## CI (GitHub Actions)
 

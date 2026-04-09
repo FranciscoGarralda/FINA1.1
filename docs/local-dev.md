@@ -2,6 +2,21 @@
 
 Documento canónico para arranque local, logs y recuperación ante errores habituales. La guía de Railway sigue en **[deploy-railway.md](deploy-railway.md)**.
 
+## Front local contra API en la nube
+
+Para que **`npm run dev`** en **`frontend/`** use el **mismo API (y la misma base)** que producción en Railway —sin copiar la base a tu PC— definí **`VITE_API_BASE`** apuntando a la URL pública del servicio API.
+
+1. Desde la carpeta **`frontend/`**:
+   ```bash
+   cp .env.local.example .env.local
+   ```
+2. Editá **`.env.local`** y reemplazá **`VITE_API_BASE`** por la URL real del API (debe **terminar en `/api`**, sin barra extra; ver comentarios en **`frontend/.env.example`**).
+3. Arrancá el front: **`npm run dev`** (Vite suele usar [http://localhost:5173](http://localhost:5173)).
+
+El archivo **`.env.local`** está en **`.gitignore`**: no lo subas al repo ni pegues URLs reales en chats públicos.
+
+**CORS:** si el navegador bloquea las peticiones al API, revisá **`CORS_ALLOWED_ORIGINS`** y la sección de CORS en **[deploy-railway.md](deploy-railway.md)**. En desarrollo el backend suele aceptar orígenes como `http://localhost:5173`; si solo definiste orígenes de producción en Railway, puede hacer falta incluir localhost o ajustar la política según el entorno.
+
 ## Problemas comunes (local)
 
 ### `docker` no está en el PATH / Docker Desktop apagado
