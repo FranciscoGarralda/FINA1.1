@@ -168,8 +168,6 @@ func recreateFromCancelledHandler(svc *services.OperationService) http.HandlerFu
 
 func handleOperationError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, services.ErrTypeDisabled):
-		RespondError(w, http.StatusBadRequest, "TYPE_DISABLED", "TRANSFERENCIA está deshabilitada temporalmente. Usá las operaciones específicas.")
 	case errors.Is(err, services.ErrInvalidMovementType):
 		RespondError(w, http.StatusBadRequest, "INVALID_TYPE", "Tipo de operación inválido.")
 	case errors.Is(err, services.ErrClientRequired):

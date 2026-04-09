@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
 import type { UserPermissionMatrixItem, UserPermissionsResponse } from '../../types/userPermissions';
@@ -16,7 +16,7 @@ export default function UserPermissionsModal({ userId, username, onClose }: Prop
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState<'ok' | 'err'>('ok');
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setMsg('');
     try {
@@ -29,13 +29,13 @@ export default function UserPermissionsModal({ userId, username, onClose }: Prop
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = 'auto'; };
-  }, [userId]);
+  }, [fetchData]);
 
   const grouped = useMemo(() => {
     const m: Record<string, UserPermissionMatrixItem[]> = {};

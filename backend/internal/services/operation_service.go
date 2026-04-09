@@ -20,7 +20,6 @@ var (
 	ErrClientRequired           = errors.New("CLIENT_REQUIRED")
 	ErrDateRequired             = errors.New("DATE_REQUIRED")
 	ErrHandlerNotReady          = errors.New("HANDLER_NOT_READY")
-	ErrTypeDisabled             = errors.New("TYPE_DISABLED")
 	ErrMovementIDRequired       = errors.New("MOVEMENT_ID_REQUIRED")
 	ErrDraftPayloadInvalid      = errors.New("DRAFT_PAYLOAD_INVALID")
 	ErrMovementNotConfirmed     = errors.New("MOVEMENT_NOT_CONFIRMED")

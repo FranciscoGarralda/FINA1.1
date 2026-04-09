@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { movementTypeLabel } from '../utils/movementTypeLabels';
@@ -40,19 +40,20 @@ export default function MovimientoDetallePage() {
   const [error, setError] = useState('');
   const [pendingAction, setPendingAction] = useState<DetailActionKind | null>(null);
 
-  function loadDetail() {
+  const loadDetail = useCallback(() => {
     if (!id) return;
+    setError('');
     setLoading(true);
     api
       .get<MovementDetail>(`/movements/${id}`)
       .then(setDetail)
       .catch(() => setError('No se pudo cargar el movimiento.'))
       .finally(() => setLoading(false));
-  }
+  }, [id]);
 
   useEffect(() => {
     loadDetail();
-  }, [id]);
+  }, [loadDetail]);
 
   if (loading) return <p className="text-gray-500 text-sm p-4">Cargando...</p>;
   if (error || !detail) return <p className="text-red-600 text-sm p-4">{error || 'No encontrado.'}</p>;
@@ -171,40 +172,51 @@ export default function MovimientoDetallePage() {
   return (
     <div>
       <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 min-w-0">
-          <h2 className="text-lg font-semibold text-gray-800 min-w-0 break-words">
-            Operación #{detail.operation_number}
-          </h2>
-          <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-            detail.status === 'CANCELADA'
-              ? 'bg-red-50 text-red-700'
-              : 'bg-green-50 text-green-700'
-          }`}>
-            {displayStatus(detail.status)}
-          </span>
-          {canStartCorrection && detail.status === 'CONFIRMADA' && (
-            <button
-              onClick={() => setPendingAction('modify')}
-              className="px-2 py-1 text-xs text-blue-700 border border-blue-300 rounded hover:bg-blue-50 transition"
-            >
-              Modificar
-            </button>
-          )}
-          {canCancelOperation && detail.status === 'CONFIRMADA' && (
-            <button
-              onClick={() => setPendingAction('cancel')}
-              className="px-2 py-1 text-xs text-red-700 border border-red-300 rounded hover:bg-red-50 transition"
-            >
-              Anular
-            </button>
+        <div className="mb-3 min-w-0 space-y-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h2 className="text-lg font-semibold text-gray-800 min-w-0 break-words">
+              Operación #{detail.operation_number}
+            </h2>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+              detail.status === 'CANCELADA'
+                ? 'bg-red-50 text-red-700'
+                : 'bg-green-50 text-green-700'
+            }`}>
+              {displayStatus(detail.status)}
+            </span>
+          </div>
+          {(canStartCorrection || canCancelOperation) && detail.status === 'CONFIRMADA' && (
+            <div className="flex w-full min-w-0 flex-col gap-1.5 sm:max-w-xs sm:flex-row sm:items-stretch sm:gap-2">
+              {canStartCorrection && (
+                <button
+                  type="button"
+                  onClick={() => setPendingAction('modify')}
+                  className="w-full min-h-[2rem] shrink-0 px-2 py-1 text-center text-xs text-blue-700 border border-blue-300 rounded hover:bg-blue-50 transition sm:flex-1 sm:min-w-0"
+                >
+                  Modificar
+                </button>
+              )}
+              {canCancelOperation && (
+                <button
+                  type="button"
+                  onClick={() => setPendingAction('cancel')}
+                  className="w-full min-h-[2rem] shrink-0 px-2 py-1 text-center text-xs text-red-700 border border-red-300 rounded hover:bg-red-50 transition sm:flex-1 sm:min-w-0"
+                >
+                  Anular
+                </button>
+              )}
+            </div>
           )}
           {canStartCorrection && detail.status === 'CANCELADA' && (
-            <button
-              onClick={() => setPendingAction('recreate')}
-              className="px-2 py-1 text-xs text-amber-700 border border-amber-300 rounded hover:bg-amber-50 transition"
-            >
-              Recrear desde esta
-            </button>
+            <div className="flex w-full min-w-0 flex-col gap-1.5 sm:max-w-xs">
+              <button
+                type="button"
+                onClick={() => setPendingAction('recreate')}
+                className="w-full min-h-[2rem] px-2 py-1 text-center text-xs text-amber-700 border border-amber-300 rounded hover:bg-amber-50 transition"
+              >
+                Recrear desde esta
+              </button>
+            </div>
           )}
         </div>
 

@@ -394,6 +394,8 @@ export default function NuevaOperacionPage() {
     // Explicit menu intent: start a fresh wizard without touching backend drafts.
     clearDraftSession();
     resetWizard();
+    // Solo al cambiar el token de “nueva operación” desde el menú; incluir clearDraftSession/resetWizard re-ejecutaría al variar movementId y vaciaría el asistente por error.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intencional: dependencia única resetToken
   }, [resetToken]);
 
   useEffect(() => {

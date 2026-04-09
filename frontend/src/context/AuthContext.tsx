@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback, ReactNode } from 'react';
 import { api } from '../api/client';
 
 interface AuthState {
@@ -31,23 +31,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const refreshInFlightRef = useRef(false);
-  const login = (token: string, role: string, userId: string) => {
+  const login = useCallback((token: string, role: string, userId: string) => {
     localStorage.setItem('token', token);
     localStorage.setItem('role', role);
     localStorage.setItem('user_id', userId);
     localStorage.removeItem('permissions');
     setAuth({ token, role, userId, permissions: [] });
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('user_id');
     localStorage.removeItem('permissions');
     setAuth({ token: null, role: null, userId: null, permissions: [] });
-  };
+  }, []);
 
-  const refreshPermissions = async () => {
+  const refreshPermissions = useCallback(async () => {
     if (!auth.token) return;
     if (refreshInFlightRef.current) return;
     refreshInFlightRef.current = true;
@@ -62,23 +62,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       refreshInFlightRef.current = false;
     }
-  };
+  }, [auth.token]);
 
   useEffect(() => {
     if (auth.token) {
-      refreshPermissions();
+      void refreshPermissions();
     }
-  }, [auth.token]);
+  }, [auth.token, refreshPermissions]);
 
-  const can = (permission: string, fallbackRoles?: string[]) => {
+  const can = useCallback((permission: string, fallbackRoles?: string[]) => {
     if (!permission) return true;
     if (auth.permissions.includes(permission)) return true;
     if (fallbackRoles && fallbackRoles.includes(auth.role ?? '')) return true;
     return fallbackAllows(auth.role, permission);
-  };
+  }, [auth.permissions, auth.role]);
 
   const isSuperAdmin = auth.role === 'SUPERADMIN';
-  const canViewSettings = can('settings.view');
+  const canViewSettings = useMemo(() => can('settings.view'), [can]);
 
   const value = useMemo(() => ({
     ...auth,
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshPermissions,
     isSuperAdmin,
     canViewSettings,
-  }), [auth, isSuperAdmin, canViewSettings]);
+  }), [auth, login, logout, can, refreshPermissions, isSuperAdmin, canViewSettings]);
 
   return (
     <AuthContext.Provider value={value}>

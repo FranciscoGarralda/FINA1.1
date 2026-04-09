@@ -295,31 +295,36 @@ export default function MovimientosPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-2">
-                      {canStartCorrection && m.status === 'CONFIRMADA' && (
-                        <button
-                          onClick={(e) => openActionConfirmation(e, m, 'modify')}
-                          className="px-2 py-1 text-xs text-blue-700 border border-blue-300 rounded hover:bg-blue-50 transition"
-                        >
-                          Modificar
-                        </button>
-                      )}
-                      {canCancelOperation && m.status === 'CONFIRMADA' && (
-                        <button
-                          onClick={(e) => openActionConfirmation(e, m, 'cancel')}
-                          className="ml-2 px-2 py-1 text-xs text-red-700 border border-red-300 rounded hover:bg-red-50 transition"
-                        >
-                          Anular
-                        </button>
-                      )}
-                      {canStartCorrection && m.status === 'CANCELADA' && (
-                        <button
-                          onClick={(e) => openActionConfirmation(e, m, 'recreate')}
-                          className="px-2 py-1 text-xs text-amber-700 border border-amber-300 rounded hover:bg-amber-50 transition"
-                        >
-                          Recrear desde esta
-                        </button>
-                      )}
+                    <td className="px-3 py-2 align-top">
+                      <div className="flex w-full min-w-0 flex-col gap-1.5 sm:max-w-xs sm:flex-row sm:items-stretch sm:gap-2">
+                        {canStartCorrection && m.status === 'CONFIRMADA' && (
+                          <button
+                            type="button"
+                            onClick={(e) => openActionConfirmation(e, m, 'modify')}
+                            className="w-full min-h-[2rem] shrink-0 px-2 py-1 text-center text-xs text-blue-700 border border-blue-300 rounded hover:bg-blue-50 transition sm:flex-1 sm:min-w-0"
+                          >
+                            Modificar
+                          </button>
+                        )}
+                        {canCancelOperation && m.status === 'CONFIRMADA' && (
+                          <button
+                            type="button"
+                            onClick={(e) => openActionConfirmation(e, m, 'cancel')}
+                            className="w-full min-h-[2rem] shrink-0 px-2 py-1 text-center text-xs text-red-700 border border-red-300 rounded hover:bg-red-50 transition sm:flex-1 sm:min-w-0"
+                          >
+                            Anular
+                          </button>
+                        )}
+                        {canStartCorrection && m.status === 'CANCELADA' && (
+                          <button
+                            type="button"
+                            onClick={(e) => openActionConfirmation(e, m, 'recreate')}
+                            className="w-full min-h-[2rem] px-2 py-1 text-center text-xs text-amber-700 border border-amber-300 rounded hover:bg-amber-50 transition"
+                          >
+                            Recrear desde esta
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

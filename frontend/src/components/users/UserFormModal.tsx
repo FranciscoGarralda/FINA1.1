@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent, useMemo } from 'react';
+import { useState, useEffect, FormEvent, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -67,12 +67,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
     return base;
   }, [canViewPermissions]);
 
-  useEffect(() => {
-    if (tab !== 'permisos' || !isEdit || !canViewPermissions) return;
-    loadPermissions();
-  }, [tab, isEdit, canViewPermissions]);
-
-  async function loadPermissions() {
+  const loadPermissions = useCallback(async () => {
     if (!user) return;
     setPermLoading(true);
     try {
@@ -83,7 +78,12 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
     } finally {
       setPermLoading(false);
     }
-  }
+  }, [user]);
+
+  useEffect(() => {
+    if (tab !== 'permisos' || !isEdit || !canViewPermissions) return;
+    void loadPermissions();
+  }, [tab, isEdit, canViewPermissions, loadPermissions]);
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
