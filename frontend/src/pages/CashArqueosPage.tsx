@@ -30,7 +30,16 @@ function lineKey(currencyId: string, format: string) {
   return `${currencyId}|${format}`;
 }
 
-function formatLabel(format: string) {
+/** Clave estable por fila de totales (API viejo sin `format` usa sufijo por índice). */
+function totalRowKey(t: SystemTotal, idx: number) {
+  const fmt = t.format?.trim() ?? '';
+  return lineKey(t.currency_id, fmt || `__row_${idx}`);
+}
+
+function formatLabel(format: string | undefined) {
+  if (format == null || String(format).trim() === '') {
+    return '—';
+  }
   return format === 'CASH' ? 'Efectivo' : format === 'DIGITAL' ? 'Digital' : format;
 }
 
@@ -106,10 +115,10 @@ export default function CashArqueosPage() {
       setTotals(t);
       setCounts((prev) => {
         const next = { ...prev };
-        for (const row of t) {
-          const k = lineKey(row.currency_id, row.format);
+        t.forEach((row, idx) => {
+          const k = totalRowKey(row, idx);
           if (next[k] === undefined) next[k] = '';
-        }
+        });
         return next;
       });
     } catch {
@@ -151,11 +160,17 @@ export default function CashArqueosPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canCreate || !accountId) return;
+    if (totals.some((t) => !(t.format && String(t.format).trim()))) {
+      setErr(
+        'El servidor no devuelve formato (CASH/DIGITAL) por fila. Desplegá el backend con la migración 000020 y recargá la app.'
+      );
+      return;
+    }
     const lines = totals
-      .map((t) => ({
+      .map((t, idx) => ({
         currency_id: t.currency_id,
-        format: t.format,
-        counted_total: (counts[lineKey(t.currency_id, t.format)] ?? '').trim(),
+        format: String(t.format).trim(),
+        counted_total: (counts[totalRowKey(t, idx)] ?? '').trim(),
       }))
       .filter((l) => l.counted_total !== '');
     if (lines.length === 0) {
@@ -248,6 +263,13 @@ export default function CashArqueosPage() {
               Refrescar saldos sistema
             </button>
             {loadingTotals && <p className="text-xs text-gray-400">Cargando saldos…</p>}
+            {accountId && totals.some((t) => !(t.format && String(t.format).trim())) && totals.length > 0 && (
+              <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                El API no incluye <code className="text-xs">format</code> por fila (versión vieja desplegada). Hacé deploy del
+                backend con migración <code className="text-xs">000020</code> y del frontend actual para ver Efectivo / Digital
+                por separado.
+              </p>
+            )}
             {accountId && totals.length > 0 && (
               <div className="border border-gray-200 rounded-lg overflow-x-auto">
                 <table className="w-full text-sm min-w-[280px]">
@@ -260,8 +282,8 @@ export default function CashArqueosPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {totals.map((t) => {
-                      const k = lineKey(t.currency_id, t.format);
+                    {totals.map((t, idx) => {
+                      const k = totalRowKey(t, idx);
                       return (
                         <tr key={k} className="border-b last:border-0">
                           <td className="px-3 py-2 font-medium">{t.currency_code}</td>
