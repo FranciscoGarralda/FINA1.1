@@ -14,14 +14,6 @@ function parseAmt(s: string | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function sumSection(rows: CurrencyAmount[]): number {
-  let t = 0;
-  for (const x of rows) {
-    t += parseAmt(x.amount);
-  }
-  return t;
-}
-
 function mergedRows(ref: CurrencyAmount[], cmp: CurrencyAmount[]) {
   const ids = new Set<string>();
   for (const x of ref) ids.add(x.currency_id);
@@ -162,9 +154,7 @@ export default function InicioPage() {
     if (!summary) return null;
     const refSec = summary.reference[key].by_currency ?? [];
     const cmpSec = summary.compare[key].by_currency ?? [];
-    const totalRef = sumSection(refSec);
-    const totalCmp = sumSection(cmpSec);
-    const dTotal = totalRef - totalCmp;
+    const rows = mergedRows(refSec, cmpSec);
     const st = CARD_STYLE[key];
 
     return (
@@ -172,20 +162,45 @@ export default function InicioPage() {
         key={key}
         type="button"
         onClick={() => openDetail(key)}
-        className={`text-left rounded-xl border-2 ${st.border} ${st.bg} p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2`}
+        className={`text-left rounded-xl border-2 ${st.border} ${st.bg} p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 flex flex-col min-h-[140px]`}
       >
-        <h3 className={`text-sm font-semibold ${st.title} mb-2`}>{CARD_TITLES[key]}</h3>
-        <p className={`text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight ${st.accent}`}>
-          {formatMoneyAR(String(totalRef))}
+        <h3 className={`text-sm font-semibold ${st.title} mb-1`}>{CARD_TITLES[key]}</h3>
+        <p className="text-[11px] text-gray-600 mb-2 leading-snug">
+          Por divisa ({summary.reference_date} vs {summary.compare_date}). No se suman montos entre monedas.
         </p>
-        <p className={`text-xs sm:text-sm mt-2 font-medium ${deltaClass(dTotal)}`}>
-          vs día anterior: {dTotal > 0 ? '+' : ''}
-          {formatMoneyAR(String(dTotal))}
-        </p>
-        <p className="text-xs text-gray-500 mt-3">
+        {rows.length === 0 ? (
+          <p className="text-sm text-gray-500 flex-1">Sin movimientos en esta métrica para este día.</p>
+        ) : (
+          <div className="overflow-x-auto overflow-y-auto max-h-44 -mx-1 flex-1 rounded border border-white/60 bg-white/50">
+            <table className="w-full min-w-[260px] text-[11px] sm:text-xs">
+              <thead>
+                <tr className="text-left text-gray-500 border-b border-gray-200/80">
+                  <th className="px-2 py-1 font-medium">Div.</th>
+                  <th className="px-2 py-1 text-right font-medium">Día</th>
+                  <th className="px-2 py-1 text-right font-medium">Ayer</th>
+                  <th className="px-2 py-1 text-right font-medium">Δ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-b border-gray-100/80 last:border-0">
+                    <td className={`px-2 py-1 font-semibold ${st.accent}`}>{r.code}</td>
+                    <td className="px-2 py-1 text-right font-mono text-gray-900">{formatMoneyAR(String(r.refN))}</td>
+                    <td className="px-2 py-1 text-right font-mono text-gray-600">{formatMoneyAR(String(r.cmpN))}</td>
+                    <td className={`px-2 py-1 text-right font-mono font-medium ${deltaClass(r.delta)}`}>
+                      {r.delta > 0 ? '+' : ''}
+                      {formatMoneyAR(String(r.delta))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-xs text-gray-500 mt-2 shrink-0">
           {canReportes
-            ? 'Tocá para ver detalle por divisa y otro rango de fechas.'
-            : 'Tocá para ver detalle por divisa (día vs ayer).'}
+            ? 'Tocá para ampliar o elegir otro rango de fechas.'
+            : 'Tocá para ampliar.'}
         </p>
       </button>
     );
@@ -343,8 +358,10 @@ export default function InicioPage() {
       <div>
         <h2 className="text-xl font-semibold text-gray-800 mb-1">Inicio</h2>
         <p className="text-sm text-gray-600">
-          Resultados del día: tocá una tarjeta para ver detalle por divisa y, si tenés permiso, otro rango de fechas.
+          Resultados del día <strong>por divisa</strong> (misma lógica que el detalle). Tocá una tarjeta para ampliar o,
+          si tenés permiso, otro rango de fechas.
         </p>
+        <p className="text-xs text-gray-500 mt-1">Montos por divisa; no se suman entre monedas.</p>
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
