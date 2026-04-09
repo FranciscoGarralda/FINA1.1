@@ -11,6 +11,22 @@ FRONT_PID_FILE=/tmp/fina-local-front.pid
 API_LOG=/tmp/fina-local-api.log
 FRONT_LOG=/tmp/fina-local-front.log
 
+# Mata cualquier proceso que escuche en $1 (evita API viejo en :8080 cuando el PID guardado ya no existe).
+free_port() {
+  local port=$1
+  if ! command -v lsof >/dev/null 2>&1; then
+    return 0
+  fi
+  local pids
+  pids=$(lsof -ti ":$port" -sTCP:LISTEN 2>/dev/null || true)
+  if [[ -n "${pids:-}" ]]; then
+    echo "==> Liberando puerto $port (evitar API/Vite viejo)…"
+    # shellcheck disable=SC2086
+    kill -9 $pids 2>/dev/null || true
+    sleep 1
+  fi
+}
+
 if ! command -v docker >/dev/null 2>&1; then
   echo "ERROR: no se encontró 'docker'. Abrí Docker Desktop e intentá de nuevo." >&2
   exit 1
@@ -27,13 +43,12 @@ for _ in $(seq 1 45); do
   sleep 1
 done
 
-if [[ -f "$API_PID_FILE" ]] && kill -0 "$(cat "$API_PID_FILE")" 2>/dev/null; then
-  echo "API ya corre (PID $(cat "$API_PID_FILE")). Omitiendo arranque del API."
-else
-  echo "==> API en :8080 (log: $API_LOG)..."
-  nohup bash -c "cd \"$ROOT/backend\" && exec go run ./cmd/api" >>"$API_LOG" 2>&1 &
-  echo $! >"$API_PID_FILE"
-fi
+[[ -f "$API_PID_FILE" ]] && kill "$(cat "$API_PID_FILE")" 2>/dev/null || true
+free_port 8080
+
+echo "==> API en :8080 (log: $API_LOG)..."
+nohup bash -c "cd \"$ROOT/backend\" && exec go run ./cmd/api" >>"$API_LOG" 2>&1 &
+echo $! >"$API_PID_FILE"
 
 echo "==> Esperando GET /health..."
 ok=0
@@ -56,13 +71,12 @@ if [[ ! -d "$ROOT/frontend/node_modules" ]]; then
   (cd "$ROOT/frontend" && npm ci)
 fi
 
-if [[ -f "$FRONT_PID_FILE" ]] && kill -0 "$(cat "$FRONT_PID_FILE")" 2>/dev/null; then
-  echo "Front ya corre (PID $(cat "$FRONT_PID_FILE")). Omitiendo."
-else
-  echo "==> Vite en :5173 (log: $FRONT_LOG)..."
-  nohup bash -c "cd \"$ROOT/frontend\" && exec npm run dev" >>"$FRONT_LOG" 2>&1 &
-  echo $! >"$FRONT_PID_FILE"
-fi
+[[ -f "$FRONT_PID_FILE" ]] && kill "$(cat "$FRONT_PID_FILE")" 2>/dev/null || true
+free_port 5173
+
+echo "==> Vite en :5173 (log: $FRONT_LOG)..."
+nohup bash -c "cd \"$ROOT/frontend\" && exec npm run dev" >>"$FRONT_LOG" 2>&1 &
+echo $! >"$FRONT_PID_FILE"
 
 echo ""
 echo "Listo:"

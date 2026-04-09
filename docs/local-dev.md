@@ -21,7 +21,7 @@ El archivo **`.env.local`** está en **`.gitignore`**: no lo subas al repo ni pe
 
 Sin **`frontend/.env.local`**, Vite proxifica **`/api`** a **`http://127.0.0.1:8080`** (ver **`frontend/vite.config.ts`**). Si el proceso del API quedó de **antes** de un `git pull` que cambia el contrato de respuesta, puede no venir **`format`** por fila en `system-totals`.
 
-**Qué hacer:** pará el API (por ejemplo `kill "$(cat /tmp/fina-local-api.pid)"` o liberá el puerto 8080 con `lsof -ti :8080 | xargs kill`) y volvé a levantar desde la raíz del repo: **`./scripts/run-local-dev.sh`**, o manualmente `go run ./cmd/api` en **`backend/`**. Recargá el navegador en **http://localhost:5173** con recarga fuerte (Cmd+Shift+R).
+**Qué hacer:** desde la raíz del repo ejecutá **`./scripts/run-local-dev.sh`**: el script **libera los puertos 8080 y 5173** y vuelve a levantar API y Vite (evita que quede un proceso viejo en 8080 mientras el PID guardado ya no existe). También podés parar a mano el API y usar `go run ./cmd/api` en **`backend/`**. Recargá **http://localhost:5173** con recarga fuerte (Cmd+Shift+R).
 
 Si usás **`VITE_API_BASE`** en **`.env.local`**, el front llama directo a esa URL; el mensaje entonces apunta a desplegar **ese** entorno, no al proceso local.
 
