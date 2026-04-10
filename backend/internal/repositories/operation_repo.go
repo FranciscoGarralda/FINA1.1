@@ -233,26 +233,6 @@ func (r *OperationRepo) DeleteMovementDraftTx(ctx context.Context, tx pgx.Tx, mo
 	return err
 }
 
-func (r *OperationRepo) TransitionMovementStatus(ctx context.Context, movementID, fromStatus, toStatus string) (bool, error) {
-	cmd, err := r.pool.Exec(ctx,
-		`UPDATE movements
-		 SET status = $2, updated_at = now()
-		 WHERE id = $1 AND status = $3`,
-		movementID, toStatus, fromStatus)
-	if err != nil {
-		return false, err
-	}
-	return cmd.RowsAffected() > 0, nil
-}
-
-func (r *OperationRepo) DeleteMovementByID(ctx context.Context, movementID string) (bool, error) {
-	cmd, err := r.pool.Exec(ctx, `DELETE FROM movements WHERE id = $1`, movementID)
-	if err != nil {
-		return false, err
-	}
-	return cmd.RowsAffected() > 0, nil
-}
-
 func (r *OperationRepo) DeleteMovementByIDTx(ctx context.Context, tx pgx.Tx, movementID string) (bool, error) {
 	cmd, err := tx.Exec(ctx, `DELETE FROM movements WHERE id = $1`, movementID)
 	if err != nil {

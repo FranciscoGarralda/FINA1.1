@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"sort"
 
 	"fina/internal/repositories"
 )
@@ -132,21 +131,6 @@ func (s *PermissionsService) CheckPermission(ctx context.Context, role, permissi
 		return PermissionAllow, nil
 	}
 	return PermissionDeny, nil
-}
-
-func (s *PermissionsService) GetEffectivePermissions(ctx context.Context, role string) ([]string, error) {
-	matrix, err := s.GetRoleMatrix(ctx, role)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]string, 0)
-	for _, item := range matrix {
-		if item.Allowed {
-			out = append(out, item.Key)
-		}
-	}
-	sort.Strings(out)
-	return out, nil
 }
 
 func FallbackAllows(role, permissionKey string) bool {

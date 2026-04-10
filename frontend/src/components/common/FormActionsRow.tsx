@@ -23,7 +23,6 @@ import type { ReactNode } from 'react';
  *
  * Solo presentación; sin reglas de negocio (reglas de oro Fina).
  */
-export type FormActionsRowVariant = 'modal' | 'inline' | 'table';
 
 const btnStrip =
   '[&_button]:w-full [&_button]:min-w-0 [&_button]:text-center [&_button]:break-words sm:[&_button]:w-auto';
@@ -45,7 +44,7 @@ type InlineOrTableProps = {
   children: ReactNode;
 };
 
-export type FormActionsRowProps = ModalProps | InlineOrTableProps;
+type FormActionsRowProps = ModalProps | InlineOrTableProps;
 
 function isPresent(node: ReactNode): boolean {
   if (node == null || node === false) return false;

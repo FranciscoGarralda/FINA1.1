@@ -5,7 +5,7 @@ import FormActionsRow from '../common/FormActionsRow';
  * Layout unificado vía FormActionsRow (inline) + .form-actions + .btn-touch en index.css.
  * Todas las acciones son type="button" para no enviar el form con Enter; el padre debe manejar submit si aplica.
  */
-export interface OperationFormActionsProps {
+interface OperationFormActionsProps {
   onSubmit: () => void;
   onSaveDraft: () => void;
   onClear: () => void;

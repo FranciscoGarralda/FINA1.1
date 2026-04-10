@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 
-export interface ActiveCurrency {
+interface ActiveCurrency {
   id: string;
   code: string;
   name: string;

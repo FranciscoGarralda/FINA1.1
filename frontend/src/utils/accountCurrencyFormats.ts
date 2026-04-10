@@ -4,13 +4,13 @@
 
 export type MovementFormat = 'CASH' | 'DIGITAL';
 
-export interface AccountCurrencyRow {
+interface AccountCurrencyRow {
   currency_id: string;
   cash_enabled: boolean;
   digital_enabled: boolean;
 }
 
-export function allowedFormatsFromRow(
+function allowedFormatsFromRow(
   row: { cash_enabled: boolean; digital_enabled: boolean } | undefined | null,
 ): MovementFormat[] {
   if (!row) return [];

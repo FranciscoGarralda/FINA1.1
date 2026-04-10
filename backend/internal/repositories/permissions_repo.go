@@ -130,9 +130,3 @@ func (r *PermissionsRepo) GetRolePermission(ctx context.Context, role, permissio
 	}
 	return allowed, true, nil
 }
-
-func (r *PermissionsRepo) RolePermissionRowsCount(ctx context.Context, role string) (int, error) {
-	var n int
-	err := r.pool.QueryRow(ctx, `SELECT count(*) FROM role_permissions WHERE role = $1`, role).Scan(&n)
-	return n, err
-}

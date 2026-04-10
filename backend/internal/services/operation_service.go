@@ -1177,15 +1177,6 @@ func uniqueStrings(values []string) []string {
 	return out
 }
 
-// GetOperationRepo exposes the repo for type-specific handlers (P14+).
-func (s *OperationService) GetOperationRepo() *repositories.OperationRepo {
-	return s.operationRepo
-}
-
-func (s *OperationService) GetPool() *pgxpool.Pool {
-	return s.pool
-}
-
 func (s *OperationService) CancelMovement(ctx context.Context, movementID, callerID string) error {
 	if movementID == "" {
 		return ErrMovementIDRequired

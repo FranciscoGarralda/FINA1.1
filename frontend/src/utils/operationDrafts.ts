@@ -1,6 +1,6 @@
 import { api } from '../api/client';
 
-export interface OperationDraftEnvelope<TData> {
+interface OperationDraftEnvelope<TData> {
   schema_version: number;
   operation_type: string;
   data: TData;

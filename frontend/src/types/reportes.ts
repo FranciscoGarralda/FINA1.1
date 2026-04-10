@@ -6,7 +6,7 @@ export interface CurrencyAmount {
   amount: string;
 }
 
-export interface ReportSection {
+interface ReportSection {
   by_currency: CurrencyAmount[];
 }
 

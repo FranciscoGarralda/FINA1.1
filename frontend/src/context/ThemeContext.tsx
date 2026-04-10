@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-export type ThemeMode = 'dark' | 'light';
+type ThemeMode = 'dark' | 'light';
 
 const STORAGE_KEY = 'fina-theme';
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 
-export interface ActiveAccount {
+interface ActiveAccount {
   id: string;
   name: string;
   active: boolean;

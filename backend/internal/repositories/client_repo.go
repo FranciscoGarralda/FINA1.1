@@ -72,19 +72,6 @@ type CCBalanceAdjustmentResult struct {
 	Reason        string
 }
 
-func (r *ClientRepo) Create(ctx context.Context, input ClientInput) (string, error) {
-	var id string
-	err := r.pool.QueryRow(ctx,
-		`INSERT INTO clients (first_name, last_name, phone, dni,
-		        address_street, address_number, address_floor,
-		        reference_contact, referred_by, department, cc_enabled)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NULLIF(TRIM($10),''),$11) RETURNING id::text`,
-		input.FirstName, input.LastName, input.Phone, input.DNI,
-		input.AddressStreet, input.AddressNumber, input.AddressFloor,
-		input.ReferenceContact, input.ReferredBy, input.Department, input.CcEnabled).Scan(&id)
-	return id, err
-}
-
 func (r *ClientRepo) CreateTx(ctx context.Context, tx pgx.Tx, input ClientInput) (string, error) {
 	var id string
 	err := tx.QueryRow(ctx,
@@ -96,26 +83,6 @@ func (r *ClientRepo) CreateTx(ctx context.Context, tx pgx.Tx, input ClientInput)
 		input.AddressStreet, input.AddressNumber, input.AddressFloor,
 		input.ReferenceContact, input.ReferredBy, input.Department, input.CcEnabled).Scan(&id)
 	return id, err
-}
-
-func (r *ClientRepo) Update(ctx context.Context, id string, input ClientInput) error {
-	tag, err := r.pool.Exec(ctx,
-		`UPDATE clients SET first_name=$2, last_name=$3, phone=$4, dni=$5,
-		        address_street=$6, address_number=$7, address_floor=$8,
-		        reference_contact=$9, referred_by=$10,
-		        department=NULLIF(TRIM($11),''), cc_enabled=$12,
-		        updated_at=now()
-		 WHERE id=$1`,
-		id, input.FirstName, input.LastName, input.Phone, input.DNI,
-		input.AddressStreet, input.AddressNumber, input.AddressFloor,
-		input.ReferenceContact, input.ReferredBy, input.Department, input.CcEnabled)
-	if err != nil {
-		return err
-	}
-	if tag.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
 }
 
 func (r *ClientRepo) UpdateTx(ctx context.Context, tx pgx.Tx, id string, input ClientInput) error {

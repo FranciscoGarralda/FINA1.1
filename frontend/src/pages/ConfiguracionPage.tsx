@@ -1,18 +1,19 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import SeguridadTab from '../components/settings/SeguridadTab';
 import EstadosTab from '../components/settings/EstadosTab';
 import PoliticasTab from '../components/settings/PoliticasTab';
+import PermisosTab from '../components/settings/PermisosTab';
 
-const TABS = ['Seguridad', 'Estados', 'Políticas'] as const;
-type TabName = (typeof TABS)[number];
+const TABS_VIEW = ['Seguridad', 'Estados', 'Políticas'] as const;
+const TABS_EDIT = ['Seguridad', 'Estados', 'Políticas', 'Permisos'] as const;
+type TabName = (typeof TABS_EDIT)[number];
 
 export default function ConfiguracionPage() {
-  const [activeTab, setActiveTab] = useState<TabName>('Seguridad');
   const { can } = useAuth();
   const canEditSettings = can('settings.edit');
-
-  const visibleTabs = TABS;
+  const visibleTabs = useMemo(() => (canEditSettings ? TABS_EDIT : TABS_VIEW), [canEditSettings]);
+  const [activeTab, setActiveTab] = useState<TabName>('Seguridad');
 
   return (
     <div>
@@ -44,6 +45,7 @@ export default function ConfiguracionPage() {
       {activeTab === 'Seguridad' && <SeguridadTab />}
       {activeTab === 'Estados' && <EstadosTab />}
       {activeTab === 'Políticas' && <PoliticasTab />}
+      {activeTab === 'Permisos' && canEditSettings && <PermisosTab />}
     </div>
   );
 }
