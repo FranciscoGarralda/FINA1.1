@@ -1,0 +1,12 @@
+{
+  "name": "Fina — Casa de Cambio",
+  "short_name": "Fina",
+  "description": "Sistema de casa de cambio",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "es",
+  "dir": "ltr"
+}
