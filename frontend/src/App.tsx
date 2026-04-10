@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import LoginPage from './pages/LoginPage';
 import InicioPage from './pages/InicioPage';
 import PosicionCajaPage from './pages/PosicionCajaPage';
+import PosicionIntegralPage from './pages/PosicionIntegralPage';
 import CashArqueosPage from './pages/CashArqueosPage';
 import NuevaOperacionPage from './pages/NuevaOperacionPage';
 import MovimientosPage from './pages/MovimientosPage';
@@ -191,6 +192,14 @@ export default function App() {
           element={
             <ProtectedRoute requiredPermission="cash_position.view" fallbackRoles={['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR']}>
               <PosicionCajaPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/posicion-integral"
+          element={
+            <ProtectedRoute requiredPermission="cash_position.view" fallbackRoles={['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR']}>
+              <PosicionIntegralPage />
             </ProtectedRoute>
           }
         />
