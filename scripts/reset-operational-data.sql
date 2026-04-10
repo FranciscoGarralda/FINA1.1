@@ -1,41 +1,41 @@
 -- =============================================================================
--- RESETEO OPERATIVO — Fina (Postgres)
--- =============================================================================
--- Borra TODOS los clientes, movimientos, CC, pendientes, arqueos de caja y
--- filas de audit_logs. NO borra: users, currencies, accounts, system_settings,
--- permissions / role_permissions / user_permissions.
+-- Reset operativo (Fina): borra TODOS los movimientos y saldos / efectos
+-- monetarios derivados. NO borra clientes (incl. #10 y #11), cuentas, divisas
+-- ni usuarios.
 --
--- Irreversible. Hacer backup o snapshot del Postgres antes.
+-- Uso: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/reset-operational-data.sql
+--      Hacer backup (pg_dump) antes en producción.
 --
--- Desde la raíz del repo:
---   export DATABASE_URL='(solo en tu terminal, desde Railway)'
---   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/reset-operational-data.sql
+-- Incluye: gastos, compras/ventas, borradores, pendientes (vía líneas), CC,
+-- arqueos, inventario FX, correcciones de movimiento.
+-- fx_inventory_ledger se vacía por ON DELETE CASCADE al borrar movements.
 -- =============================================================================
 
 BEGIN;
 
-DELETE FROM movement_corrections;
-DELETE FROM pending_items;
-DELETE FROM cc_entries;
-DELETE FROM profit_entries;
-DELETE FROM movement_lines;
-DELETE FROM movement_drafts;
-DELETE FROM movements;
-DELETE FROM cc_manual_adjustments;
-DELETE FROM cc_balances;
-DELETE FROM cash_arqueo_lines;
-DELETE FROM cash_arqueos;
-DELETE FROM clients;
-DELETE FROM audit_logs;
+-- Evita bloqueo por FK opcional hacia movimientos de resolución
+UPDATE pending_items
+SET resolved_by_movement_id = NULL
+WHERE resolved_by_movement_id IS NOT NULL;
 
-ALTER TABLE clients ALTER COLUMN client_code RESTART WITH 1;
+-- source_movement_id no tiene ON DELETE CASCADE
+DELETE FROM movement_corrections;
+
+-- Cascada: movement_lines, pending_items, cc_entries, profit_entries,
+-- movement_drafts, fx_inventory_ledger.
+DELETE FROM movements;
+
+-- Saldos CC y ajustes manuales (aperturas CC, etc.)
+TRUNCATE TABLE cc_balances;
+TRUNCATE TABLE cc_manual_adjustments;
+
+-- Posiciones de inventario FX (ledger ya vacío por el DELETE anterior)
+TRUNCATE TABLE fx_positions;
+
+-- Historial de arqueos
+TRUNCATE TABLE cash_arqueos CASCADE;
+
+-- Reiniciar numeración de operaciones (IDENTITY en movements.operation_number)
 ALTER TABLE movements ALTER COLUMN operation_number RESTART WITH 1;
 
 COMMIT;
-
-SELECT
-  (SELECT COUNT(*) FROM clients) AS clients,
-  (SELECT COUNT(*) FROM movements) AS movements,
-  (SELECT COUNT(*) FROM pending_items) AS pending_items,
-  (SELECT COUNT(*) FROM cc_balances) AS cc_balances,
-  (SELECT COUNT(*) FROM audit_logs) AS audit_logs;
