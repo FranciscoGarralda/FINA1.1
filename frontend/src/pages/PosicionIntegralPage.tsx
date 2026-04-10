@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { formatMoneyAR } from '../utils/money';
+import { isPendingUserFacingRetiro } from '../utils/pendingTypeLabels';
 
 const LS_COTIZ_USD = 'fina-cotizacion-usd';
 
@@ -54,7 +55,6 @@ interface MovementListItem {
   client_name: string | null;
   resumen: string;
   summary_items?: Array<{ side: string; currency_code: string; amount: string }>;
-  has_open_pending: boolean;
 }
 
 interface MovementListResult {
@@ -62,6 +62,15 @@ interface MovementListResult {
   total: number;
   page: number;
   limit: number;
+}
+
+/** Campos mínimos de `/pendientes` para sumar retiros en USD. */
+interface PendingListRow {
+  type: string;
+  movement_type?: string;
+  currency_code: string;
+  amount: string;
+  status: string;
 }
 
 function todayStr() {
@@ -179,7 +188,7 @@ export default function PosicionIntegralPage() {
   const [ccRows, setCcRows] = useState<CCBalanceSummary[]>([]);
   const [cashPos, setCashPos] = useState<CashPositionAccount[]>([]);
   const [physicalTotals, setPhysicalTotals] = useState<SystemTotal[]>([]);
-  const [movRetirosPend, setMovRetirosPend] = useState<MovementListItem[]>([]);
+  const [pendRetiroRows, setPendRetiroRows] = useState<PendingListRow[]>([]);
   const [movGastos, setMovGastos] = useState<MovementListItem[]>([]);
 
   const arsPerUsd = useMemo(() => parseAmt(cotizInput), [cotizInput]);
@@ -198,18 +207,23 @@ export default function PosicionIntegralPage() {
     setError('');
     const d = asOfDate;
     try {
-      const [cc, pos, phys, retirosAll, gastosAll] = await Promise.all([
+      const [cc, pos, phys, pendAll, gastosAll] = await Promise.all([
         api.get<CCBalanceSummary[]>('/cc-balances').catch(() => [] as CCBalanceSummary[]),
         api.get<CashPositionAccount[]>(`/cash-position?as_of=${encodeURIComponent(d)}`).catch(() => []),
         aggregateSystemCashPhysical(d),
-        fetchAllMovementsForRange(d, d, 'RETIRO_CAPITAL').catch(() => [] as MovementListItem[]),
+        api.get<PendingListRow[]>('/pendientes').catch(() => [] as PendingListRow[]),
         fetchAllMovementsForRange(d, d, 'GASTO').catch(() => [] as MovementListItem[]),
       ]);
 
       setCcRows(Array.isArray(cc) ? cc : []);
       setCashPos(Array.isArray(pos) ? pos : []);
       setPhysicalTotals(phys);
-      setMovRetirosPend(retirosAll.filter((m) => m.has_open_pending));
+      const pend = Array.isArray(pendAll) ? pendAll : [];
+      setPendRetiroRows(
+        pend.filter(
+          (p) => p.status === 'ABIERTO' && isPendingUserFacingRetiro(p.type, p.movement_type),
+        ),
+      );
       setMovGastos(gastosAll);
     } catch (e: unknown) {
       setError((e as { message?: string })?.message || 'Error al cargar datos.');
@@ -225,8 +239,12 @@ export default function PosicionIntegralPage() {
   }, []);
 
   const retirosPendUsd = useMemo(
-    () => movRetirosPend.reduce((acc, m) => acc + movementOutflowUsd(m, arsPerUsd), 0),
-    [movRetirosPend, arsPerUsd],
+    () =>
+      pendRetiroRows.reduce(
+        (acc, p) => acc + amountToUsd(p.currency_code, Math.abs(parseAmt(p.amount)), arsPerUsd),
+        0,
+      ),
+    [pendRetiroRows, arsPerUsd],
   );
 
   const gastosPeriodoUsd = useMemo(
@@ -361,10 +379,25 @@ export default function PosicionIntegralPage() {
             Actualizar
           </button>
         </div>
-        <p className="text-xs text-fg-muted">
-          Retiros pendientes: <code className="text-fg-muted">RETIRO_CAPITAL</code> con{' '}
-          <code className="text-fg-muted">has_open_pending</code>. EUR en USD: — hasta definir tipo cruzado.
-        </p>
+        <div className="text-xs text-fg-muted space-y-1.5 max-w-3xl">
+          <p>
+            <strong className="text-fg-muted">Retiros pendientes (USD):</strong> suma de pendientes{' '}
+            <strong>abiertos</strong> (mismo origen que la pantalla Pendientes) cuya etiqueta allí es «Retiro».
+            EUR en USD: — hasta definir tipo cruzado.
+          </p>
+          <p className="font-medium text-fg-muted">Avisos:</p>
+          <ul className="list-disc pl-4 space-y-0.5">
+            <li>No incluye filas etiquetadas como «Entrega» (p. ej. en VENTA, entrega de divisa vendida).</li>
+            <li>
+              Incluye todos los pendientes abiertos vigentes; la fecha de arriba no filtra esta tarjeta (sí caja/CC,
+              físico y gastos del día).
+            </li>
+            <li>
+              Capital propio resta este total; al usar el criterio «Retiro» de Pendientes el monto puede ser mayor
+              que el que había con solo RETIRO_CAPITAL.
+            </li>
+          </ul>
+        </div>
       </div>
 
       {error ? <p className="text-error text-sm">{error}</p> : null}

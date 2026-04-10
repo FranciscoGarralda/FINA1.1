@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useActiveAccounts } from '../hooks/useActiveAccounts';
 import { allowedFormatsFromList, formatLabel, resolveFormat } from '../utils/accountCurrencyFormats';
 import { formatMoneyAR } from '../utils/money';
+import { pendingTypeLabel } from '../utils/pendingTypeLabels';
 
 interface PendingItem {
   id: string;
@@ -55,24 +56,6 @@ const PENDING_ROW_ACTION_BASE =
 const pendingRowBtnResolver = `${PENDING_ROW_ACTION_BASE} bg-success hover:opacity-90`;
 const pendingRowBtnCompensar = `${PENDING_ROW_ACTION_BASE} bg-brand hover:bg-brand-hover`;
 const pendingRowBtnAnular = `${PENDING_ROW_ACTION_BASE} bg-error hover:opacity-90`;
-
-function pendingTypeLabel(type: string, movementType?: string) {
-  if (movementType === 'PENDIENTE_INICIAL') {
-    // RETIRO BD = OUT / entrega; PAGO BD = IN / cobro hacia la casa.
-    if (type === 'PENDIENTE_DE_RETIRO') return 'Entrega (apertura)';
-    if (type === 'PENDIENTE_DE_PAGO') return 'Cobro (apertura)';
-  }
-  // VENTA: salida (divisa vendida) = entrega al cliente; entrada (cobro) = retiro del cliente hacia la casa
-  if (movementType === 'VENTA') {
-    if (type === 'PENDIENTE_DE_RETIRO') return 'Entrega';
-    if (type === 'PENDIENTE_DE_PAGO') return 'Retiro';
-  }
-  if (type === 'PENDIENTE_DE_PAGO') return 'Pago';
-  if (type === 'PENDIENTE_DE_RETIRO') return 'Retiro';
-  if (type === 'PENDIENTE_DE_COBRO_COMISION') return 'Cobro comisión';
-  if (type === 'PENDIENTE_DE_PAGO_COMISION') return 'Pago comisión';
-  return type;
-}
 
 interface ClientOption {
   id: string;
