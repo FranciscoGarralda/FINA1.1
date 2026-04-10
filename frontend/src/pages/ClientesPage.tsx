@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import ClientFormModal from '../components/clients/ClientFormModal';
@@ -15,6 +15,9 @@ interface Client {
   cc_enabled: boolean;
 }
 
+type ActiveFilter = 'all' | 'active' | 'inactive';
+type CcFilter = 'all' | 'yes' | 'no';
+
 export default function ClientesPage() {
   const { can } = useAuth();
   const canCreate = can('clients.create');
@@ -24,7 +27,12 @@ export default function ClientesPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filterActive, setFilterActive] = useState<ActiveFilter>('all');
+  const [filterCC, setFilterCC] = useState<CcFilter>('all');
   const [modalClient, setModalClient] = useState<Client | null | 'new'>(null);
+
+  /** Columnas visibles: código, nombre, tel, depto, estado, CC, [acciones si canEdit]. */
+  const tableColCount = 6 + (canEdit ? 1 : 0);
 
   const fetchClients = async () => {
     try {
@@ -45,44 +53,90 @@ export default function ClientesPage() {
     try {
       await api.put(`/clients/${c.id}/active`, { active: !c.active });
       setClients((prev) => prev.map((x) => (x.id === c.id ? { ...x, active: !x.active } : x)));
-    } catch (err: any) {
-      alert(err?.message || 'Error al cambiar estado');
+    } catch (err: unknown) {
+      alert((err as { message?: string })?.message || 'Error al cambiar estado');
     }
   };
 
-  const filtered = clients.filter((c) => {
-    const q = search.toLowerCase();
-    const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();
-    const dept = (c.department || '').toLowerCase();
-    return (
-      fullName.includes(q) ||
-      c.dni.toLowerCase().includes(q) ||
-      c.phone.toLowerCase().includes(q) ||
-      String(c.client_code).includes(q) ||
-      dept.includes(q)
-    );
-  });
+  const filtered = useMemo(() => {
+    return clients.filter((c) => {
+      if (filterActive === 'active' && !c.active) return false;
+      if (filterActive === 'inactive' && c.active) return false;
+      if (filterCC === 'yes' && !c.cc_enabled) return false;
+      if (filterCC === 'no' && c.cc_enabled) return false;
+
+      const q = search.trim().toLowerCase();
+      if (!q) return true;
+
+      const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();
+      const dept = (c.department || '').toLowerCase();
+      return (
+        fullName.includes(q) ||
+        c.phone.toLowerCase().includes(q) ||
+        String(c.client_code).includes(q) ||
+        dept.includes(q)
+      );
+    });
+  }, [clients, search, filterActive, filterCC]);
+
+  const selectClass =
+    'border border-subtle rounded-md px-3 py-2 text-sm w-full sm:w-40 min-w-0 bg-app text-fg focus:outline-none focus:border-brand shadow-focus-brand';
 
   return (
     <div>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 min-w-0">
-        <h2 className="text-xl font-semibold text-fg shrink-0">Clientes</h2>
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto min-w-0">
-          <input
-            type="text"
-            placeholder="Buscar..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="border border-subtle rounded-md px-3 py-2 text-sm w-full sm:w-48 min-w-0 focus:outline-none focus:border-brand shadow-focus-brand"
-          />
-          {canCreate && (
-            <button
-              onClick={() => setModalClient('new')}
-              className="bg-brand text-white px-4 py-2 rounded-md hover:bg-brand-hover text-sm font-medium w-full sm:w-auto shrink-0"
+      <div className="flex flex-col gap-4 mb-6 min-w-0">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between min-w-0">
+          <h2 className="text-xl font-semibold text-fg shrink-0">Clientes</h2>
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto min-w-0 sm:items-center">
+            <input
+              type="text"
+              placeholder="Buscar por nombre, teléfono, código…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border border-subtle rounded-md px-3 py-2 text-sm w-full sm:min-w-[12rem] sm:max-w-xs min-w-0 focus:outline-none focus:border-brand shadow-focus-brand"
+            />
+            {canCreate && (
+              <button
+                type="button"
+                onClick={() => setModalClient('new')}
+                className="bg-brand text-white px-4 py-2 rounded-md hover:bg-brand-hover text-sm font-medium w-full sm:w-auto shrink-0"
+              >
+                + Nuevo cliente
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:items-end">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <label htmlFor="clientes-filter-estado" className="text-xs font-medium text-fg-muted">
+              Estado
+            </label>
+            <select
+              id="clientes-filter-estado"
+              value={filterActive}
+              onChange={(e) => setFilterActive(e.target.value as ActiveFilter)}
+              className={selectClass}
             >
-              + Nuevo cliente
-            </button>
-          )}
+              <option value="all">Todos</option>
+              <option value="active">Solo activos</option>
+              <option value="inactive">Solo inactivos</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <label htmlFor="clientes-filter-cc" className="text-xs font-medium text-fg-muted">
+              CC
+            </label>
+            <select
+              id="clientes-filter-cc"
+              value={filterCC}
+              onChange={(e) => setFilterCC(e.target.value as CcFilter)}
+              className={selectClass}
+            >
+              <option value="all">Todos</option>
+              <option value="yes">Con CC</option>
+              <option value="no">Sin CC</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -90,31 +144,32 @@ export default function ClientesPage() {
         <p className="text-fg-muted">Cargando...</p>
       ) : (
         <div className="bg-elevated rounded-lg shadow overflow-hidden overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[560px] text-sm">
             <thead className="bg-surface">
               <tr className="text-left text-fg-muted">
                 <th className="px-4 py-3 font-medium">Nº cliente</th>
                 <th className="px-4 py-3 font-medium">Nombre</th>
                 <th className="px-4 py-3 font-medium">Teléfono</th>
-                <th className="px-4 py-3 font-medium">DNI</th>
                 <th className="px-4 py-3 font-medium">Departamento</th>
                 <th className="px-4 py-3 font-medium text-center">Estado</th>
                 <th className="px-4 py-3 font-medium text-center">CC</th>
-                {(canEdit || canToggle) && <th className="px-4 py-3 font-medium text-right">Acciones</th>}
+                {canEdit && <th className="px-4 py-3 font-medium text-right">Acciones</th>}
               </tr>
             </thead>
             <tbody>
               {filtered.map((c) => (
                 <tr key={c.id} className="border-t">
                   <td className="px-4 py-3 text-fg-muted font-mono">{c.client_code}</td>
-                  <td className="px-4 py-3 text-fg">{c.first_name} {c.last_name}</td>
+                  <td className="px-4 py-3 text-fg">
+                    {c.first_name} {c.last_name}
+                  </td>
                   <td className="px-4 py-3 text-fg-muted">{c.phone}</td>
-                  <td className="px-4 py-3 text-fg-muted">{c.dni}</td>
                   <td className="px-4 py-3 text-fg-muted max-w-[12rem] break-words" title={c.department || undefined}>
                     {c.department?.trim() ? c.department.trim() : '—'}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button
+                      type="button"
                       onClick={() => toggleActive(c)}
                       disabled={!canToggle}
                       className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -132,6 +187,7 @@ export default function ClientesPage() {
                   {canEdit && (
                     <td className="px-4 py-3 text-right">
                       <button
+                        type="button"
                         onClick={() => setModalClient(c)}
                         className="text-info hover:text-info text-xs font-medium"
                       >
@@ -143,7 +199,7 @@ export default function ClientesPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={(canEdit || canToggle) ? 8 : 7} className="px-4 py-6 text-center text-fg-subtle">
+                  <td colSpan={tableColCount} className="px-4 py-6 text-center text-fg-subtle">
                     Sin resultados
                   </td>
                 </tr>
