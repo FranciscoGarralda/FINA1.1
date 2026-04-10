@@ -47,6 +47,13 @@ interface SettingsMap {
 
 type ResolveMode = 'REAL_EXECUTION' | 'COMPENSATED';
 
+/** Misma geometría y transición para las tres acciones de fila (una forma de operar, sin drift de clases). */
+const PENDING_ROW_ACTION_BASE =
+  'inline-flex items-center justify-center min-w-[7.5rem] h-8 shrink-0 text-xs font-medium text-white rounded-md px-2 transition-colors duration-interaction ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-app';
+const pendingRowBtnResolver = `${PENDING_ROW_ACTION_BASE} bg-success hover:opacity-90`;
+const pendingRowBtnCompensar = `${PENDING_ROW_ACTION_BASE} bg-brand hover:bg-brand-hover`;
+const pendingRowBtnAnular = `${PENDING_ROW_ACTION_BASE} bg-error hover:opacity-90`;
+
 function pendingTypeLabel(type: string, movementType?: string) {
   if (movementType === 'PENDIENTE_INICIAL') {
     // RETIRO BD = OUT / entrega; PAGO BD = IN / cobro hacia la casa.
@@ -207,27 +214,28 @@ export default function PendientesPage() {
                       Abierto
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-center space-x-1">
-                    <button
-                      onClick={() => { setResolveTarget(item); setResolveMode('REAL_EXECUTION'); }}
-                      className="text-xs bg-success text-white px-2 py-1 rounded hover:opacity-90 transition"
-                    >
-                      Resolver
-                    </button>
-                    {item.cc_enabled && (
+                  <td className="px-3 py-2 align-top">
+                    <div className="flex flex-wrap items-center justify-center gap-1.5">
                       <button
-                        onClick={() => { setResolveTarget(item); setResolveMode('COMPENSATED'); }}
-                        className="text-xs bg-brand text-white px-2 py-1 rounded hover:bg-brand-hover transition"
+                        type="button"
+                        onClick={() => { setResolveTarget(item); setResolveMode('REAL_EXECUTION'); }}
+                        className={pendingRowBtnResolver}
                       >
-                        Compensar
+                        Resolver
                       </button>
-                    )}
-                    <button
-                      onClick={() => setCancelTarget(item)}
-                      className="text-xs bg-error text-white px-2 py-1 rounded hover:opacity-90 transition-opacity duration-interaction ease-out"
-                    >
-                      Anular op.
-                    </button>
+                      {item.cc_enabled && (
+                        <button
+                          type="button"
+                          onClick={() => { setResolveTarget(item); setResolveMode('COMPENSATED'); }}
+                          className={pendingRowBtnCompensar}
+                        >
+                          Compensar
+                        </button>
+                      )}
+                      <button type="button" onClick={() => setCancelTarget(item)} className={pendingRowBtnAnular}>
+                        Anular op.
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
