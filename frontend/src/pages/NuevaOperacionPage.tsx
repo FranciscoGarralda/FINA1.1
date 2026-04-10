@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import ClientSearchCombo, { type ClientSearchComboItem } from '../components/common/ClientSearchCombo';
 import ClientFormModal from '../components/clients/ClientFormModal';
 import CompraForm from '../components/operations/CompraForm';
 import VentaForm from '../components/operations/VentaForm';
@@ -15,18 +16,7 @@ import TransferenciaForm from '../components/operations/TransferenciaForm';
 import TraspasoDeudaCCForm from '../components/operations/TraspasoDeudaCCForm';
 import { clearOperationDraftCache } from '../utils/operationDrafts';
 
-interface Client {
-  id: string;
-  client_code: number;
-  first_name: string;
-  last_name: string;
-  active: boolean;
-  cc_enabled: boolean;
-}
-
-function clientLabel(c: Client): string {
-  return `#${c.client_code} — ${c.last_name}, ${c.first_name}${c.cc_enabled ? ' [CC]' : ''}`;
-}
+type Client = ClientSearchComboItem & { active: boolean; cc_enabled: boolean };
 
 interface CreateResult {
   id: string;
@@ -129,11 +119,6 @@ export default function NuevaOperacionPage() {
   const [date, setDate] = useState(() => getInitialDate());
   const [type, setType] = useState('');
   const [clientId, setClientId] = useState('');
-  const [clientQuery, setClientQuery] = useState('');
-  const [isClientOpen, setIsClientOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const comboRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
 
   const [clients, setClients] = useState<Client[]>([]);
@@ -327,30 +312,7 @@ export default function NuevaOperacionPage() {
     };
   }, []);
 
-  const filteredClients = clients.filter((c) => {
-    if ((type === 'TRASPASO_DEUDA_CC' || clientMustHaveCC) && !c.cc_enabled) return false;
-    if (!clientQuery) return true;
-    const q = clientQuery.toLowerCase();
-    return (
-      c.first_name.toLowerCase().includes(q) ||
-      c.last_name.toLowerCase().includes(q) ||
-      String(c.client_code).includes(q)
-    );
-  });
   const hasEligibleClients = !clientMustHaveCC || clients.some((c) => c.cc_enabled);
-
-  const selectClient = useCallback((c: Client) => {
-    setClientId(c.id);
-    setClientQuery(clientLabel(c));
-    setIsClientOpen(false);
-    setActiveIndex(-1);
-  }, []);
-
-  const clearClient = useCallback(() => {
-    setClientId('');
-    setClientQuery('');
-    setActiveIndex(-1);
-  }, []);
 
   /** Cierra el modal sin confirmar y revierte la cabecera local a lastSynced para evitar bucle 409 ↔ PATCH debounced. */
   const revertHeaderToLastSynced = useCallback(() => {
@@ -362,27 +324,8 @@ export default function NuevaOperacionPage() {
     setDate(last.date);
     setType(last.type);
     setClientId(last.clientId);
-    const found = clients.find((c) => c.id === last.clientId);
-    setClientQuery(found ? clientLabel(found) : '');
     setConfirmClearOpen(false);
-    setIsClientOpen(false);
-    setActiveIndex(-1);
-  }, [clients]);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (comboRef.current && !comboRef.current.contains(e.target as Node)) {
-        setIsClientOpen(false);
-        setActiveIndex(-1);
-        if (clientId) {
-          const found = clients.find((c) => c.id === clientId);
-          if (found) setClientQuery(clientLabel(found));
-        }
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [clientId, clients]);
+  }, []);
 
   useEffect(() => {
     // Legacy safety: never auto-resume from sessionStorage.
@@ -409,7 +352,6 @@ export default function NuevaOperacionPage() {
         setType(detail.type);
         setDate(detail.date);
         setClientId(detail.client_id || '');
-        setClientQuery(detail.client_name || '');
         lastSyncedHeaderRef.current = {
           date: detail.date,
           type: detail.type,
@@ -446,38 +388,10 @@ export default function NuevaOperacionPage() {
     setDate(getInitialDate());
     setType('');
     setClientId('');
-    setClientQuery('');
-    setIsClientOpen(false);
-    setActiveIndex(-1);
     setError('');
     setResumeNotice('');
     setConfirmClearOpen(false);
     setFormRemountKey((k) => k + 1);
-  }
-
-  function handleComboKeyDown(e: React.KeyboardEvent) {
-    if (!isClientOpen) {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        setIsClientOpen(true);
-        e.preventDefault();
-      }
-      return;
-    }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveIndex((i) => (i < filteredClients.length - 1 ? i + 1 : 0));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIndex((i) => (i > 0 ? i - 1 : filteredClients.length - 1));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (activeIndex >= 0 && activeIndex < filteredClients.length) {
-        selectClient(filteredClients[activeIndex]);
-      }
-    } else if (e.key === 'Escape') {
-      setIsClientOpen(false);
-      setActiveIndex(-1);
-    }
   }
 
   const ensureMovementHeader = useCallback(async () => {
@@ -663,7 +577,6 @@ export default function NuevaOperacionPage() {
     setType(draft.type);
     setDate(draft.date);
     setClientId(draft.client_id || '');
-    setClientQuery(draft.client_name || '');
     lastSyncedHeaderRef.current = {
       date: draft.date,
       type: draft.type,
@@ -822,8 +735,6 @@ export default function NuevaOperacionPage() {
               if (movementId && !v) return;
               setType(v);
               setClientId('');
-              setClientQuery('');
-              setIsClientOpen(false);
             }}
             className="input-field max-w-sm"
           >
@@ -854,60 +765,13 @@ export default function NuevaOperacionPage() {
             {clientMustHaveCC && !hasEligibleClients && !loadingClients && (
               <p className="text-xs text-error mb-1">No hay clientes con CC habilitada para este tipo de operación.</p>
             )}
-            {loadingClients ? (
-              <p className="text-sm text-fg-muted">Cargando clientes...</p>
-            ) : (
-              <div ref={comboRef} className="relative w-full max-w-sm">
-                <div className="flex">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    placeholder="Buscar por nombre o código..."
-                    value={clientQuery}
-                    onChange={(e) => {
-                      setClientQuery(e.target.value);
-                      setClientId('');
-                      setIsClientOpen(true);
-                      setActiveIndex(-1);
-                    }}
-                    onFocus={() => setIsClientOpen(true)}
-                    onKeyDown={handleComboKeyDown}
-                    className="input-field"
-                  />
-                  {clientId && (
-                    <button
-                      type="button"
-                      onClick={() => { clearClient(); inputRef.current?.focus(); }}
-                      className="ml-1 px-2 text-fg-subtle hover:text-fg-muted text-lg"
-                      title="Limpiar"
-                    >&times;</button>
-                  )}
-                </div>
-                {isClientOpen && (
-                  <div className="absolute z-50 mt-1 w-full bg-elevated border border-subtle rounded shadow-lg max-h-64 overflow-auto">
-                    {filteredClients.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-fg-subtle">Sin resultados</div>
-                    ) : (
-                      filteredClients.map((c, idx) => (
-                        <div
-                          key={c.id}
-                          onMouseDown={(e) => { e.preventDefault(); selectClient(c); }}
-                          className={`px-3 py-2 text-sm cursor-pointer transition-colors ${
-                            idx === activeIndex
-                              ? 'bg-brand text-white'
-                              : c.id === clientId
-                                ? 'bg-brand-soft text-brand'
-                                : 'text-fg hover:bg-surface'
-                          }`}
-                        >
-                          #{c.client_code} — {c.last_name}, {c.first_name}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+            <ClientSearchCombo
+              clients={clients}
+              value={clientId}
+              onChange={setClientId}
+              loading={loadingClients}
+              listFilter={(c) => !((type === 'TRASPASO_DEUDA_CC' || clientMustHaveCC) && !c.cc_enabled)}
+            />
 
             {isClientModalOpen && (
               <ClientFormModal
@@ -918,10 +782,7 @@ export default function NuevaOperacionPage() {
                   const freshList = await fetchClients();
                   if (newId) {
                     const created = freshList.find((c: Client) => c.id === newId);
-                    if (created) {
-                      setClientId(created.id);
-                      setClientQuery(clientLabel(created));
-                    }
+                    if (created) setClientId(created.id);
                   }
                 }}
               />

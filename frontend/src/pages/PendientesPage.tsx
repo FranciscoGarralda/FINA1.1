@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../api/client';
+import ClientSearchCombo from '../components/common/ClientSearchCombo';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
 import FormActionsRow from '../components/common/FormActionsRow';
 import MoneyInput from '../components/common/MoneyInput';
@@ -47,9 +48,10 @@ interface SettingsMap {
 
 type ResolveMode = 'REAL_EXECUTION' | 'COMPENSATED';
 
-/** Misma geometría y transición para las tres acciones de fila (una forma de operar, sin drift de clases). */
+/** Misma geometría y transición para las tres acciones de fila (una forma de operar, sin drift de clases).
+ *  Móvil: ancho completo y apilado vertical en el contenedor (evita wrap desparejo). Desktop sm+: fila con min-width. */
 const PENDING_ROW_ACTION_BASE =
-  'inline-flex items-center justify-center min-w-[7.5rem] h-8 shrink-0 text-xs font-medium text-white rounded-md px-2 transition-colors duration-interaction ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-app';
+  'inline-flex items-center justify-center w-full min-w-0 h-8 shrink-0 text-xs font-medium text-white rounded-md px-2 transition-colors duration-interaction ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-app sm:w-auto sm:min-w-[7.5rem]';
 const pendingRowBtnResolver = `${PENDING_ROW_ACTION_BASE} bg-success hover:opacity-90`;
 const pendingRowBtnCompensar = `${PENDING_ROW_ACTION_BASE} bg-brand hover:bg-brand-hover`;
 const pendingRowBtnAnular = `${PENDING_ROW_ACTION_BASE} bg-error hover:opacity-90`;
@@ -74,9 +76,11 @@ function pendingTypeLabel(type: string, movementType?: string) {
 
 interface ClientOption {
   id: string;
+  client_code: number;
   first_name: string;
   last_name: string;
   active: boolean;
+  cc_enabled: boolean;
 }
 
 interface AccountCurrencyRow {
@@ -182,7 +186,9 @@ export default function PendientesPage() {
                   Fecha {sortField === 'created_at' ? (sortAsc ? '▲' : '▼') : ''}
                 </th>
                 <th className="text-left px-3 py-2 font-medium text-fg-muted">Estado</th>
-                <th className="text-center px-3 py-2 font-medium text-fg-muted">Acciones</th>
+                <th className="text-center px-3 py-2 font-medium text-fg-muted w-[1%] min-w-0 sm:min-w-[11rem]">
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -214,8 +220,8 @@ export default function PendientesPage() {
                       Abierto
                     </span>
                   </td>
-                  <td className="px-3 py-2 align-top">
-                    <div className="flex flex-wrap items-center justify-center gap-1.5">
+                  <td className="px-3 py-2 align-top w-[1%] min-w-0 sm:min-w-[11rem]">
+                    <div className="flex min-w-0 w-full flex-col items-stretch gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
                       <button
                         type="button"
                         onClick={() => { setResolveTarget(item); setResolveMode('REAL_EXECUTION'); }}
@@ -274,6 +280,7 @@ export default function PendientesPage() {
 function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const accounts = useActiveAccounts();
   const [clients, setClients] = useState<ClientOption[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(true);
   const [clientId, setClientId] = useState('');
   const [pendingKind, setPendingKind] = useState<'RETIRO' | 'PAGO'>('RETIRO');
   const [accountId, setAccountId] = useState('');
@@ -293,10 +300,12 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
   }, []);
 
   useEffect(() => {
+    setClientsLoading(true);
     api
       .get<ClientOption[]>('/clients')
       .then((list) => setClients(list.filter((c) => c.active)))
-      .catch(() => setLoadErr('No se pudieron cargar clientes.'));
+      .catch(() => setLoadErr('No se pudieron cargar clientes.'))
+      .finally(() => setClientsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -362,20 +371,17 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
         {loadErr && <p className="text-amber-700 text-sm mb-2">{loadErr}</p>}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-fg mb-0.5">Cliente</label>
-            <select
+            <label className="block text-sm font-medium text-fg mb-0.5" htmlFor="opening-pending-client">
+              Cliente
+            </label>
+            <ClientSearchCombo
+              inputId="opening-pending-client"
+              className="relative w-full"
+              clients={clients}
               value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
-              required
-            >
-              <option value="">Elegir…</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.last_name}, {c.first_name}
-                </option>
-              ))}
-            </select>
+              onChange={setClientId}
+              loading={clientsLoading}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-fg mb-0.5">Tipo</label>
@@ -384,12 +390,8 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
               onChange={(e) => setPendingKind(e.target.value as 'RETIRO' | 'PAGO')}
               className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
             >
-              <option value="RETIRO">
-                Entrega / pago pendiente — al concretar sale plata de la cuenta (OUT)
-              </option>
-              <option value="PAGO">
-                Cobro pendiente — al concretar ingresa plata a la cuenta (IN)
-              </option>
+              <option value="RETIRO">Salida de caja (OUT)</option>
+              <option value="PAGO">Entrada a caja (IN)</option>
             </select>
             <p className="text-xs text-fg-muted mt-1 leading-snug">
               {pendingKind === 'RETIRO'
