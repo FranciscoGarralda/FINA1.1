@@ -42,28 +42,20 @@ const CARD_TITLES: Record<ReportMetricKey, string> = {
   resultado: 'Resultado neto',
 };
 
-const CARD_STYLE: Record<ReportMetricKey, { border: string; bg: string; title: string; accent: string }> = {
+const CARD_STYLE: Record<ReportMetricKey, { title: string; accent: string }> = {
   utilidad: {
-    border: 'border-subtle',
-    bg: 'bg-brand-soft/80',
     title: 'text-fg',
     accent: 'text-brand',
   },
   profit: {
-    border: 'border-subtle',
-    bg: 'bg-brand-soft/80',
     title: 'text-fg',
     accent: 'text-brand',
   },
   gastos: {
-    border: 'border-error/40',
-    bg: 'bg-error-soft/80',
     title: 'text-fg',
     accent: 'text-error',
   },
   resultado: {
-    border: 'border-success/30',
-    bg: 'bg-success-soft/80',
     title: 'text-fg',
     accent: 'text-success',
   },
@@ -162,7 +154,7 @@ export default function InicioPage() {
         key={key}
         type="button"
         onClick={() => openDetail(key)}
-        className={`text-left rounded-xl border-2 ${st.border} ${st.bg} p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-app flex flex-col min-h-[140px]`}
+        className="card-surface card-surface-interactive text-left flex flex-col min-h-[140px] shadow-sm hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-app"
       >
         <h3 className={`text-sm font-semibold ${st.title} mb-1`}>{CARD_TITLES[key]}</h3>
         <p className="text-[11px] text-fg-muted mb-2 leading-snug">
@@ -294,7 +286,7 @@ export default function InicioPage() {
                       type="date"
                       value={detailFrom}
                       onChange={(e) => setDetailFrom(e.target.value)}
-                      className="border border-subtle rounded px-2 py-1.5 text-sm"
+                      className="input-field w-auto"
                     />
                   </div>
                   <div>
@@ -303,13 +295,13 @@ export default function InicioPage() {
                       type="date"
                       value={detailTo}
                       onChange={(e) => setDetailTo(e.target.value)}
-                      className="border border-subtle rounded px-2 py-1.5 text-sm"
+                      className="input-field w-auto"
                     />
                   </div>
                   <button
                     type="button"
                     onClick={() => void loadRangeReport(detailFrom, detailTo)}
-                    className="px-3 py-1.5 text-sm bg-brand text-white rounded-control hover:bg-brand-hover min-h-[44px] sm:min-h-0 transition-colors duration-interaction ease-out"
+                    className="btn-primary"
                   >
                     Actualizar período
                   </button>
@@ -371,13 +363,13 @@ export default function InicioPage() {
             type="date"
             value={refDate}
             onChange={(e) => setRefDate(e.target.value)}
-            className="border border-subtle rounded px-2 py-1.5 text-sm"
+            className="input-field w-auto"
           />
         </div>
         <button
           type="button"
           onClick={() => void loadSummary()}
-          className="px-3 py-1.5 text-sm bg-brand text-white rounded hover:bg-brand-hover min-h-[44px] sm:min-h-0"
+          className="btn-primary"
         >
           Actualizar
         </button>

@@ -773,7 +773,7 @@ export default function NuevaOperacionPage() {
                     type="button"
                     onClick={() => handleResumeDraft(d)}
                     disabled={processingDraftId === d.id}
-                    className="text-sm bg-brand text-white rounded hover:bg-brand-hover disabled:opacity-50 transition px-4"
+                    className="btn-primary disabled:opacity-50"
                   >
                     Reanudar
                   </button>
@@ -781,7 +781,7 @@ export default function NuevaOperacionPage() {
                     type="button"
                     onClick={() => handleDiscardListedDraft(d.id)}
                     disabled={processingDraftId === d.id}
-                    className="text-sm text-error border border-error/30 rounded hover:bg-error-soft disabled:opacity-50 transition px-4"
+                    className="btn-ghost text-error border-error/30 disabled:opacity-50"
                   >
                     {processingDraftId === d.id ? 'Eliminando...' : 'Eliminar'}
                   </button>
@@ -806,7 +806,7 @@ export default function NuevaOperacionPage() {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="border border-subtle rounded px-3 py-2 text-sm min-w-0 max-w-full"
+              className="input-field w-auto"
             />
             {dayName && <span className="text-sm text-fg-muted shrink-0">{dayName}</span>}
           </div>
@@ -825,7 +825,7 @@ export default function NuevaOperacionPage() {
               setClientQuery('');
               setIsClientOpen(false);
             }}
-            className="w-full max-w-sm border border-subtle rounded px-3 py-2 text-sm"
+            className="input-field max-w-sm"
           >
             {!movementId && <option value="">— Seleccionar —</option>}
             {MOVEMENT_TYPES.map((t) => (
@@ -872,7 +872,7 @@ export default function NuevaOperacionPage() {
                     }}
                     onFocus={() => setIsClientOpen(true)}
                     onKeyDown={handleComboKeyDown}
-                    className="w-full border border-subtle rounded px-3 py-2 text-sm"
+                    className="input-field"
                   />
                   {clientId && (
                     <button
@@ -953,14 +953,14 @@ export default function NuevaOperacionPage() {
             <div className="form-actions sm:justify-end">
               <button
                 type="button"
-                className="btn-touch border border-subtle rounded-md hover:bg-surface"
+                className="btn-ghost"
                 onClick={revertHeaderToLastSynced}
               >
                 Volver
               </button>
               <button
                 type="button"
-                className="btn-touch bg-brand text-white rounded-md hover:bg-brand-hover"
+                className="btn-primary"
                 onClick={() => patchMovementHeader(true)}
               >
                 Descartar datos y aplicar
