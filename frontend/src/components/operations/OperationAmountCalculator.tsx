@@ -44,22 +44,22 @@ export default function OperationAmountCalculator({ onApply }: Props) {
   }, [showAppliedFeedback]);
 
   return (
-    <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+    <div className="mt-2 rounded-md border border-subtle bg-surface p-3">
       <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2 min-w-0">
-        <p className="text-xs font-semibold text-gray-600">Calculadora rápida</p>
-        <span className="text-[11px] text-gray-500 shrink-0">Solo aplica al campo Monto</span>
+        <p className="text-xs font-semibold text-fg-muted">Calculadora rápida</p>
+        <span className="text-[11px] text-fg-muted shrink-0">Solo aplica al campo Monto</span>
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_160px_minmax(0,1fr)_minmax(0,1fr)_170px]">
         <MoneyInput label="Operando A" value={leftOperand} onValueChange={setLeftOperand} fractionDigits={8} />
 
         <div>
-          <label htmlFor="amount-calc-operation" className="mb-0.5 block text-xs text-gray-500">Operación</label>
+          <label htmlFor="amount-calc-operation" className="mb-0.5 block text-xs text-fg-muted">Operación</label>
           <select
             id="amount-calc-operation"
             value={mode}
             onChange={(e) => setMode(e.target.value as CalcMode)}
-            className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+            className="w-full rounded border border-subtle px-2 py-1.5 text-sm"
             aria-label="Seleccionar operación"
           >
             <option value="MULTIPLY">Multiplicar</option>
@@ -71,9 +71,9 @@ export default function OperationAmountCalculator({ onApply }: Props) {
         <MoneyInput label="Operando B" value={rightOperand} onValueChange={setRightOperand} fractionDigits={8} />
 
         <div>
-          <label className="mb-0.5 block text-xs text-gray-500">Resultado</label>
+          <label className="mb-0.5 block text-xs text-fg-muted">Resultado</label>
           <div className={`min-h-[36px] rounded border px-2 py-1.5 text-sm ${
-            calculation.valid ? 'border-gray-200 bg-white text-gray-800' : 'border-red-200 bg-red-50 text-red-700'
+            calculation.valid ? 'border-subtle bg-elevated text-fg' : 'border-error/40 bg-error-soft text-error'
           }`}>
             {calculation.valid ? formatMoneyAR(calculation.value, 8) : calculation.reason}
           </div>
@@ -87,7 +87,7 @@ export default function OperationAmountCalculator({ onApply }: Props) {
               onApply(numberToNormalizedMoney(calculation.value, 2));
               setShowAppliedFeedback(true);
             }}
-            className="w-full rounded border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded border border-subtle bg-brand-soft px-3 py-1.5 text-sm text-brand transition hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-50"
             title="Aplica el resultado al campo Monto"
           >
             Aplicar a monto
@@ -96,7 +96,7 @@ export default function OperationAmountCalculator({ onApply }: Props) {
       </div>
 
       <div className="mt-2 min-h-[18px]">
-        {showAppliedFeedback && <p className="text-xs text-green-700">Monto actualizado.</p>}
+        {showAppliedFeedback && <p className="text-xs text-success">Monto actualizado.</p>}
       </div>
     </div>
   );

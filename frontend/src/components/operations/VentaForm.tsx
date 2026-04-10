@@ -365,8 +365,8 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
   if (success) {
     return (
       <div className="border-t pt-4">
-        <p className="text-green-700 font-medium mb-4">Venta registrada correctamente.</p>
-        <button type="button" onClick={onDone} className="btn-touch bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+        <p className="text-success font-medium mb-4">Venta registrada correctamente.</p>
+        <button type="button" onClick={onDone} className="btn-touch bg-success text-white rounded-md hover:opacity-90 transition">
           Ver movimiento
         </button>
       </div>
@@ -375,30 +375,30 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
 
   return (
     <div className="border-t pt-4 space-y-6">
-      {error && <p className="text-red-600 text-sm">{error}</p>}
-      {draftMessage && <p className="text-blue-600 text-sm">{draftMessage}</p>}
-      {draftLoading && <p className="text-gray-500 text-sm">Cargando borrador...</p>}
+      {error && <p className="text-error text-sm">{error}</p>}
+      {draftMessage && <p className="text-info text-sm">{draftMessage}</p>}
+      {draftLoading && <p className="text-fg-muted text-sm">Cargando borrador...</p>}
 
       {/* SALIDA */}
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Salida (SALE)</legend>
+        <legend className="text-sm font-semibold text-fg mb-2">Salida (SALE)</legend>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Cuenta</label>
-            <select value={outAccountId} onChange={(e) => { setOutAccountId(e.target.value); setOutCurrencyId(''); }} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Cuenta</label>
+            <select value={outAccountId} onChange={(e) => { setOutAccountId(e.target.value); setOutCurrencyId(''); }} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Divisa</label>
-            <select value={outCurrencyId} onChange={(e) => setOutCurrencyId(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Divisa</label>
+            <select value={outCurrencyId} onChange={(e) => setOutCurrencyId(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {outAccountCurrencies.map((ac) => <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Formato</label>
+            <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
             <select
               value={outFormat}
               onChange={(e) => {
@@ -406,7 +406,7 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
                 setOutFormat(v);
                 if (v === 'DIGITAL') setOutPending(false);
               }}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
               disabled={!outCurrencyId || outAllowedFormats.length === 0}
             >
               {outAllowedFormats.map((f) => (
@@ -414,7 +414,7 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
               ))}
             </select>
             {outCurrencyId && outAllowedFormats.length === 0 && (
-              <p className="text-xs text-red-600 mt-1">Esta divisa no tiene formato habilitado en esta cuenta.</p>
+              <p className="text-xs text-error mt-1">Esta divisa no tiene formato habilitado en esta cuenta.</p>
             )}
           </div>
           <div>
@@ -423,72 +423,72 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
         </div>
         <label className="flex items-center gap-2 mt-2 text-sm">
           <input type="checkbox" checked={outPending} onChange={(e) => setOutPending(e.target.checked)} disabled={!canOutPending()} />
-          <span className={canOutPending() ? 'text-gray-700' : 'text-gray-400'}>Pendiente de entrega</span>
+          <span className={canOutPending() ? 'text-fg' : 'text-fg-subtle'}>Pendiente de entrega</span>
         </label>
       </fieldset>
 
       {/* COTIZACIÓN */}
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Cotización</legend>
+        <legend className="text-sm font-semibold text-fg mb-2">Cotización</legend>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <MoneyInput label="Cotización" value={quoteRate} onValueChange={setQuoteRate} fractionDigits={8} />
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Divisa cotización</label>
-            <select value={quoteCurrencyId} onChange={(e) => setQuoteCurrencyId(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Divisa cotización</label>
+            <select value={quoteCurrencyId} onChange={(e) => setQuoteCurrencyId(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {currencies.filter((c) => c.id !== outCurrencyId).map((c) => <option key={c.id} value={c.id}>{c.code}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Modo de cotización</label>
-            <select value={quoteMode} onChange={(e) => setQuoteMode(normalizeQuoteMode(e.target.value))} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Modo de cotización</label>
+            <select value={quoteMode} onChange={(e) => setQuoteMode(normalizeQuoteMode(e.target.value))} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="MULTIPLY">Multiplicar</option>
               <option value="DIVIDE">Dividir</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Equivalente</label>
-            <p className="text-sm font-mono py-1.5 font-medium text-gray-800">
+            <label className="block text-xs text-fg-muted mb-0.5">Equivalente</label>
+            <p className="text-sm font-mono py-1.5 font-medium text-fg">
               {equivalent > 0 ? `${quoteCurrencyCode} ${formatMoneyAR(equivalent)}` : '—'}
             </p>
           </div>
         </div>
-        {quoteInterpretation && <p className="mt-2 text-xs text-gray-500">{quoteInterpretation}</p>}
+        {quoteInterpretation && <p className="mt-2 text-xs text-fg-muted">{quoteInterpretation}</p>}
       </fieldset>
 
       {/* ENTRADA */}
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Entrada (ENTRA)</legend>
+        <legend className="text-sm font-semibold text-fg mb-2">Entrada (ENTRA)</legend>
         {ins.map((inLine, idx) => (
-          <div key={inLine.key} className="border border-gray-200 rounded-lg p-3 mb-3">
+          <div key={inLine.key} className="border border-subtle rounded-lg p-3 mb-3">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2 min-w-0">
-              <span className="text-xs text-gray-400">Línea {idx + 1}</span>
+              <span className="text-xs text-fg-subtle">Línea {idx + 1}</span>
               {ins.length > 1 && (
-                <button onClick={() => removeInLine(inLine.key)} className="text-xs text-red-500 hover:text-red-700">Quitar</button>
+                <button onClick={() => removeInLine(inLine.key)} className="text-xs text-error hover:text-error">Quitar</button>
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-0.5">Cuenta</label>
+                <label className="block text-xs text-fg-muted mb-0.5">Cuenta</label>
                 <select
                   value={inLine.accountId}
                   onChange={(e) => updateIn(inLine.key, { accountId: e.target.value })}
-                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+                  className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
                 >
                   <option value="">—</option>
                   {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-0.5">Divisa</label>
-                <input type="text" readOnly value={quoteCurrencyCode || '—'} className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm bg-gray-50 text-gray-500" />
+                <label className="block text-xs text-fg-muted mb-0.5">Divisa</label>
+                <input type="text" readOnly value={quoteCurrencyCode || '—'} className="w-full border border-subtle rounded px-2 py-1.5 text-sm bg-surface text-fg-muted" />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-0.5">Formato</label>
+                <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
                 <select
                   value={inLine.format}
                   onChange={(e) => updateIn(inLine.key, { format: e.target.value, pendingCash: e.target.value === 'DIGITAL' ? false : inLine.pendingCash })}
-                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+                  className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
                   disabled={!quoteCurrencyId || !inLine.accountId || allowedFormatsFromList(inAccountCurrencies[inLine.key], quoteCurrencyId).length === 0}
                 >
                   {allowedFormatsFromList(inAccountCurrencies[inLine.key], quoteCurrencyId).map((f) => (
@@ -514,17 +514,17 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
                 onChange={(e) => updateIn(inLine.key, { pendingCash: e.target.checked })}
                 disabled={!canInPending(inLine)}
               />
-              <span className={canInPending(inLine) ? 'text-gray-700' : 'text-gray-400'}>Pendiente de retiro</span>
+              <span className={canInPending(inLine) ? 'text-fg' : 'text-fg-subtle'}>Pendiente de retiro</span>
             </label>
             {inLine.accountId && quoteCurrencyId && !validateInCurrencyOnAccount(inLine.key) && (
-              <p className="text-xs text-red-500 mt-1">La divisa/formato no está habilitada para esta cuenta.</p>
+              <p className="text-xs text-error mt-1">La divisa/formato no está habilitada para esta cuenta.</p>
             )}
           </div>
         ))}
         <button
           type="button"
           onClick={addInLine}
-          className="inline-flex min-h-[44px] items-center rounded-md px-2 text-sm text-blue-600 hover:bg-blue-50 hover:text-blue-800"
+          className="inline-flex min-h-[44px] items-center rounded-md px-2 text-sm text-info hover:bg-brand-soft hover:text-info"
         >
           + Agregar línea de entrada
         </button>
@@ -532,20 +532,20 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
 
       {/* CUADRE */}
       {equivalent > 0 && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
+        <div className="bg-surface border border-subtle rounded-lg p-3 text-sm">
           <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-            <span className="shrink-0 text-gray-600">Equivalente:</span>
+            <span className="shrink-0 text-fg-muted">Equivalente:</span>
             <span className="min-w-0 break-words font-mono font-medium text-right">{quoteCurrencyCode} {formatMoneyAR(equivalent)}</span>
           </div>
           <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-            <span className="shrink-0 text-gray-600">Total entradas:</span>
+            <span className="shrink-0 text-fg-muted">Total entradas:</span>
             <span className="min-w-0 break-words font-mono font-medium text-right">{quoteCurrencyCode} {formatMoneyAR(inSum)}</span>
           </div>
           {cuadreMsg && (
-            <p className={`mt-1 font-medium ${diff > 0 ? 'text-orange-600' : 'text-red-600'}`}>{cuadreMsg}</p>
+            <p className={`mt-1 font-medium ${diff > 0 ? 'text-orange-600' : 'text-error'}`}>{cuadreMsg}</p>
           )}
           {!cuadreMsg && equivalent > 0 && inSum > 0 && (
-            <p className="mt-1 text-green-600 font-medium">Cuadre correcto</p>
+            <p className="mt-1 text-success font-medium">Cuadre correcto</p>
           )}
         </div>
       )}

@@ -56,8 +56,8 @@ export default function MovimientoDetallePage() {
     loadDetail();
   }, [loadDetail]);
 
-  if (loading) return <p className="text-gray-500 text-sm p-4">Cargando...</p>;
-  if (error || !detail) return <p className="text-red-600 text-sm p-4">{error || 'No encontrado.'}</p>;
+  if (loading) return <p className="text-fg-muted text-sm p-4">Cargando...</p>;
+  if (error || !detail) return <p className="text-error text-sm p-4">{error || 'No encontrado.'}</p>;
   const canStartCorrection = can('operations.create_header', ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR']);
   const canCancelOperation = can('pending.cancel', ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR', 'COURIER']);
 
@@ -77,26 +77,26 @@ export default function MovimientoDetallePage() {
   }
 
   function pendingColor(line: MovementLine) {
-    if (!line.is_pending) return 'text-gray-500';
-    if (line.pending_status === 'RESUELTO') return 'text-green-600';
-    if (line.pending_status === 'CANCELADO') return 'text-red-600';
-    return 'text-yellow-600';
+    if (!line.is_pending) return 'text-fg-muted';
+    if (line.pending_status === 'RESUELTO') return 'text-success';
+    if (line.pending_status === 'CANCELADO') return 'text-error';
+    return 'text-warning';
   }
 
   function renderLinesTable(lines: MovementLine[], title: string) {
     if (lines.length === 0) return null;
     return (
       <div className="mb-6">
-        <h4 className="text-sm font-medium text-gray-600 mb-2">{title}</h4>
-        <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
+        <h4 className="text-sm font-medium text-fg-muted mb-2">{title}</h4>
+        <div className="bg-elevated border border-subtle rounded-lg overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="text-left px-3 py-2 font-medium text-gray-600">Cuenta</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600">Divisa</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600">Formato</th>
-                <th className="text-right px-3 py-2 font-medium text-gray-600">Monto</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600">Pendiente</th>
+              <tr className="border-b bg-surface">
+                <th className="text-left px-3 py-2 font-medium text-fg-muted">Cuenta</th>
+                <th className="text-left px-3 py-2 font-medium text-fg-muted">Divisa</th>
+                <th className="text-left px-3 py-2 font-medium text-fg-muted">Formato</th>
+                <th className="text-right px-3 py-2 font-medium text-fg-muted">Monto</th>
+                <th className="text-left px-3 py-2 font-medium text-fg-muted">Pendiente</th>
               </tr>
             </thead>
             <tbody>
@@ -172,16 +172,16 @@ export default function MovimientoDetallePage() {
 
   return (
     <div>
-      <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
+      <div className="bg-elevated border border-subtle rounded-lg p-5 mb-6">
         <div className="mb-3 min-w-0 space-y-3">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <h2 className="text-lg font-semibold text-gray-800 min-w-0 break-words">
+            <h2 className="text-lg font-semibold text-fg min-w-0 break-words">
               Operación #{detail.operation_number}
             </h2>
             <span className={`text-xs font-medium px-2 py-0.5 rounded ${
               detail.status === 'CANCELADA'
-                ? 'bg-red-50 text-red-700'
-                : 'bg-green-50 text-green-700'
+                ? 'bg-error-soft text-error'
+                : 'bg-success-soft text-success'
             }`}>
               {displayStatus(detail.status)}
             </span>
@@ -192,7 +192,7 @@ export default function MovimientoDetallePage() {
                 <button
                   type="button"
                   onClick={() => setPendingAction('modify')}
-                  className="w-full min-h-[2rem] shrink-0 px-2 py-1 text-center text-xs text-blue-700 border border-blue-300 rounded hover:bg-blue-50 transition sm:flex-1 sm:min-w-0"
+                  className="w-full min-h-[2rem] shrink-0 px-2 py-1 text-center text-xs text-brand border border-subtle rounded hover:bg-brand-soft transition sm:flex-1 sm:min-w-0"
                 >
                   Modificar
                 </button>
@@ -201,7 +201,7 @@ export default function MovimientoDetallePage() {
                 <button
                   type="button"
                   onClick={() => setPendingAction('cancel')}
-                  className="w-full min-h-[2rem] shrink-0 px-2 py-1 text-center text-xs text-red-700 border border-red-300 rounded hover:bg-red-50 transition sm:flex-1 sm:min-w-0"
+                  className="w-full min-h-[2rem] shrink-0 px-2 py-1 text-center text-xs text-error border border-error/30 rounded hover:bg-error-soft transition sm:flex-1 sm:min-w-0"
                 >
                   Anular
                 </button>
@@ -223,29 +223,29 @@ export default function MovimientoDetallePage() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-2 gap-x-4 text-sm">
           <div>
-            <span className="text-gray-500">Tipo:</span>{' '}
+            <span className="text-fg-muted">Tipo:</span>{' '}
             <span className="font-medium">{movementTypeLabel(detail.type)}</span>
           </div>
           <div>
-            <span className="text-gray-500">Fecha:</span>{' '}
+            <span className="text-fg-muted">Fecha:</span>{' '}
             <span className="font-medium">{detail.date}</span>
           </div>
           <div>
-            <span className="text-gray-500">Día:</span>{' '}
+            <span className="text-fg-muted">Día:</span>{' '}
             <span className="font-medium">{detail.day_name}</span>
           </div>
           <div>
-            <span className="text-gray-500">Hora:</span>{' '}
+            <span className="text-fg-muted">Hora:</span>{' '}
             <span className="font-medium">{createdTime}</span>
           </div>
           <div>
-            <span className="text-gray-500">Cliente:</span>{' '}
+            <span className="text-fg-muted">Cliente:</span>{' '}
             <span className="font-medium">{detail.client_name ?? '(Interno)'}</span>
           </div>
           {detail.note && (
             <div className="col-span-2 sm:col-span-3">
-              <span className="text-gray-500">Nota:</span>{' '}
-              <span className="text-gray-700">{detail.note}</span>
+              <span className="text-fg-muted">Nota:</span>{' '}
+              <span className="text-fg">{detail.note}</span>
             </div>
           )}
         </div>
@@ -255,21 +255,21 @@ export default function MovimientoDetallePage() {
       {renderLinesTable(outLines, 'Salidas (OUT)')}
 
       {detail.lines.length === 0 && (
-        <p className="text-gray-500 text-sm">Este movimiento no tiene líneas registradas.</p>
+        <p className="text-fg-muted text-sm">Este movimiento no tiene líneas registradas.</p>
       )}
       {pendingAction && (
         <div className="modal-backdrop">
           <div className="modal-panel max-w-md p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
-            <h3 className="mb-2 text-lg font-semibold text-gray-800">{actionTitle(pendingAction)}</h3>
-            <p className="mb-3 text-sm text-gray-600">{actionDescription(pendingAction)}</p>
-            <p className="mb-4 text-sm text-gray-500">Operación #{detail.operation_number}</p>
+            <h3 className="mb-2 text-lg font-semibold text-fg">{actionTitle(pendingAction)}</h3>
+            <p className="mb-3 text-sm text-fg-muted">{actionDescription(pendingAction)}</p>
+            <p className="mb-4 text-sm text-fg-muted">Operación #{detail.operation_number}</p>
             <FormActionsRow
               variant="modal"
               cancel={
                 <button
                   type="button"
                   onClick={() => setPendingAction(null)}
-                  className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="btn-touch text-fg-muted border border-subtle rounded-md hover:bg-surface"
                 >
                   Volver
                 </button>
@@ -279,7 +279,7 @@ export default function MovimientoDetallePage() {
                   type="button"
                   onClick={executePendingAction}
                   className={`btn-touch text-white rounded-md ${
-                    pendingAction === 'cancel' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
+                    pendingAction === 'cancel' ? 'bg-error hover:opacity-90' : 'bg-brand hover:bg-brand-hover'
                   }`}
                 >
                   Confirmar

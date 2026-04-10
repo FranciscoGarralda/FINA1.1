@@ -280,8 +280,8 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
   if (success) {
     return (
       <div className="border-t pt-4">
-        <p className="text-green-700 font-medium mb-4">Arbitraje registrado correctamente.</p>
-        <button onClick={onDone} className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition">
+        <p className="text-success font-medium mb-4">Arbitraje registrado correctamente.</p>
+        <button onClick={onDone} className="px-4 py-2 bg-success text-white text-sm rounded hover:opacity-90 transition">
           Ver movimiento
         </button>
       </div>
@@ -290,30 +290,30 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
 
   return (
     <div className="border-t pt-4 space-y-6">
-      {error && <p className="text-red-600 text-sm">{error}</p>}
-      {draftMessage && <p className="text-blue-600 text-sm">{draftMessage}</p>}
-      {draftLoading && <p className="text-gray-500 text-sm">Cargando borrador...</p>}
+      {error && <p className="text-error text-sm">{error}</p>}
+      {draftMessage && <p className="text-info text-sm">{draftMessage}</p>}
+      {draftLoading && <p className="text-fg-muted text-sm">Cargando borrador...</p>}
 
       {/* COSTO (OUT) */}
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Costo (SALE)</legend>
+        <legend className="text-sm font-semibold text-fg mb-2">Costo (SALE)</legend>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Cuenta</label>
-            <select value={costoAccountId} onChange={(e) => { setCostoAccountId(e.target.value); setCostoCurrencyId(''); }} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Cuenta</label>
+            <select value={costoAccountId} onChange={(e) => { setCostoAccountId(e.target.value); setCostoCurrencyId(''); }} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Divisa</label>
-            <select value={costoCurrencyId} onChange={(e) => setCostoCurrencyId(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Divisa</label>
+            <select value={costoCurrencyId} onChange={(e) => setCostoCurrencyId(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {costoAC.map((ac) => <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Formato</label>
+            <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
             <select
               value={costoFormat}
               onChange={(e) => {
@@ -321,7 +321,7 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
                 setCostoFormat(v);
                 if (v === 'DIGITAL') setCostoPending(false);
               }}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
               disabled={!costoCurrencyId || allowedFormatsFromList(costoAC, costoCurrencyId).length === 0}
             >
               {allowedFormatsFromList(costoAC, costoCurrencyId).map((f) => (
@@ -329,7 +329,7 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
               ))}
             </select>
             {costoCurrencyId && allowedFormatsFromList(costoAC, costoCurrencyId).length === 0 && (
-              <p className="text-xs text-red-600 mt-1">Sin formato habilitado para esta divisa en la cuenta.</p>
+              <p className="text-xs text-error mt-1">Sin formato habilitado para esta divisa en la cuenta.</p>
             )}
           </div>
           <MoneyInput label="Monto" value={costoAmount} onValueChange={setCostoAmount} />
@@ -337,30 +337,30 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
         <OperationAmountCalculator onApply={setCostoAmount} />
         <label className="flex items-center gap-2 mt-2 text-sm">
           <input type="checkbox" checked={costoPending} onChange={(e) => setCostoPending(e.target.checked)} disabled={costoFormat !== 'CASH'} />
-          <span className={costoFormat === 'CASH' ? 'text-gray-700' : 'text-gray-400'}>Pendiente de pago</span>
+          <span className={costoFormat === 'CASH' ? 'text-fg' : 'text-fg-subtle'}>Pendiente de pago</span>
         </label>
       </fieldset>
 
       {/* COBRADO (IN) */}
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Cobrado (ENTRA)</legend>
+        <legend className="text-sm font-semibold text-fg mb-2">Cobrado (ENTRA)</legend>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Cuenta</label>
-            <select value={cobradoAccountId} onChange={(e) => { setCobradoAccountId(e.target.value); setCobradoCurrencyId(''); }} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Cuenta</label>
+            <select value={cobradoAccountId} onChange={(e) => { setCobradoAccountId(e.target.value); setCobradoCurrencyId(''); }} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Divisa</label>
-            <select value={cobradoCurrencyId} onChange={(e) => setCobradoCurrencyId(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Divisa</label>
+            <select value={cobradoCurrencyId} onChange={(e) => setCobradoCurrencyId(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {cobradoAC.map((ac) => <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Formato</label>
+            <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
             <select
               value={cobradoFormat}
               onChange={(e) => {
@@ -368,7 +368,7 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
                 setCobradoFormat(v);
                 if (v === 'DIGITAL') setCobradoPending(false);
               }}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
               disabled={!cobradoCurrencyId || allowedFormatsFromList(cobradoAC, cobradoCurrencyId).length === 0}
             >
               {allowedFormatsFromList(cobradoAC, cobradoCurrencyId).map((f) => (
@@ -376,7 +376,7 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
               ))}
             </select>
             {cobradoCurrencyId && allowedFormatsFromList(cobradoAC, cobradoCurrencyId).length === 0 && (
-              <p className="text-xs text-red-600 mt-1">Sin formato habilitado para esta divisa en la cuenta.</p>
+              <p className="text-xs text-error mt-1">Sin formato habilitado para esta divisa en la cuenta.</p>
             )}
           </div>
           <MoneyInput label="Monto" value={cobradoAmount} onValueChange={setCobradoAmount} />
@@ -384,18 +384,18 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
         <OperationAmountCalculator onApply={setCobradoAmount} />
         <label className="flex items-center gap-2 mt-2 text-sm">
           <input type="checkbox" checked={cobradoPending} onChange={(e) => setCobradoPending(e.target.checked)} disabled={cobradoFormat !== 'CASH'} />
-          <span className={cobradoFormat === 'CASH' ? 'text-gray-700' : 'text-gray-400'}>Pendiente de retiro</span>
+          <span className={cobradoFormat === 'CASH' ? 'text-fg' : 'text-fg-subtle'}>Pendiente de retiro</span>
         </label>
       </fieldset>
 
       {/* PROFIT */}
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Ganancia</legend>
+        <legend className="text-sm font-semibold text-fg mb-2">Ganancia</legend>
 
         {sameCurrency && profitAuto !== null && !profitOverride && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3 text-sm">
-            <span className="text-gray-600">Ganancia calculada: </span>
-            <span className={`font-mono font-medium ${profitAuto >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+          <div className="bg-success-soft border border-success/30 rounded-lg p-3 mb-3 text-sm">
+            <span className="text-fg-muted">Ganancia calculada: </span>
+            <span className={`font-mono font-medium ${profitAuto >= 0 ? 'text-success' : 'text-error'}`}>
               {currencies.find((c) => c.id === cobradoCurrencyId)?.code} {formatMoneyAR(profitAuto)}
             </span>
           </div>
@@ -407,15 +407,15 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Cuenta ganancia</label>
-            <select value={profitAccountId} onChange={(e) => { setProfitAccountId(e.target.value); }} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Cuenta ganancia</label>
+            <select value={profitAccountId} onChange={(e) => { setProfitAccountId(e.target.value); }} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Divisa ganancia</label>
-            <select value={profitCurrencyId} onChange={(e) => setProfitCurrencyId(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Divisa ganancia</label>
+            <select value={profitCurrencyId} onChange={(e) => setProfitCurrencyId(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {profitAC.length > 0
                 ? profitAC.map((ac) => <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>)
@@ -424,11 +424,11 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Formato</label>
+            <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
             <select
               value={profitFormat}
               onChange={(e) => setProfitFormat(e.target.value)}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
               disabled={!profitCurrencyId || allowedFormatsFromList(profitAC, profitCurrencyId).length === 0}
             >
               {allowedFormatsFromList(profitAC, profitCurrencyId).map((f) => (
@@ -448,15 +448,15 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
         </div>
 
         {!requiresManualProfit && profitOverride && (
-          <button onClick={() => { setProfitOverride(false); setProfitManual(''); }} className="text-xs text-blue-600 hover:text-blue-800 mt-1">
+          <button onClick={() => { setProfitOverride(false); setProfitManual(''); }} className="text-xs text-info hover:text-info mt-1">
             Volver al cálculo automático
           </button>
         )}
 
         {profitValue && (
           <div className="mt-2 text-sm">
-            <span className="text-gray-600">Ganancia final: </span>
-            <span className={`font-mono font-medium ${parseFloat(profitValue) >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+            <span className="text-fg-muted">Ganancia final: </span>
+            <span className={`font-mono font-medium ${parseFloat(profitValue) >= 0 ? 'text-success' : 'text-error'}`}>
               {profitCurrencyCode} {formatMoneyAR(profitValue)}
             </span>
           </div>

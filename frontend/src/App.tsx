@@ -32,7 +32,7 @@ function ForbiddenBanner() {
   }, []);
   if (!visible) return null;
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-error text-white px-4 py-2 rounded-control text-sm font-medium shadow-focus-brand">
       No tenés permisos para acceder.
     </div>
   );
@@ -64,9 +64,9 @@ function ForbiddenStatePage() {
   const location = useLocation();
   const from = (location.state as { from?: string } | undefined)?.from;
   return (
-    <div className="bg-white border border-red-200 rounded-lg p-6">
-      <h2 className="text-lg font-semibold text-gray-800 mb-2">Acceso restringido</h2>
-      <p className="text-sm text-gray-600">
+    <div className="card-surface border-error/30">
+      <h2 className="text-h3 text-fg mb-2">Acceso restringido</h2>
+      <p className="text-sm text-fg-muted">
         No tenés permisos para acceder a esta sección{from ? ` (${from})` : ''}.
       </p>
     </div>

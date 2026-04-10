@@ -49,15 +49,15 @@ export default function PosicionesPage() {
 
   function balanceColor(b: string) {
     const n = parseFloat(b);
-    if (n < 0) return 'text-red-600';
-    if (n > 0) return 'text-green-600';
-    return 'text-gray-500';
+    if (n < 0) return 'text-error';
+    if (n > 0) return 'text-success';
+    return 'text-fg-muted';
   }
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-800 mb-1">Estado de CC</h2>
-      <p className="text-xs text-gray-500 mb-3">
+      <h2 className="text-lg font-semibold text-fg mb-1">Estado de CC</h2>
+      <p className="text-xs text-fg-muted mb-3">
         Clientes con CC habilitada. Solo se muestran importes por divisa cuando el saldo es distinto de cero.
       </p>
 
@@ -68,13 +68,13 @@ export default function PosicionesPage() {
         placeholder="Buscar por nombre o código..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="mb-4 w-full max-w-sm border border-gray-300 rounded px-3 py-2 text-sm"
+        className="mb-4 w-full max-w-sm border border-subtle rounded px-3 py-2 text-sm"
       />
 
       {loading ? (
-        <p className="text-gray-500 text-sm">Cargando...</p>
+        <p className="text-fg-muted text-sm">Cargando...</p>
       ) : loadError ? null : filtered.length === 0 ? (
-        <p className="text-gray-500 text-sm">
+        <p className="text-fg-muted text-sm">
           {items.length === 0
             ? 'No hay clientes activos con CC habilitada.'
             : 'Ningún cliente coincide con la búsqueda.'}
@@ -84,15 +84,15 @@ export default function PosicionesPage() {
           {filtered.map((client) => (
             <div
               key={client.client_id}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm cursor-pointer transition"
+              className="bg-elevated border border-subtle rounded-lg p-4 hover:shadow-sm cursor-pointer transition"
               onClick={() => navigate(`/posiciones/${client.client_id}`)}
             >
               <div className="flex flex-wrap items-start justify-between gap-2 mb-2 min-w-0">
                 <div className="min-w-0">
-                  <span className="font-medium text-gray-800 break-words">
+                  <span className="font-medium text-fg break-words">
                     {client.last_name}, {client.first_name}
                   </span>
-                  <span className="ml-2 text-xs text-gray-400 shrink-0">#{client.client_code}</span>
+                  <span className="ml-2 text-xs text-fg-subtle shrink-0">#{client.client_code}</span>
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">

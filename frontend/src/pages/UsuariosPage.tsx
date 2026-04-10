@@ -56,19 +56,19 @@ export default function UsuariosPage() {
   return (
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 min-w-0">
-        <h2 className="text-xl font-semibold text-gray-800 shrink-0">Usuarios</h2>
+        <h2 className="text-xl font-semibold text-fg shrink-0">Usuarios</h2>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto min-w-0">
           <input
             type="text"
             placeholder="Buscar..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-48 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-subtle rounded-md px-3 py-2 text-sm w-full sm:w-48 min-w-0 focus:outline-none focus:border-brand shadow-focus-brand"
           />
           {canCreate && (
             <button
               onClick={() => setModalUser('new')}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium w-full sm:w-auto shrink-0"
+              className="bg-brand text-white px-4 py-2 rounded-md hover:bg-brand-hover text-sm font-medium w-full sm:w-auto shrink-0"
             >
               + Nuevo usuario
             </button>
@@ -77,12 +77,12 @@ export default function UsuariosPage() {
       </div>
 
       {loading ? (
-        <p className="text-gray-500">Cargando...</p>
+        <p className="text-fg-muted">Cargando...</p>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden overflow-x-auto">
+        <div className="bg-elevated rounded-lg shadow overflow-hidden overflow-x-auto">
           <table className="w-full min-w-[520px] text-sm">
-            <thead className="bg-gray-50">
-              <tr className="text-left text-gray-500">
+            <thead className="bg-surface">
+              <tr className="text-left text-fg-muted">
                 <th className="px-4 py-3 font-medium">Username</th>
                 <th className="px-4 py-3 font-medium">Rol</th>
                 <th className="px-4 py-3 font-medium text-center">Estado</th>
@@ -92,16 +92,16 @@ export default function UsuariosPage() {
             <tbody>
               {filtered.map((u) => (
                 <tr key={u.id} className="border-t">
-                  <td className="px-4 py-3 text-gray-700">{u.username}</td>
+                  <td className="px-4 py-3 text-fg">{u.username}</td>
                   <td className="px-4 py-3">
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{u.role}</span>
+                    <span className="text-xs bg-surface text-fg-muted px-2 py-0.5 rounded">{u.role}</span>
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button
                       onClick={() => toggleActive(u)}
                       disabled={!canToggleUser(u)}
                       className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        u.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        u.active ? 'bg-success-soft text-success' : 'bg-error-soft text-error'
                       } ${!canToggleUser(u) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}
                     >
                       {u.active ? 'Activo' : 'Inactivo'}
@@ -111,7 +111,7 @@ export default function UsuariosPage() {
                     {canEditUser(u) && (
                       <button
                         onClick={() => setModalUser(u)}
-                        className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                        className="text-info hover:text-info text-xs font-medium"
                       >
                         Editar
                       </button>
@@ -121,7 +121,7 @@ export default function UsuariosPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-gray-400">Sin resultados</td>
+                  <td colSpan={4} className="px-4 py-6 text-center text-fg-subtle">Sin resultados</td>
                 </tr>
               )}
             </tbody>

@@ -166,8 +166,8 @@ export default function TransferenciaEntreCuentasForm({ movementId, onDone, onCa
   if (success) {
     return (
       <div className="border-t pt-4">
-        <p className="text-green-700 font-medium mb-4">Transferencia entre cuentas registrada correctamente.</p>
-        <button onClick={onDone} className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition">
+        <p className="text-success font-medium mb-4">Transferencia entre cuentas registrada correctamente.</p>
+        <button onClick={onDone} className="px-4 py-2 bg-success text-white text-sm rounded hover:opacity-90 transition">
           Ver movimiento
         </button>
       </div>
@@ -176,9 +176,9 @@ export default function TransferenciaEntreCuentasForm({ movementId, onDone, onCa
 
   return (
     <div className="border-t pt-4 space-y-6">
-      {error && <p className="text-red-600 text-sm">{error}</p>}
-      {draftMessage && <p className="text-blue-600 text-sm">{draftMessage}</p>}
-      {draftLoading && <p className="text-gray-500 text-sm">Cargando borrador...</p>}
+      {error && <p className="text-error text-sm">{error}</p>}
+      {draftMessage && <p className="text-info text-sm">{draftMessage}</p>}
+      {draftLoading && <p className="text-fg-muted text-sm">Cargando borrador...</p>}
 
       <p className="rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-950">
         Esta operación mueve <strong>una sola divisa</strong> entre dos cuentas (mismo monto). Para liquidar en <strong>dos divisas</strong> (palo a palo) con titular/cliente usá <strong>Transferencia</strong> en Nueva operación.
@@ -186,28 +186,28 @@ export default function TransferenciaEntreCuentasForm({ movementId, onDone, onCa
 
       {/* SALIDA (FROM / OUT) */}
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Salida (origen)</legend>
+        <legend className="text-sm font-semibold text-fg mb-2">Salida (origen)</legend>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Cuenta origen</label>
-            <select value={fromAccountId} onChange={(e) => { setFromAccountId(e.target.value); setFromCurrencyId(''); }} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Cuenta origen</label>
+            <select value={fromAccountId} onChange={(e) => { setFromAccountId(e.target.value); setFromCurrencyId(''); }} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Divisa</label>
-            <select value={fromCurrencyId} onChange={(e) => setFromCurrencyId(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Divisa</label>
+            <select value={fromCurrencyId} onChange={(e) => setFromCurrencyId(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {fromAC.map((ac) => <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Formato</label>
+            <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
             <select
               value={fromFormat}
               onChange={(e) => setFromFormat(e.target.value)}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
               disabled={!fromCurrencyId || allowedFormatsFromList(fromAC, fromCurrencyId).length === 0}
             >
               {allowedFormatsFromList(fromAC, fromCurrencyId).map((f) => (
@@ -221,25 +221,25 @@ export default function TransferenciaEntreCuentasForm({ movementId, onDone, onCa
 
       {/* ENTRADA (TO / IN) */}
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Entrada (destino)</legend>
+        <legend className="text-sm font-semibold text-fg mb-2">Entrada (destino)</legend>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Cuenta destino</label>
-            <select value={toAccountId} onChange={(e) => setToAccountId(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Cuenta destino</label>
+            <select value={toAccountId} onChange={(e) => setToAccountId(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {accounts.filter((a) => a.id !== fromAccountId).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Divisa</label>
-            <input type="text" readOnly value={fromCurrencyCode || '—'} className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm bg-gray-50 text-gray-500" />
+            <label className="block text-xs text-fg-muted mb-0.5">Divisa</label>
+            <input type="text" readOnly value={fromCurrencyCode || '—'} className="w-full border border-subtle rounded px-2 py-1.5 text-sm bg-surface text-fg-muted" />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Formato</label>
+            <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
             <select
               value={toFormat}
               onChange={(e) => setToFormat(e.target.value)}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
               disabled={!fromCurrencyId || !toAccountId || allowedFormatsFromList(toAC, fromCurrencyId).length === 0}
             >
               {allowedFormatsFromList(toAC, fromCurrencyId).map((f) => (
@@ -248,12 +248,12 @@ export default function TransferenciaEntreCuentasForm({ movementId, onDone, onCa
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Monto</label>
-            <input type="text" readOnly value={fromAmount ? formatMoneyAR(fromAmount) : '—'} className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm bg-gray-50 text-gray-500 font-mono" />
+            <label className="block text-xs text-fg-muted mb-0.5">Monto</label>
+            <input type="text" readOnly value={fromAmount ? formatMoneyAR(fromAmount) : '—'} className="w-full border border-subtle rounded px-2 py-1.5 text-sm bg-surface text-fg-muted font-mono" />
           </div>
         </div>
         {toAccountId && fromCurrencyId && !toCurrencyValid && (
-          <p className="text-xs text-red-500 mt-1">La divisa no está habilitada en la cuenta destino.</p>
+          <p className="text-xs text-error mt-1">La divisa no está habilitada en la cuenta destino.</p>
         )}
       </fieldset>
 

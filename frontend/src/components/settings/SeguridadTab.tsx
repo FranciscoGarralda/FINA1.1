@@ -72,12 +72,12 @@ export default function SeguridadTab() {
     setMessage('');
   };
 
-  if (loading) return <p className="text-gray-500">Cargando...</p>;
+  if (loading) return <p className="text-fg-muted">Cargando...</p>;
 
   const dirty = JSON.stringify(settings) !== JSON.stringify(saved);
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
+    <div className="bg-elevated rounded-lg shadow p-6 max-w-2xl">
       <h2 className="text-lg font-semibold mb-4">Seguridad</h2>
 
       <div className="space-y-5">
@@ -126,7 +126,7 @@ export default function SeguridadTab() {
       </div>
 
       {message && (
-        <p className={`mt-4 text-sm ${message.includes('correctamente') ? 'text-green-600' : 'text-red-600'}`}>
+        <p className={`mt-4 text-sm ${message.includes('correctamente') ? 'text-success' : 'text-error'}`}>
           {message}
         </p>
       )}
@@ -136,14 +136,14 @@ export default function SeguridadTab() {
           <button
             onClick={handleSave}
             disabled={!dirty || saving}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+            className="bg-brand text-white px-4 py-2 rounded-md hover:bg-brand-hover disabled:opacity-50 text-sm font-medium"
           >
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
           <button
             onClick={handleCancel}
             disabled={!dirty}
-            className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 disabled:opacity-50 text-sm"
+            className="border border-subtle text-fg px-4 py-2 rounded-md hover:bg-surface disabled:opacity-50 text-sm"
           >
             Cancelar
           </button>
@@ -158,7 +158,7 @@ function Toggle({ label, checked, disabled, onChange }: {
 }) {
   return (
     <label className="flex items-center justify-between">
-      <span className="text-sm text-gray-700">{label}</span>
+      <span className="text-sm text-fg">{label}</span>
       <button
         type="button"
         role="switch"
@@ -166,10 +166,10 @@ function Toggle({ label, checked, disabled, onChange }: {
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-          checked ? 'bg-blue-600' : 'bg-gray-300'
+          checked ? 'bg-brand' : 'bg-fg-subtle/25'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
       >
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-elevated transition-transform ${
           checked ? 'translate-x-6' : 'translate-x-1'
         }`} />
       </button>
@@ -182,7 +182,7 @@ function NumberInput({ label, value, min, max, disabled, onChange }: {
 }) {
   return (
     <label className="flex items-center justify-between">
-      <span className="text-sm text-gray-700">{label}</span>
+      <span className="text-sm text-fg">{label}</span>
       <input
         type="number"
         value={value}
@@ -190,7 +190,7 @@ function NumberInput({ label, value, min, max, disabled, onChange }: {
         max={max}
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-20 border border-gray-300 rounded-md px-2 py-1 text-sm text-right disabled:bg-gray-100"
+        className="w-20 border border-subtle rounded-md px-2 py-1 text-sm text-right disabled:bg-surface"
       />
     </label>
   );

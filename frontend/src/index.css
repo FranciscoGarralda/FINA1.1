@@ -1,64 +1,299 @@
+@import './theme.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
+html,
+body,
+#root {
   width: 100%;
   overflow-x: hidden;
 }
 
-/* Safe area (notch / home indicator) */
-body {
-  padding-left: env(safe-area-inset-left, 0);
-  padding-right: env(safe-area-inset-right, 0);
-  padding-bottom: env(safe-area-inset-bottom, 0);
-}
-
-/* iOS Safari: evita zoom al enfocar (gana a utility text-sm en inputs) */
 @layer base {
-  input:not([type='checkbox']):not([type='radio']):not([type='range']),
-  select,
-  textarea {
-    font-size: 1rem !important;
-    line-height: 1.5rem !important;
+  html {
+    font-family: var(--font-ui);
+    font-size: var(--font-size-base);
+    @apply antialiased;
+    color: var(--text-primary);
+  }
+
+  body {
+    @apply antialiased;
+    font-size: var(--text-body);
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* Móvil: 16px en inputs evita zoom iOS. Desktop: 13px. */
+  @media (max-width: 768px) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']),
+    select,
+    textarea {
+      font-size: 16px !important;
+      line-height: 1.5rem !important;
+    }
+  }
+
+  @media (min-width: 769px) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']),
+    select,
+    textarea {
+      font-size: var(--font-size-base) !important;
+      line-height: 1.5rem !important;
+    }
   }
 }
 
 @layer components {
-  /* Botones táctiles mínimos razonables (modales / formularios) */
-  .btn-touch {
-    @apply min-h-[44px] inline-flex items-center justify-center px-4 py-2.5 text-base;
+  /* Dot grid solo donde se use class="canvas-bg" */
+  .canvas-bg {
+    background-image: radial-gradient(circle, var(--border-subtle) 1px, transparent 1px);
+    background-size: 20px 20px;
   }
 
-  /*
-   * Filas de acción: columna hasta viewport ancho de escritorio.
-   * sm (640px) activaba fila en móvil apaisado; 4 botones (Guardar / borrador / …)
-   * no cabían y se cortaba el overflow. lg (1024px) mantiene apilado en phones/tablets.
-   */
+  .card-surface {
+    @apply p-4 sm:p-5 transition-colors;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    transition-duration: var(--duration-base);
+    transition-timing-function: var(--easing);
+    background-color: var(--bg-surface);
+  }
+
+  .card-surface-interactive:hover {
+    border-color: var(--border-active);
+    background-color: var(--hover-overlay);
+  }
+
+  .input-field {
+    @apply w-full transition-[border-color,box-shadow];
+    border-radius: var(--radius-md);
+    transition-duration: var(--duration-base);
+    transition-timing-function: var(--easing);
+    border: 1px solid var(--border-active);
+    background-color: var(--bg-elevated);
+    color: var(--text-primary);
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  @media (max-width: 768px) {
+    .input-field {
+      min-height: var(--touch-target);
+      height: var(--touch-target);
+      font-size: 16px;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .input-field {
+      min-height: 32px;
+      height: 32px;
+      font-size: var(--font-size-base);
+    }
+  }
+
+  .input-field::placeholder {
+    color: var(--text-muted);
+  }
+
+  .input-field:focus {
+    @apply outline-none;
+    border-color: var(--brand);
+    box-shadow: var(--focus-ring);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 text-sm font-medium text-white transition-colors disabled:opacity-50;
+    border-radius: var(--radius-md);
+    transition-duration: var(--duration-base);
+    transition-timing-function: var(--easing);
+    background-color: var(--brand);
+  }
+
+  @media (max-width: 768px) {
+    .btn-primary {
+      min-height: var(--touch-target);
+      padding-top: 0.625rem;
+      padding-bottom: 0.625rem;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .btn-primary {
+      min-height: 30px;
+      height: 30px;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--brand-hover);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center bg-transparent px-4 text-sm font-medium transition-colors;
+    border-radius: var(--radius-md);
+    transition-duration: var(--duration-base);
+    transition-timing-function: var(--easing);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+  }
+
+  @media (max-width: 768px) {
+    .btn-ghost {
+      min-height: var(--touch-target);
+      padding-top: 0.625rem;
+      padding-bottom: 0.625rem;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .btn-ghost {
+      min-height: 30px;
+      height: 30px;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+  }
+
+  .btn-ghost:hover {
+    background-color: var(--hover-overlay-strong);
+  }
+
+  .btn-touch {
+    @apply inline-flex items-center justify-center px-4 py-2.5 text-base;
+  }
+
+  @media (max-width: 768px) {
+    .btn-touch {
+      min-height: var(--touch-target);
+    }
+  }
+
+  @media (min-width: 769px) {
+    .btn-touch {
+      min-height: 30px;
+    }
+  }
+
   .form-actions {
     @apply flex w-full min-w-0 flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center;
   }
 
   .form-actions > button {
-    @apply w-full min-h-[44px] max-w-full shrink-0 lg:w-auto lg:max-w-none;
+    @apply w-full max-w-full shrink-0 lg:w-auto lg:max-w-none;
   }
 
-  /* Overlay + panel con scroll y safe-area inferior (iPhone / home indicator) */
+  @media (max-width: 768px) {
+    .form-actions > button {
+      min-height: var(--touch-target);
+    }
+  }
+
+  @media (min-width: 769px) {
+    .form-actions > button {
+      min-height: 30px;
+    }
+  }
+
   .modal-backdrop {
-    @apply fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/40 p-4;
+    @apply fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4 transition-opacity;
+    transition-duration: var(--duration-base);
+    transition-timing-function: var(--easing);
+    background-color: var(--overlay-scrim);
   }
 
-  /* Usar con p-6 y pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] para safe-area */
   .modal-panel {
-    @apply bg-white rounded-lg shadow-lg w-full overflow-y-auto overflow-x-hidden;
+    @apply w-full overflow-y-auto overflow-x-hidden;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-elevated);
     max-height: min(90vh, calc(100dvh - 2rem));
+  }
+
+  /* Pill base */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    font-size: var(--text-caption);
+    font-weight: 500;
+    border-radius: var(--radius-full);
+  }
+
+  /* Chip cuadrado */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    font-size: var(--text-caption);
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+  }
+
+  .badge-success {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    font-size: var(--text-caption);
+    font-weight: 500;
+    border-radius: var(--radius-full);
+    background-color: var(--success-soft);
+    color: var(--success);
+  }
+
+  .badge-warning {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    font-size: var(--text-caption);
+    font-weight: 500;
+    border-radius: var(--radius-full);
+    background-color: var(--warning-soft);
+    color: var(--warning);
+  }
+
+  .badge-error {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    font-size: var(--text-caption);
+    font-weight: 500;
+    border-radius: var(--radius-full);
+    background-color: var(--error-soft);
+    color: var(--error);
+  }
+
+  .badge-info {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    font-size: var(--text-caption);
+    font-weight: 500;
+    border-radius: var(--radius-full);
+    background-color: rgba(59, 130, 246, 0.12);
+    color: var(--info);
   }
 }
 
-/* Focus visible en controles interactivos (pantallas táctiles + teclado) */
 button:focus-visible,
 a:focus-visible,
-[role='button']:focus-visible {
-  outline: 2px solid rgb(59 130 246);
-  outline-offset: 2px;
+[role='button']:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:not([tabindex='-1']):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.input-field:focus-visible {
+  box-shadow: var(--focus-ring);
 }

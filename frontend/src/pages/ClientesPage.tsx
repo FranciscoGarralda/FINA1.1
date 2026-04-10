@@ -66,19 +66,19 @@ export default function ClientesPage() {
   return (
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 min-w-0">
-        <h2 className="text-xl font-semibold text-gray-800 shrink-0">Clientes</h2>
+        <h2 className="text-xl font-semibold text-fg shrink-0">Clientes</h2>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto min-w-0">
           <input
             type="text"
             placeholder="Buscar..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-48 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-subtle rounded-md px-3 py-2 text-sm w-full sm:w-48 min-w-0 focus:outline-none focus:border-brand shadow-focus-brand"
           />
           {canCreate && (
             <button
               onClick={() => setModalClient('new')}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium w-full sm:w-auto shrink-0"
+              className="bg-brand text-white px-4 py-2 rounded-md hover:bg-brand-hover text-sm font-medium w-full sm:w-auto shrink-0"
             >
               + Nuevo cliente
             </button>
@@ -87,12 +87,12 @@ export default function ClientesPage() {
       </div>
 
       {loading ? (
-        <p className="text-gray-500">Cargando...</p>
+        <p className="text-fg-muted">Cargando...</p>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden overflow-x-auto">
+        <div className="bg-elevated rounded-lg shadow overflow-hidden overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
-            <thead className="bg-gray-50">
-              <tr className="text-left text-gray-500">
+            <thead className="bg-surface">
+              <tr className="text-left text-fg-muted">
                 <th className="px-4 py-3 font-medium">Nº cliente</th>
                 <th className="px-4 py-3 font-medium">Nombre</th>
                 <th className="px-4 py-3 font-medium">Teléfono</th>
@@ -106,11 +106,11 @@ export default function ClientesPage() {
             <tbody>
               {filtered.map((c) => (
                 <tr key={c.id} className="border-t">
-                  <td className="px-4 py-3 text-gray-500 font-mono">{c.client_code}</td>
-                  <td className="px-4 py-3 text-gray-700">{c.first_name} {c.last_name}</td>
-                  <td className="px-4 py-3 text-gray-600">{c.phone}</td>
-                  <td className="px-4 py-3 text-gray-600">{c.dni}</td>
-                  <td className="px-4 py-3 text-gray-600 max-w-[12rem] break-words" title={c.department || undefined}>
+                  <td className="px-4 py-3 text-fg-muted font-mono">{c.client_code}</td>
+                  <td className="px-4 py-3 text-fg">{c.first_name} {c.last_name}</td>
+                  <td className="px-4 py-3 text-fg-muted">{c.phone}</td>
+                  <td className="px-4 py-3 text-fg-muted">{c.dni}</td>
+                  <td className="px-4 py-3 text-fg-muted max-w-[12rem] break-words" title={c.department || undefined}>
                     {c.department?.trim() ? c.department.trim() : '—'}
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -118,14 +118,14 @@ export default function ClientesPage() {
                       onClick={() => toggleActive(c)}
                       disabled={!canToggle}
                       className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        c.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        c.active ? 'bg-success-soft text-success' : 'bg-error-soft text-error'
                       } ${!canToggle ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}
                     >
                       {c.active ? 'Activo' : 'Inactivo'}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`text-xs font-medium ${c.cc_enabled ? 'text-blue-600' : 'text-gray-400'}`}>
+                    <span className={`text-xs font-medium ${c.cc_enabled ? 'text-info' : 'text-fg-subtle'}`}>
                       {c.cc_enabled ? 'Sí' : 'No'}
                     </span>
                   </td>
@@ -133,7 +133,7 @@ export default function ClientesPage() {
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => setModalClient(c)}
-                        className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                        className="text-info hover:text-info text-xs font-medium"
                       >
                         Editar
                       </button>
@@ -143,7 +143,7 @@ export default function ClientesPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={(canEdit || canToggle) ? 8 : 7} className="px-4 py-6 text-center text-gray-400">
+                  <td colSpan={(canEdit || canToggle) ? 8 : 7} className="px-4 py-6 text-center text-fg-subtle">
                     Sin resultados
                   </td>
                 </tr>

@@ -123,8 +123,8 @@ export default function IngresoCapitalForm({ movementId, onDone, onCancel }: { m
   if (success) {
     return (
       <div className="border-t pt-4">
-        <p className="text-green-700 font-medium mb-4">Ingreso de capital registrado correctamente.</p>
-        <button onClick={onDone} className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition">
+        <p className="text-success font-medium mb-4">Ingreso de capital registrado correctamente.</p>
+        <button onClick={onDone} className="px-4 py-2 bg-success text-white text-sm rounded hover:opacity-90 transition">
           Ver movimiento
         </button>
       </div>
@@ -133,33 +133,33 @@ export default function IngresoCapitalForm({ movementId, onDone, onCancel }: { m
 
   return (
     <div className="border-t pt-4 space-y-6">
-      {error && <p className="text-red-600 text-sm">{error}</p>}
-      {draftMessage && <p className="text-blue-600 text-sm">{draftMessage}</p>}
-      {draftLoading && <p className="text-gray-500 text-sm">Cargando borrador...</p>}
+      {error && <p className="text-error text-sm">{error}</p>}
+      {draftMessage && <p className="text-info text-sm">{draftMessage}</p>}
+      {draftLoading && <p className="text-fg-muted text-sm">Cargando borrador...</p>}
 
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Ingreso de capital</legend>
+        <legend className="text-sm font-semibold text-fg mb-2">Ingreso de capital</legend>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Cuenta</label>
-            <select value={accountId} onChange={(e) => { setAccountId(e.target.value); setCurrencyId(''); }} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Cuenta</label>
+            <select value={accountId} onChange={(e) => { setAccountId(e.target.value); setCurrencyId(''); }} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Divisa</label>
-            <select value={currencyId} onChange={(e) => setCurrencyId(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Divisa</label>
+            <select value={currencyId} onChange={(e) => setCurrencyId(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {accountCurrencies.map((ac) => <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Formato</label>
+            <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
             <select
               value={format}
               onChange={(e) => setFormat(e.target.value as MovementFormat)}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
               disabled={!currencyId || allowedFormatsFromList(accountCurrencies, currencyId).length === 0}
             >
               {allowedFormatsFromList(accountCurrencies, currencyId).map((f) => (
@@ -167,19 +167,19 @@ export default function IngresoCapitalForm({ movementId, onDone, onCancel }: { m
               ))}
             </select>
             {currencyId && allowedFormatsFromList(accountCurrencies, currencyId).length === 0 && (
-              <p className="text-xs text-red-600 mt-1">Sin formato habilitado para esta divisa en la cuenta.</p>
+              <p className="text-xs text-error mt-1">Sin formato habilitado para esta divisa en la cuenta.</p>
             )}
           </div>
           <MoneyInput label="Monto" value={amount} onValueChange={setAmount} />
         </div>
         <div className="mt-3 max-w-sm">
-          <label className="block text-xs text-gray-500 mb-0.5">Nota (opcional)</label>
+          <label className="block text-xs text-fg-muted mb-0.5">Nota (opcional)</label>
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Descripción del ingreso..."
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+            className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
           />
         </div>
       </fieldset>

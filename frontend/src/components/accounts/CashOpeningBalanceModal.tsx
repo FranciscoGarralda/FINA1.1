@@ -133,30 +133,30 @@ export default function CashOpeningBalanceModal({ onClose }: { onClose: () => vo
   return createPortal(
     <div className="modal-backdrop">
       <div className="modal-panel max-w-2xl w-full p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold text-gray-800 mb-1">Saldo inicial de caja</h3>
-        <p className="text-xs text-gray-500 mb-4">
+        <h3 className="text-lg font-semibold text-fg mb-1">Saldo inicial de caja</h3>
+        <p className="text-xs text-fg-muted mb-4">
           Movimiento auditable (líneas IN reales). No afecta cuenta corriente de clientes.
         </p>
-        {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+        {error && <p className="text-error text-sm mb-3">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-wrap gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-0.5">Fecha</label>
+              <label className="block text-sm font-medium text-fg mb-0.5">Fecha</label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+                className="border border-subtle rounded px-2 py-1.5 text-sm"
                 required
               />
             </div>
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-0.5">Nota (opcional)</label>
+              <label className="block text-sm font-medium text-fg mb-0.5">Nota (opcional)</label>
               <input
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+                className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
               />
             </div>
           </div>
@@ -166,14 +166,14 @@ export default function CashOpeningBalanceModal({ onClose }: { onClose: () => vo
               const acs = currenciesByLine[line.key] || [];
               const allowed = allowedFormatsFromList(acs, line.currency_id);
               return (
-                <div key={line.key} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50/50">
+                <div key={line.key} className="border border-subtle rounded-lg p-3 space-y-2 bg-surface/50">
                   <div className="flex flex-wrap gap-2 items-end">
                     <div className="flex-1 min-w-[140px]">
-                      <label className="block text-xs text-gray-600 mb-0.5">Cuenta</label>
+                      <label className="block text-xs text-fg-muted mb-0.5">Cuenta</label>
                       <select
                         value={line.account_id}
                         onChange={(e) => setAccount(line.key, e.target.value)}
-                        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+                        className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
                         required
                       >
                         <option value="">Elegir…</option>
@@ -185,11 +185,11 @@ export default function CashOpeningBalanceModal({ onClose }: { onClose: () => vo
                       </select>
                     </div>
                     <div className="flex-1 min-w-[120px]">
-                      <label className="block text-xs text-gray-600 mb-0.5">Divisa</label>
+                      <label className="block text-xs text-fg-muted mb-0.5">Divisa</label>
                       <select
                         value={line.currency_id}
                         onChange={(e) => setCurrency(line.key, e.target.value)}
-                        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+                        className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
                         required
                       >
                         <option value="">Elegir…</option>
@@ -201,7 +201,7 @@ export default function CashOpeningBalanceModal({ onClose }: { onClose: () => vo
                       </select>
                     </div>
                     <div className="w-28">
-                      <label className="block text-xs text-gray-600 mb-0.5">Formato</label>
+                      <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
                       <select
                         value={allowed.length ? line.format : ''}
                         disabled={allowed.length === 0}
@@ -210,7 +210,7 @@ export default function CashOpeningBalanceModal({ onClose }: { onClose: () => vo
                             prev.map((l) => (l.key === line.key ? { ...l, format: e.target.value } : l)),
                           )
                         }
-                        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm disabled:bg-gray-100"
+                        className="w-full border border-subtle rounded px-2 py-1.5 text-sm disabled:bg-surface"
                       >
                         {allowed.length === 0 ? (
                           <option value="">—</option>
@@ -224,21 +224,21 @@ export default function CashOpeningBalanceModal({ onClose }: { onClose: () => vo
                       </select>
                     </div>
                     <div className="flex-1 min-w-[100px]">
-                      <label className="block text-xs text-gray-600 mb-0.5">Monto</label>
+                      <label className="block text-xs text-fg-muted mb-0.5">Monto</label>
                       <MoneyInput
                         value={line.amount}
                         onValueChange={(v) =>
                           setLines((prev) => prev.map((l) => (l.key === line.key ? { ...l, amount: v } : l)))
                         }
                         fractionDigits={8}
-                        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+                        className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
                       />
                     </div>
                     {lines.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeLine(line.key)}
-                        className="text-sm text-red-600 hover:text-red-800 px-2 py-1"
+                        className="text-sm text-error hover:text-error px-2 py-1"
                       >
                         Quitar
                       </button>
@@ -252,7 +252,7 @@ export default function CashOpeningBalanceModal({ onClose }: { onClose: () => vo
           <button
             type="button"
             onClick={addLine}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            className="text-sm text-info hover:text-info font-medium"
           >
             + Línea
           </button>
@@ -263,7 +263,7 @@ export default function CashOpeningBalanceModal({ onClose }: { onClose: () => vo
               <button
                 type="submit"
                 disabled={submitting}
-                className="btn-touch bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 disabled:opacity-60"
+                className="btn-touch bg-brand text-white rounded-md font-medium hover:bg-brand-hover disabled:opacity-60"
               >
                 {submitting ? 'Guardando…' : 'Confirmar'}
               </button>
@@ -272,7 +272,7 @@ export default function CashOpeningBalanceModal({ onClose }: { onClose: () => vo
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-touch border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                className="btn-touch border border-subtle text-fg rounded-md hover:bg-surface"
               >
                 Cancelar
               </button>

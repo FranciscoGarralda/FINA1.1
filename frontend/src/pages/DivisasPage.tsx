@@ -54,19 +54,19 @@ export default function DivisasPage() {
   return (
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 min-w-0">
-        <h2 className="text-xl font-semibold text-gray-800 shrink-0">Divisas</h2>
+        <h2 className="text-xl font-semibold text-fg shrink-0">Divisas</h2>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto min-w-0">
           <input
             type="text"
             placeholder="Buscar..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-48 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-subtle rounded-md px-3 py-2 text-sm w-full sm:w-48 min-w-0 focus:outline-none focus:border-brand shadow-focus-brand"
           />
           {canCreate && (
             <button
               onClick={() => setModalCurrency('new')}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium w-full sm:w-auto shrink-0"
+              className="bg-brand text-white px-4 py-2 rounded-md hover:bg-brand-hover text-sm font-medium w-full sm:w-auto shrink-0"
             >
               + Nueva divisa
             </button>
@@ -75,12 +75,12 @@ export default function DivisasPage() {
       </div>
 
       {loading ? (
-        <p className="text-gray-500">Cargando...</p>
+        <p className="text-fg-muted">Cargando...</p>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden overflow-x-auto">
+        <div className="bg-elevated rounded-lg shadow overflow-hidden overflow-x-auto">
           <table className="w-full min-w-[440px] text-sm">
-            <thead className="bg-gray-50">
-              <tr className="text-left text-gray-500">
+            <thead className="bg-surface">
+              <tr className="text-left text-fg-muted">
                 <th className="px-4 py-3 font-medium">Código</th>
                 <th className="px-4 py-3 font-medium">Nombre</th>
                 <th className="px-4 py-3 font-medium text-center">Estado</th>
@@ -90,14 +90,14 @@ export default function DivisasPage() {
             <tbody>
               {filtered.map((c) => (
                 <tr key={c.id} className="border-t">
-                  <td className="px-4 py-3 font-mono text-gray-700">{c.code}</td>
-                  <td className="px-4 py-3 text-gray-700">{c.name}</td>
+                  <td className="px-4 py-3 font-mono text-fg">{c.code}</td>
+                  <td className="px-4 py-3 text-fg">{c.name}</td>
                   <td className="px-4 py-3 text-center">
                     <button
                       onClick={() => toggleActive(c)}
                       disabled={!canToggle}
                       className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        c.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        c.active ? 'bg-success-soft text-success' : 'bg-error-soft text-error'
                       } ${!canToggle ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}
                     >
                       {c.active ? 'Activo' : 'Inactivo'}
@@ -107,7 +107,7 @@ export default function DivisasPage() {
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => setModalCurrency(c)}
-                        className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                        className="text-info hover:text-info text-xs font-medium"
                       >
                         Editar
                       </button>
@@ -117,7 +117,7 @@ export default function DivisasPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={(canEdit || canToggle) ? 4 : 3} className="px-4 py-6 text-center text-gray-400">
+                  <td colSpan={(canEdit || canToggle) ? 4 : 3} className="px-4 py-6 text-center text-fg-subtle">
                     Sin resultados
                   </td>
                 </tr>

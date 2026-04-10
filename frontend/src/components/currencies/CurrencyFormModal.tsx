@@ -78,31 +78,31 @@ export default function CurrencyFormModal({ currency, onClose, onSaved }: Props)
         <h2 className="text-lg font-semibold mb-4">{isEdit ? 'Editar Divisa' : 'Nueva Divisa'}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Código</label>
+            <label className="block text-sm font-medium text-fg mb-1">Código</label>
             <input
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="USD"
               maxLength={6}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-subtle rounded-md px-3 py-2 text-base focus:outline-none focus:border-brand shadow-focus-brand"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+            <label className="block text-sm font-medium text-fg mb-1">Nombre</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Dólar estadounidense"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-subtle rounded-md px-3 py-2 text-base focus:outline-none focus:border-brand shadow-focus-brand"
               required
             />
           </div>
 
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && <p className="text-error text-sm">{error}</p>}
 
           <FormActionsRow
             variant="modal"
@@ -110,7 +110,7 @@ export default function CurrencyFormModal({ currency, onClose, onSaved }: Props)
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-touch border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                className="btn-touch border border-subtle text-fg rounded-md hover:bg-surface"
               >
                 Cancelar
               </button>
@@ -119,7 +119,7 @@ export default function CurrencyFormModal({ currency, onClose, onSaved }: Props)
               <button
                 type="submit"
                 disabled={saving}
-                className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
+                className="btn-touch bg-brand text-white rounded-md hover:bg-brand-hover disabled:opacity-50 font-medium"
               >
                 {saving ? 'Guardando...' : 'Guardar'}
               </button>

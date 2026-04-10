@@ -61,27 +61,27 @@ function EntitySection({ entityKey, title, endpoint, displayFn }: (typeof ENTITY
   });
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-elevated rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-md font-semibold text-gray-800">{title}</h3>
+        <h3 className="text-md font-semibold text-fg">{title}</h3>
         <input
           type="text"
           placeholder="Buscar..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-1 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border border-subtle rounded-md px-3 py-1 text-sm w-48 focus:outline-none focus:border-brand shadow-focus-brand"
         />
       </div>
 
       {loading ? (
-        <p className="text-gray-500 text-sm">Cargando...</p>
+        <p className="text-fg-muted text-sm">Cargando...</p>
       ) : filtered.length === 0 ? (
-        <p className="text-gray-400 text-sm">Sin resultados</p>
+        <p className="text-fg-subtle text-sm">Sin resultados</p>
       ) : (
         <div className="overflow-x-auto">
         <table className="w-full min-w-[320px] text-sm">
           <thead>
-            <tr className="border-b text-left text-gray-500">
+            <tr className="border-b text-left text-fg-muted">
               <th className="pb-2 font-medium">Nombre / Identificador</th>
               <th className="pb-2 font-medium text-center w-32">Estado</th>
             </tr>
@@ -89,15 +89,15 @@ function EntitySection({ entityKey, title, endpoint, displayFn }: (typeof ENTITY
           <tbody>
             {filtered.map((item) => (
               <tr key={item.id} className="border-b last:border-0">
-                <td className="py-2 text-gray-700">{displayFn(item)}</td>
+                <td className="py-2 text-fg">{displayFn(item)}</td>
                 <td className="py-2 text-center">
                   <button
                     onClick={() => toggleActive(item)}
                     disabled={!canToggle}
                     className={`px-3 py-1 rounded-full text-xs font-medium ${
                       item.active
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
+                        ? 'bg-success-soft text-success'
+                        : 'bg-error-soft text-error'
                     } ${!canToggle ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}
                   >
                     {item.active ? 'Activo' : 'Inactivo'}

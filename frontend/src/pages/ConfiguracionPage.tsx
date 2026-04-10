@@ -17,13 +17,13 @@ export default function ConfiguracionPage() {
   return (
     <div>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-6 min-w-0">
-        <h2 className="text-xl font-semibold text-gray-800">Configuración</h2>
+        <h2 className="text-xl font-semibold text-fg">Configuración</h2>
         {!canEditSettings && (
-          <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded shrink-0 self-start sm:self-auto">Solo lectura</span>
+          <span className="text-xs bg-warning-soft text-warning px-2 py-1 rounded shrink-0 self-start sm:self-auto">Solo lectura</span>
         )}
       </div>
 
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-subtle mb-6">
         <nav className="flex flex-wrap gap-4 sm:gap-6">
           {visibleTabs.map((tab) => (
             <button
@@ -31,8 +31,8 @@ export default function ConfiguracionPage() {
               onClick={() => setActiveTab(tab)}
               className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-brand text-info'
+                  : 'border-transparent text-fg-muted hover:text-fg'
               }`}
             >
               {tab}

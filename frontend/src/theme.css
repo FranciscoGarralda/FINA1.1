@@ -1,0 +1,86 @@
+/* Design tokens: globales + dark/light. Un solo origen de verdad. */
+:root {
+  /* Radios */
+  --radius-sm: 4px; /* badges, chips */
+  --radius-md: 6px; /* botones, inputs, selects */
+  --radius-lg: 10px; /* cards, panels, modales */
+  --radius-full: 9999px; /* pills */
+
+  /* Tipografía */
+  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Mono', monospace;
+  --font-size-base: 13px;
+
+  /* Escala tipográfica */
+  --text-h1: 24px;
+  --text-h2: 18px;
+  --text-h3: 14px;
+  --text-body: 13px;
+  --text-caption: 11px;
+  --text-label: 10px;
+
+  /* Timing */
+  --duration-fast: 120ms;
+  --duration-base: 150ms;
+  --duration-slow: 200ms;
+  --easing: ease-out;
+
+  /* Layout */
+  --header-height: 48px;
+  --sidebar-width-collapsed: 48px;
+  --sidebar-width-expanded: 240px;
+  --content-max-width: 1200px;
+  --touch-target: 44px;
+}
+
+[data-theme='dark'] {
+  --bg-app: #0a0b0d;
+  --bg-surface: #0f1117;
+  --bg-elevated: #161b22;
+  --border-subtle: #1e2530;
+  --border-active: #252d3a;
+  --text-primary: #f0f2f5;
+  --text-secondary: #8b95a1;
+  --text-muted: #4e5a68;
+  --brand: #7c5cff;
+  --brand-hover: #6b4dff;
+  --brand-soft: rgba(124, 92, 255, 0.1);
+  --brand-glow: rgba(124, 92, 255, 0.4);
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+  --hover-overlay: rgba(255, 255, 255, 0.04);
+  --hover-overlay-strong: rgba(255, 255, 255, 0.07);
+  --overlay-scrim: rgba(0, 0, 0, 0.45);
+  --focus-ring: 0 0 0 2px rgba(124, 92, 255, 0.2);
+  --error-soft: rgba(239, 68, 68, 0.12);
+  --success-soft: rgba(34, 197, 94, 0.12);
+  --warning-soft: rgba(245, 158, 11, 0.14);
+}
+
+[data-theme='light'] {
+  --bg-app: #ffffff;
+  --bg-surface: #f5f7fa;
+  --bg-elevated: #ffffff;
+  --border-subtle: #e5e7eb;
+  --border-active: #d1d5db;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --brand: #7c5cff;
+  --brand-hover: #6b4dff;
+  --brand-soft: rgba(124, 92, 255, 0.1);
+  --brand-glow: rgba(124, 92, 255, 0.25);
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+  --hover-overlay: rgba(0, 0, 0, 0.04);
+  --hover-overlay-strong: rgba(0, 0, 0, 0.06);
+  --overlay-scrim: rgba(15, 23, 42, 0.35);
+  --focus-ring: 0 0 0 2px rgba(124, 92, 255, 0.25);
+  --error-soft: rgba(239, 68, 68, 0.08);
+  --success-soft: rgba(34, 197, 94, 0.1);
+  --warning-soft: rgba(245, 158, 11, 0.12);
+}

@@ -83,16 +83,16 @@ export default function PosicionesClientePage() {
 
   function balanceColor(b: string) {
     const n = parseFloat(b);
-    if (n < 0) return 'text-red-600';
-    if (n > 0) return 'text-green-600';
-    return 'text-gray-500';
+    if (n < 0) return 'text-error';
+    if (n > 0) return 'text-success';
+    return 'text-fg-muted';
   }
 
   function amountColor(a: string) {
     const n = parseFloat(a);
-    if (n < 0) return 'text-red-600';
-    if (n > 0) return 'text-green-600';
-    return 'text-gray-500';
+    if (n < 0) return 'text-error';
+    if (n > 0) return 'text-success';
+    return 'text-fg-muted';
   }
 
   const selectedCode = balances.find((b) => b.currency_id === selectedCurrency)?.currency_code ?? '';
@@ -117,54 +117,54 @@ export default function PosicionesClientePage() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">Detalle de Posición</h2>
+      <h2 className="text-lg font-semibold text-fg mb-4">Detalle de Posición</h2>
 
       <ApiErrorBanner message={balancesError} />
 
       {loading ? (
-        <p className="text-gray-500 text-sm">Cargando...</p>
+        <p className="text-fg-muted text-sm">Cargando...</p>
       ) : balancesError ? null : balances.length === 0 ? (
-        <p className="text-gray-500 text-sm">Este cliente no tiene posiciones CC.</p>
+        <p className="text-fg-muted text-sm">Este cliente no tiene posiciones CC.</p>
       ) : (
         <>
           {canExportCsv && (
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 min-w-0">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end rounded-lg border border-subtle bg-surface px-4 py-3 min-w-0">
               <div className="min-w-0 w-full sm:w-auto">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Desde</label>
+                <label className="block text-xs font-medium text-fg-muted mb-1">Desde</label>
                 <input
                   type="date"
                   value={exportFrom}
                   onChange={(e) => setExportFrom(e.target.value)}
-                  className="w-full sm:w-auto border border-gray-300 rounded px-2 py-1 text-sm min-w-0"
+                  className="w-full sm:w-auto border border-subtle rounded px-2 py-1 text-sm min-w-0"
                 />
               </div>
               <div className="min-w-0 w-full sm:w-auto">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
+                <label className="block text-xs font-medium text-fg-muted mb-1">Hasta</label>
                 <input
                   type="date"
                   value={exportTo}
                   onChange={(e) => setExportTo(e.target.value)}
-                  className="w-full sm:w-auto border border-gray-300 rounded px-2 py-1 text-sm min-w-0"
+                  className="w-full sm:w-auto border border-subtle rounded px-2 py-1 text-sm min-w-0"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => void handleExportCsv()}
                 disabled={exporting}
-                className="w-full sm:w-auto rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="w-full sm:w-auto rounded bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50"
               >
                 {exporting ? 'Exportando…' : 'Exportar CSV CC'}
               </button>
             </div>
           )}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">Balances</h3>
-            <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
+            <h3 className="text-sm font-medium text-fg-muted mb-2">Balances</h3>
+            <div className="bg-elevated border border-subtle rounded-lg overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-gray-50">
-                    <th className="text-left px-4 py-2 font-medium text-gray-600">Divisa</th>
-                    <th className="text-right px-4 py-2 font-medium text-gray-600">Balance</th>
+                  <tr className="border-b bg-surface">
+                    <th className="text-left px-4 py-2 font-medium text-fg-muted">Divisa</th>
+                    <th className="text-right px-4 py-2 font-medium text-fg-muted">Balance</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -172,8 +172,8 @@ export default function PosicionesClientePage() {
                     <tr
                       key={b.currency_id}
                       onClick={() => setSelectedCurrency(b.currency_id)}
-                      className={`border-b last:border-b-0 cursor-pointer hover:bg-gray-50 transition ${
-                        b.currency_id === selectedCurrency ? 'bg-blue-50' : ''
+                      className={`border-b last:border-b-0 cursor-pointer hover:bg-surface transition ${
+                        b.currency_id === selectedCurrency ? 'bg-brand-soft' : ''
                       }`}
                     >
                       <td className="px-4 py-2 font-medium">{b.currency_code}</td>
@@ -188,30 +188,30 @@ export default function PosicionesClientePage() {
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-600 mb-2">
+            <h3 className="text-sm font-medium text-fg-muted mb-2">
               Movimientos CC — {selectedCode}
             </h3>
             <ApiErrorBanner message={entriesError} />
             {loadingEntries ? (
-              <p className="text-gray-500 text-sm">Cargando movimientos...</p>
+              <p className="text-fg-muted text-sm">Cargando movimientos...</p>
             ) : entriesError ? null : entries.length === 0 ? (
-              <p className="text-gray-500 text-sm">Sin movimientos para esta divisa.</p>
+              <p className="text-fg-muted text-sm">Sin movimientos para esta divisa.</p>
             ) : (
-              <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
+              <div className="bg-elevated border border-subtle rounded-lg overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-gray-50">
-                      <th className="text-left px-4 py-2 font-medium text-gray-600">Fecha</th>
-                      <th className="text-left px-4 py-2 font-medium text-gray-600">Divisa</th>
-                      <th className="text-right px-4 py-2 font-medium text-gray-600">Monto</th>
-                      <th className="text-left px-4 py-2 font-medium text-gray-600">Nº Op.</th>
-                      <th className="text-left px-4 py-2 font-medium text-gray-600">Nota</th>
+                    <tr className="border-b bg-surface">
+                      <th className="text-left px-4 py-2 font-medium text-fg-muted">Fecha</th>
+                      <th className="text-left px-4 py-2 font-medium text-fg-muted">Divisa</th>
+                      <th className="text-right px-4 py-2 font-medium text-fg-muted">Monto</th>
+                      <th className="text-left px-4 py-2 font-medium text-fg-muted">Nº Op.</th>
+                      <th className="text-left px-4 py-2 font-medium text-fg-muted">Nota</th>
                     </tr>
                   </thead>
                   <tbody>
                     {entries.map((e) => (
                       <tr key={e.id} className="border-b last:border-b-0">
-                        <td className="px-4 py-2 text-gray-600">
+                        <td className="px-4 py-2 text-fg-muted">
                           {new Date(e.created_at).toLocaleString('es-AR', {
                             day: '2-digit',
                             month: '2-digit',
@@ -225,10 +225,10 @@ export default function PosicionesClientePage() {
                           {parseFloat(e.amount) > 0 ? '+' : ''}
                           {formatMoneyAR(e.amount)}
                         </td>
-                        <td className="px-4 py-2 text-gray-600">
+                        <td className="px-4 py-2 text-fg-muted">
                           {e.operation_number != null ? `#${e.operation_number}` : '—'}
                         </td>
-                        <td className="px-4 py-2 text-gray-500 max-w-[12rem] break-words">{e.note ?? '—'}</td>
+                        <td className="px-4 py-2 text-fg-muted max-w-[12rem] break-words">{e.note ?? '—'}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -166,23 +166,23 @@ export default function AccountFormModal({ account, onClose, onSaved }: Props) {
         <h2 className="text-lg font-semibold mb-4">{isEdit ? 'Editar Cuenta' : 'Nueva Cuenta'}</h2>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de cuenta</label>
+            <label className="block text-sm font-medium text-fg mb-1">Nombre de cuenta</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ej: Caja principal"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-subtle rounded-md px-3 py-2 text-base focus:outline-none focus:border-brand shadow-focus-brand"
               required
             />
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Habilitar divisas para esta cuenta</h3>
+            <h3 className="text-sm font-medium text-fg mb-3">Habilitar divisas para esta cuenta</h3>
             {loadingCurrencies ? (
-              <p className="text-gray-400 text-sm">Cargando divisas...</p>
+              <p className="text-fg-subtle text-sm">Cargando divisas...</p>
             ) : currencyRows.length === 0 ? (
-              <p className="text-gray-400 text-sm">No hay divisas activas. Creá divisas primero.</p>
+              <p className="text-fg-subtle text-sm">No hay divisas activas. Creá divisas primero.</p>
             ) : (
               <div className="border rounded-md divide-y">
                 {currencyRows.map((row, idx) => (
@@ -194,9 +194,9 @@ export default function AccountFormModal({ account, onClose, onSaved }: Props) {
                         onChange={() => toggleEnabled(idx)}
                         className="rounded"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-medium text-fg">
                         {row.code}
-                        <span className="text-gray-400 font-normal ml-1">({row.name})</span>
+                        <span className="text-fg-subtle font-normal ml-1">({row.name})</span>
                       </span>
                     </label>
                     <label className={`flex items-center gap-1 text-sm ${!row.enabled ? 'opacity-40' : ''}`}>
@@ -225,7 +225,7 @@ export default function AccountFormModal({ account, onClose, onSaved }: Props) {
             )}
           </div>
 
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && <p className="text-error text-sm">{error}</p>}
 
           <FormActionsRow
             variant="modal"
@@ -233,7 +233,7 @@ export default function AccountFormModal({ account, onClose, onSaved }: Props) {
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-touch border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                className="btn-touch border border-subtle text-fg rounded-md hover:bg-surface"
               >
                 Cancelar
               </button>
@@ -242,7 +242,7 @@ export default function AccountFormModal({ account, onClose, onSaved }: Props) {
               <button
                 type="submit"
                 disabled={saving}
-                className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
+                className="btn-touch bg-brand text-white rounded-md hover:bg-brand-hover disabled:opacity-50 font-medium"
               >
                 {saving ? 'Guardando...' : 'Guardar'}
               </button>

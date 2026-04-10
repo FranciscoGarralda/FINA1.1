@@ -128,12 +128,12 @@ export default function PendientesPage() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h2 className="text-lg font-semibold text-gray-800">Pendientes</h2>
+        <h2 className="text-lg font-semibold text-fg">Pendientes</h2>
         {canOpening && (
           <button
             type="button"
             onClick={() => setOpeningModalOpen(true)}
-            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-3 py-1.5 text-sm bg-brand text-white rounded hover:bg-brand-hover"
           >
             Registrar pendiente inicial
           </button>
@@ -143,51 +143,51 @@ export default function PendientesPage() {
       <ApiErrorBanner message={error} />
 
       {loading ? (
-        <p className="text-gray-500 text-sm">Cargando...</p>
+        <p className="text-fg-muted text-sm">Cargando...</p>
       ) : items.length === 0 ? (
-        <p className="text-gray-500 text-sm">No hay pendientes abiertos.</p>
+        <p className="text-fg-muted text-sm">No hay pendientes abiertos.</p>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
+        <div className="bg-elevated border border-subtle rounded-lg overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-gray-50">
+              <tr className="border-b bg-surface">
                 <th
-                  className="text-left px-3 py-2 font-medium text-gray-600 cursor-pointer select-none"
+                  className="text-left px-3 py-2 font-medium text-fg-muted cursor-pointer select-none"
                   onClick={() => toggleSort('client_name')}
                 >
                   Cliente {sortField === 'client_name' ? (sortAsc ? '▲' : '▼') : ''}
                 </th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600">Dirección</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600">Teléfono</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600">Tipo</th>
+                <th className="text-left px-3 py-2 font-medium text-fg-muted">Dirección</th>
+                <th className="text-left px-3 py-2 font-medium text-fg-muted">Teléfono</th>
+                <th className="text-left px-3 py-2 font-medium text-fg-muted">Tipo</th>
                 <th
-                  className="text-right px-3 py-2 font-medium text-gray-600 cursor-pointer select-none"
+                  className="text-right px-3 py-2 font-medium text-fg-muted cursor-pointer select-none"
                   onClick={() => toggleSort('amount')}
                 >
                   Monto {sortField === 'amount' ? (sortAsc ? '▲' : '▼') : ''}
                 </th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600">Divisa</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600">Cuenta orig.</th>
+                <th className="text-left px-3 py-2 font-medium text-fg-muted">Divisa</th>
+                <th className="text-left px-3 py-2 font-medium text-fg-muted">Cuenta orig.</th>
                 <th
-                  className="text-left px-3 py-2 font-medium text-gray-600 cursor-pointer select-none"
+                  className="text-left px-3 py-2 font-medium text-fg-muted cursor-pointer select-none"
                   onClick={() => toggleSort('created_at')}
                 >
                   Fecha {sortField === 'created_at' ? (sortAsc ? '▲' : '▼') : ''}
                 </th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600">Estado</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-600">Acciones</th>
+                <th className="text-left px-3 py-2 font-medium text-fg-muted">Estado</th>
+                <th className="text-center px-3 py-2 font-medium text-fg-muted">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((item) => (
-                <tr key={item.id} className="border-b last:border-b-0 hover:bg-gray-50">
+                <tr key={item.id} className="border-b last:border-b-0 hover:bg-surface">
                   <td className="px-3 py-2">{item.client_name}</td>
-                  <td className="px-3 py-2 text-gray-600 text-xs">{formatAddress(item)}</td>
-                  <td className="px-3 py-2 text-gray-600">{item.phone}</td>
+                  <td className="px-3 py-2 text-fg-muted text-xs">{formatAddress(item)}</td>
+                  <td className="px-3 py-2 text-fg-muted">{item.phone}</td>
                   <td className="px-3 py-2">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded ${
                       item.type === 'PENDIENTE_DE_PAGO'
-                        ? 'bg-blue-50 text-blue-700'
+                        ? 'bg-brand-soft text-brand'
                         : 'bg-orange-50 text-orange-700'
                     }`}>
                       {pendingTypeLabel(item.type, item.movement_type)}
@@ -195,36 +195,36 @@ export default function PendientesPage() {
                   </td>
                   <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(item.amount)}</td>
                   <td className="px-3 py-2">{item.currency_code}</td>
-                  <td className="px-3 py-2 text-gray-600">{item.account_name}</td>
-                  <td className="px-3 py-2 text-gray-500 text-xs">
+                  <td className="px-3 py-2 text-fg-muted">{item.account_name}</td>
+                  <td className="px-3 py-2 text-fg-muted text-xs">
                     {new Date(item.created_at).toLocaleString('es-AR', {
                       day: '2-digit', month: '2-digit', year: '2-digit',
                       hour: '2-digit', minute: '2-digit',
                     })}
                   </td>
                   <td className="px-3 py-2">
-                    <span className="text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded font-medium">
+                    <span className="text-xs bg-warning-soft text-warning px-2 py-0.5 rounded font-medium">
                       Abierto
                     </span>
                   </td>
                   <td className="px-3 py-2 text-center space-x-1">
                     <button
                       onClick={() => { setResolveTarget(item); setResolveMode('REAL_EXECUTION'); }}
-                      className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition"
+                      className="text-xs bg-success text-white px-2 py-1 rounded hover:opacity-90 transition"
                     >
                       Resolver
                     </button>
                     {item.cc_enabled && (
                       <button
                         onClick={() => { setResolveTarget(item); setResolveMode('COMPENSATED'); }}
-                        className="text-xs bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700 transition"
+                        className="text-xs bg-brand text-white px-2 py-1 rounded hover:bg-brand-hover transition"
                       >
                         Compensar
                       </button>
                     )}
                     <button
                       onClick={() => setCancelTarget(item)}
-                      className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition"
+                      className="text-xs bg-error text-white px-2 py-1 rounded hover:opacity-90 transition-opacity duration-interaction ease-out"
                     >
                       Anular op.
                     </button>
@@ -347,18 +347,18 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
   return createPortal(
     <div className="modal-backdrop">
       <div className="modal-panel max-w-lg w-full p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold text-gray-800 mb-1">Pendiente inicial (apertura)</h3>
-        <p className="text-xs text-gray-500 mb-4">
+        <h3 className="text-lg font-semibold text-fg mb-1">Pendiente inicial (apertura)</h3>
+        <p className="text-xs text-fg-muted mb-4">
           Obligación de caja previa al sistema; sin impacto en cuenta corriente ni utilidad. Misma resolución que el resto de pendientes.
         </p>
         {loadErr && <p className="text-amber-700 text-sm mb-2">{loadErr}</p>}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-0.5">Cliente</label>
+            <label className="block text-sm font-medium text-fg mb-0.5">Cliente</label>
             <select
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
               required
             >
               <option value="">Elegir…</option>
@@ -370,11 +370,11 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-0.5">Tipo</label>
+            <label className="block text-sm font-medium text-fg mb-0.5">Tipo</label>
             <select
               value={pendingKind}
               onChange={(e) => setPendingKind(e.target.value as 'RETIRO' | 'PAGO')}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
             >
               <option value="RETIRO">
                 Entrega / pago pendiente — al concretar sale plata de la cuenta (OUT)
@@ -383,18 +383,18 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
                 Cobro pendiente — al concretar ingresa plata a la cuenta (IN)
               </option>
             </select>
-            <p className="text-xs text-gray-500 mt-1 leading-snug">
+            <p className="text-xs text-fg-muted mt-1 leading-snug">
               {pendingKind === 'RETIRO'
                 ? 'Equivale a entregar o pagar desde caja: al resolver, la línea real es salida (OUT), igual que una entrega en venta.'
                 : 'Equivale a cobrar a favor de la casa: al resolver, la línea real es ingreso (IN), igual que un cobro pendiente en venta.'}
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-0.5">Cuenta</label>
+            <label className="block text-sm font-medium text-fg mb-0.5">Cuenta</label>
             <select
               value={accountId}
               onChange={(e) => { setAccountId(e.target.value); setCurrencyId(''); }}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
               required
             >
               <option value="">Elegir…</option>
@@ -404,11 +404,11 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-0.5">Divisa</label>
+            <label className="block text-sm font-medium text-fg mb-0.5">Divisa</label>
             <select
               value={currencyId}
               onChange={(e) => setCurrencyId(e.target.value)}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
               required
             >
               <option value="">Elegir…</option>
@@ -421,7 +421,7 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
           </div>
           {currencyId && (
             <div>
-              <span className="block text-sm font-medium text-gray-700 mb-1">Formato</span>
+              <span className="block text-sm font-medium text-fg mb-1">Formato</span>
               <div className="flex flex-wrap gap-4">
                 {allowedFormatsFromList(accountCurrencies, currencyId).map((f) => (
                   <label key={f} className="flex items-center gap-1.5 text-sm">
@@ -439,35 +439,35 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-0.5">Monto</label>
+            <label className="block text-sm font-medium text-fg mb-0.5">Monto</label>
             <MoneyInput value={amount} onValueChange={setAmount} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-0.5">Fecha del movimiento</label>
+            <label className="block text-sm font-medium text-fg mb-0.5">Fecha del movimiento</label>
             <input
               type="date"
               value={dateStr}
               onChange={(e) => setDateStr(e.target.value)}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-0.5">Nota (opcional)</label>
+            <label className="block text-sm font-medium text-fg mb-0.5">Nota (opcional)</label>
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
               placeholder="Ej. arrastre desde sistema anterior"
             />
           </div>
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && <p className="text-error text-sm">{error}</p>}
           <FormActionsRow
             variant="modal"
             cancel={
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                className="btn-touch text-fg-muted border border-subtle rounded-md hover:bg-surface"
               >
                 Cancelar
               </button>
@@ -476,7 +476,7 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
               <button
                 type="submit"
                 disabled={submitting}
-                className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                className="btn-touch bg-brand text-white rounded-md hover:bg-brand-hover disabled:opacity-50"
               >
                 {submitting ? 'Guardando…' : 'Registrar'}
               </button>
@@ -609,22 +609,22 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
   return createPortal(
     <div className="modal-backdrop">
       <div className="modal-panel max-w-md p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
-        <h3 className="text-lg font-semibold text-gray-800 mb-1">Resolver pendiente</h3>
-        <p className="text-sm text-gray-500 mb-4">
+        <h3 className="text-lg font-semibold text-fg mb-1">Resolver pendiente</h3>
+        <p className="text-sm text-fg-muted mb-4">
           {item.client_name} — {item.currency_code} {formatMoneyAR(item.amount)} ({pendingTypeLabel(item.type)})
         </p>
         {mode === 'REAL_EXECUTION' ? (
-          <p className="text-xs text-gray-500 mb-4">{impactLabel}</p>
+          <p className="text-xs text-fg-muted mb-4">{impactLabel}</p>
         ) : (
-          <p className="text-xs text-gray-500 mb-4">Compensar cierra el pendiente sin mover cuentas reales ni CC.</p>
+          <p className="text-xs text-fg-muted mb-4">Compensar cierra el pendiente sin mover cuentas reales ni CC.</p>
         )}
 
         <ApiErrorBanner message={bootstrapError} />
-        {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+        {error && <p className="text-error text-sm mb-3">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Modo</label>
+            <label className="block text-sm font-medium text-fg mb-1">Modo</label>
             <div className="flex gap-4">
               <label className="flex items-center gap-1.5 text-sm">
                 <input
@@ -653,11 +653,11 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
 
           {mode === 'REAL_EXECUTION' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{accountLabel}</label>
+              <label className="block text-sm font-medium text-fg mb-1">{accountLabel}</label>
               <select
                 value={accountId}
                 onChange={(e) => setAccountId(e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-base"
+                className="w-full border border-subtle rounded px-3 py-2 text-base"
               >
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>{a.name}</option>
@@ -668,7 +668,7 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
 
           {mode === 'REAL_EXECUTION' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Formato</label>
+              <label className="block text-sm font-medium text-fg mb-1">Formato</label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-1.5 text-sm">
                   <input
@@ -695,9 +695,9 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-fg mb-1">
               Monto a resolver
-              {(!partialAllowed || mode === 'COMPENSATED') && <span className="text-xs text-gray-400 ml-1">(debe ser exacto)</span>}
+              {(!partialAllowed || mode === 'COMPENSATED') && <span className="text-xs text-fg-subtle ml-1">(debe ser exacto)</span>}
             </label>
             <MoneyInput
               value={amount}
@@ -709,21 +709,21 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
           {mode === 'COMPENSATED' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Referencia operación que compensa</label>
+                <label className="block text-sm font-medium text-fg mb-1">Referencia operación que compensa</label>
                 <input
                   value={resolvedByMovementId}
                   onChange={(e) => setResolvedByMovementId(e.target.value)}
                   placeholder="ID de movimiento"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-base"
+                  className="w-full border border-subtle rounded px-3 py-2 text-base"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Motivo (opcional)</label>
+                <label className="block text-sm font-medium text-fg mb-1">Motivo (opcional)</label>
                 <input
                   value={resolutionNote}
                   onChange={(e) => setResolutionNote(e.target.value)}
                   placeholder="Detalle de compensación"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-base"
+                  className="w-full border border-subtle rounded px-3 py-2 text-base"
                 />
               </div>
             </>
@@ -735,7 +735,7 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                className="btn-touch text-fg-muted border border-subtle rounded-md hover:bg-surface"
               >
                 Cancelar
               </button>
@@ -744,7 +744,7 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
               <button
                 type="submit"
                 disabled={submitting}
-                className="btn-touch bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                className="btn-touch bg-success text-white rounded-md hover:opacity-90 disabled:opacity-50"
               >
                 {submitting ? 'Guardando...' : (mode === 'COMPENSATED' ? 'Confirmar compensación' : 'Confirmar')}
               </button>
@@ -782,15 +782,15 @@ function CancelModal({ item, onClose, onDone }: { item: PendingItem; onClose: ()
   return createPortal(
     <div className="modal-backdrop">
       <div className="modal-panel max-w-sm p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Anular operación</h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <h3 className="text-lg font-semibold text-fg mb-2">Anular operación</h3>
+        <p className="text-sm text-fg-muted mb-4">
           ¿Estás seguro de anular toda la operación? Se revertirán sus efectos reales/comerciales y se cerrarán sus pendientes.
         </p>
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-fg-muted mb-4">
           Operación #{item.operation_number} — {item.client_name} — {item.currency_code} {formatMoneyAR(item.amount)}
         </p>
 
-        {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+        {error && <p className="text-error text-sm mb-3">{error}</p>}
 
         <FormActionsRow
           variant="modal"
@@ -798,7 +798,7 @@ function CancelModal({ item, onClose, onDone }: { item: PendingItem; onClose: ()
             <button
               type="button"
               onClick={onClose}
-              className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="btn-touch text-fg-muted border border-subtle rounded-md hover:bg-surface"
             >
               Volver
             </button>
@@ -808,7 +808,7 @@ function CancelModal({ item, onClose, onDone }: { item: PendingItem; onClose: ()
               type="button"
               onClick={handleCancel}
               disabled={submitting}
-              className="btn-touch bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+              className="btn-touch bg-error text-white rounded-md hover:opacity-90 disabled:opacity-50"
             >
               {submitting ? 'Anulando...' : 'Confirmar anulación'}
             </button>

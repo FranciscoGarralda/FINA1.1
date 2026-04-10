@@ -87,9 +87,9 @@ function todayStr() {
 }
 
 function deltaClass(d: number) {
-  if (d > 0) return 'text-green-700';
-  if (d < 0) return 'text-red-600';
-  return 'text-gray-500';
+  if (d > 0) return 'text-success';
+  if (d < 0) return 'text-error';
+  return 'text-fg-muted';
 }
 
 export default function CashArqueosPage() {
@@ -249,14 +249,14 @@ export default function CashArqueosPage() {
   }
 
   if (!canView && !canCreate) {
-    return <p className="text-gray-500 text-sm">No tenés permisos para arqueos de caja.</p>;
+    return <p className="text-fg-muted text-sm">No tenés permisos para arqueos de caja.</p>;
   }
 
   return (
     <div className="space-y-10">
       <div>
-        <h2 className="text-xl font-semibold text-gray-800 mb-1">Arqueos de caja</h2>
-        <p className="text-sm text-gray-600">
+        <h2 className="text-xl font-semibold text-fg mb-1">Arqueos de caja</h2>
+        <p className="text-sm text-fg-muted">
           Saldo sistema y conteo por divisa y formato (efectivo / digital), alineados al ledger. Se guarda snapshot y diferencia; auditoría en el alta.
         </p>
       </div>
@@ -265,15 +265,15 @@ export default function CashArqueosPage() {
 
       {canCreate && (
         <section>
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Nuevo arqueo</h3>
+          <h3 className="text-sm font-semibold text-fg mb-3">Nuevo arqueo</h3>
           <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4 max-w-3xl">
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="block text-xs text-gray-500 mb-0.5">Cuenta</label>
+                <label className="block text-xs text-fg-muted mb-0.5">Cuenta</label>
                 <select
                   value={accountId}
                   onChange={(e) => setAccountId(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+                  className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
                   required
                 >
                   <option value="">Elegir…</option>
@@ -285,34 +285,34 @@ export default function CashArqueosPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-0.5">Fecha de corte</label>
+                <label className="block text-xs text-fg-muted mb-0.5">Fecha de corte</label>
                 <input
                   type="date"
                   value={arqueoDate}
                   onChange={(e) => setArqueoDate(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+                  className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
                   required
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-0.5">Nota (opcional)</label>
+              <label className="block text-xs text-fg-muted mb-0.5">Nota (opcional)</label>
               <input
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+                className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
                 placeholder="Ej. cierre turno"
               />
             </div>
             <button
               type="button"
               onClick={() => void loadTotals()}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              className="text-sm text-info hover:text-info"
             >
               Refrescar saldos sistema
             </button>
-            {loadingTotals && <p className="text-xs text-gray-400">Cargando saldos…</p>}
+            {loadingTotals && <p className="text-xs text-fg-subtle">Cargando saldos…</p>}
             {accountId && totals.some((t) => !(t.format && String(t.format).trim())) && totals.length > 0 && (
               <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
                 El API no incluye <code className="text-xs">format</code> por fila. En producción: deploy del backend con migración{' '}
@@ -332,10 +332,10 @@ export default function CashArqueosPage() {
               </p>
             )}
             {accountId && totals.length > 0 && (
-              <div className="border border-gray-200 rounded-lg overflow-x-auto">
+              <div className="border border-subtle rounded-lg overflow-x-auto">
                 <table className="w-full text-sm min-w-[280px]">
                   <thead>
-                    <tr className="bg-gray-50 text-left text-gray-600 border-b">
+                    <tr className="bg-surface text-left text-fg-muted border-b">
                       <th className="px-3 py-2">Divisa</th>
                       <th className="px-3 py-2">Formato</th>
                       <th className="px-3 py-2 text-right">Saldo sistema</th>
@@ -348,13 +348,13 @@ export default function CashArqueosPage() {
                       return (
                         <tr key={k} className="border-b last:border-0">
                           <td className="px-3 py-2 font-medium">{t.currency_code}</td>
-                          <td className="px-3 py-2 text-gray-700">{formatLabel(t.format)}</td>
-                          <td className="px-3 py-2 text-right font-mono text-gray-700">{formatMoneyAR(t.balance)}</td>
+                          <td className="px-3 py-2 text-fg">{formatLabel(t.format)}</td>
+                          <td className="px-3 py-2 text-right font-mono text-fg">{formatMoneyAR(t.balance)}</td>
                           <td className="px-3 py-2 text-right">
                             <input
                               type="text"
                               inputMode="decimal"
-                              className="w-28 border border-gray-300 rounded px-2 py-1 text-right font-mono text-sm"
+                              className="w-28 border border-subtle rounded px-2 py-1 text-right font-mono text-sm"
                               placeholder="0"
                               value={counts[k] ?? ''}
                               onChange={(e) =>
@@ -375,27 +375,27 @@ export default function CashArqueosPage() {
             <button
               type="submit"
               disabled={saving || !accountId}
-              className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-brand text-white text-sm rounded hover:bg-brand-hover disabled:opacity-50"
             >
               {saving ? 'Guardando…' : 'Registrar arqueo'}
             </button>
-            {msg && <p className="text-sm text-green-700">{msg}</p>}
-            {err && <p className="text-sm text-red-600">{err}</p>}
+            {msg && <p className="text-sm text-success">{msg}</p>}
+            {err && <p className="text-sm text-error">{err}</p>}
           </form>
         </section>
       )}
 
       {canView && (
         <section>
-          <h3 className="text-sm font-semibold text-gray-700 mb-1">Historial</h3>
-          <p className="text-xs text-gray-500 mb-3">
+          <h3 className="text-sm font-semibold text-fg mb-1">Historial</h3>
+          <p className="text-xs text-fg-muted mb-3">
             Arqueos registrados antes del desglose efectivo/digital pueden figurar solo como efectivo en formato (dato histórico).
           </p>
           <div className="flex flex-wrap gap-3 mb-4">
             <select
               value={listFilterAccount}
               onChange={(e) => setListFilterAccount(e.target.value)}
-              className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="border border-subtle rounded px-2 py-1.5 text-sm"
             >
               <option value="">Todas las cuentas</option>
               {accounts.map((a) => (
@@ -408,42 +408,42 @@ export default function CashArqueosPage() {
               type="date"
               value={listFrom}
               onChange={(e) => setListFrom(e.target.value)}
-              className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="border border-subtle rounded px-2 py-1.5 text-sm"
               placeholder="Desde"
             />
             <input
               type="date"
               value={listTo}
               onChange={(e) => setListTo(e.target.value)}
-              className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="border border-subtle rounded px-2 py-1.5 text-sm"
               placeholder="Hasta"
             />
             <button
               type="button"
               onClick={() => void loadList()}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50"
+              className="px-3 py-1.5 text-sm border border-subtle rounded hover:bg-surface"
             >
               Aplicar filtros
             </button>
           </div>
-          {loadingList && <p className="text-sm text-gray-500">Cargando…</p>}
-          {!loadingList && arqueos.length === 0 && <p className="text-sm text-gray-400">Sin arqueos.</p>}
+          {loadingList && <p className="text-sm text-fg-muted">Cargando…</p>}
+          {!loadingList && arqueos.length === 0 && <p className="text-sm text-fg-subtle">Sin arqueos.</p>}
           <div className="space-y-6">
             {arqueos.map((aq) => (
-              <div key={aq.id} className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-                <div className="bg-gray-50 px-4 py-2 border-b text-sm">
-                  <span className="font-semibold text-gray-800">{aq.account_name}</span>
-                  <span className="text-gray-500 mx-2">·</span>
-                  <span className="text-gray-600">Corte {aq.arqueo_date}</span>
-                  <span className="text-gray-500 mx-2">·</span>
-                  <span className="text-gray-500 text-xs">{aq.created_by_username || aq.created_by_user_id}</span>
-                  <span className="text-gray-400 text-xs ml-2">{new Date(aq.created_at).toLocaleString('es-AR')}</span>
-                  {aq.note && <p className="text-xs text-gray-600 mt-1">Nota: {aq.note}</p>}
+              <div key={aq.id} className="border border-subtle rounded-lg overflow-hidden bg-elevated">
+                <div className="bg-surface px-4 py-2 border-b text-sm">
+                  <span className="font-semibold text-fg">{aq.account_name}</span>
+                  <span className="text-fg-muted mx-2">·</span>
+                  <span className="text-fg-muted">Corte {aq.arqueo_date}</span>
+                  <span className="text-fg-muted mx-2">·</span>
+                  <span className="text-fg-muted text-xs">{aq.created_by_username || aq.created_by_user_id}</span>
+                  <span className="text-fg-subtle text-xs ml-2">{new Date(aq.created_at).toLocaleString('es-AR')}</span>
+                  {aq.note && <p className="text-xs text-fg-muted mt-1">Nota: {aq.note}</p>}
                 </div>
                 <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[380px]">
                   <thead>
-                    <tr className="text-left text-gray-500 border-b">
+                    <tr className="text-left text-fg-muted border-b">
                       <th className="px-4 py-2">Divisa</th>
                       <th className="px-4 py-2">Formato</th>
                       <th className="px-4 py-2 text-right">Sistema (snapshot)</th>
@@ -458,7 +458,7 @@ export default function CashArqueosPage() {
                       return (
                         <tr key={rowK} className="border-b last:border-0">
                           <td className="px-4 py-2 font-medium">{ln.currency_code}</td>
-                          <td className="px-4 py-2 text-gray-600">{formatLabel(ln.format || 'CASH')}</td>
+                          <td className="px-4 py-2 text-fg-muted">{formatLabel(ln.format || 'CASH')}</td>
                           <td className="px-4 py-2 text-right font-mono">{formatMoneyAR(ln.system_balance_snapshot)}</td>
                           <td className="px-4 py-2 text-right font-mono">{formatMoneyAR(ln.counted_total)}</td>
                           <td className={`px-4 py-2 text-right font-mono font-medium ${deltaClass(d)}`}>

@@ -53,7 +53,7 @@ export default function MoneyInput({
 
   return (
     <div>
-      {label && <label className="block text-xs text-gray-500 mb-0.5">{label}</label>}
+      {label && <label className="block text-xs text-fg-muted mb-0.5">{label}</label>}
       <input
         type="text"
         inputMode="decimal"
@@ -63,7 +63,7 @@ export default function MoneyInput({
         onFocus={handleFocus}
         placeholder={placeholder}
         disabled={disabled}
-        className={`w-full border border-gray-300 rounded px-2 py-1.5 text-sm ${disabled ? 'bg-gray-100' : ''} ${className}`}
+        className={`w-full border border-subtle rounded px-2 py-1.5 text-sm ${disabled ? 'bg-surface' : ''} ${className}`}
       />
     </div>
   );

@@ -740,31 +740,31 @@ export default function NuevaOperacionPage() {
 
   return (
     <div className="min-w-0 max-w-full">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">
+      <h2 className="text-lg font-semibold text-fg mb-4">
         Nueva operación
         {movementId != null && operationNumber != null && (
-          <span className="text-gray-600 font-normal"> — #{operationNumber}</span>
+          <span className="text-fg-muted font-normal"> — #{operationNumber}</span>
         )}
       </h2>
 
-      {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+      {error && <p className="text-error text-sm mb-3">{error}</p>}
 
-      <div className="bg-white border border-gray-200 rounded-lg p-5 mb-4">
+      <div className="bg-elevated border border-subtle rounded-lg p-5 mb-4">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-3 min-w-0">
-          <h3 className="text-sm font-semibold text-gray-700">Borradores guardados</h3>
-          {loadingDrafts && <span className="text-xs text-gray-500">Cargando...</span>}
+          <h3 className="text-sm font-semibold text-fg">Borradores guardados</h3>
+          {loadingDrafts && <span className="text-xs text-fg-muted">Cargando...</span>}
         </div>
         {drafts.length === 0 ? (
-          <p className="text-sm text-gray-500">No hay borradores pendientes.</p>
+          <p className="text-sm text-fg-muted">No hay borradores pendientes.</p>
         ) : (
           <div className="space-y-2">
             {drafts.map((d) => (
-              <div key={d.id} className="border border-gray-200 rounded px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+              <div key={d.id} className="border border-subtle rounded px-3 py-2 flex flex-wrap items-center justify-between gap-2">
                 <div className="text-sm">
-                  <p className="font-medium text-gray-800">
+                  <p className="font-medium text-fg">
                     #{d.operation_number} - {movementTypeLabel(d.type)}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-fg-muted">
                     Fecha: {d.date} {d.client_name ? `| Cliente: ${d.client_name}` : ''} | Actualizado: {new Date(d.updated_at).toLocaleString()}
                   </p>
                 </div>
@@ -773,7 +773,7 @@ export default function NuevaOperacionPage() {
                     type="button"
                     onClick={() => handleResumeDraft(d)}
                     disabled={processingDraftId === d.id}
-                    className="text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition px-4"
+                    className="text-sm bg-brand text-white rounded hover:bg-brand-hover disabled:opacity-50 transition px-4"
                   >
                     Reanudar
                   </button>
@@ -781,7 +781,7 @@ export default function NuevaOperacionPage() {
                     type="button"
                     onClick={() => handleDiscardListedDraft(d.id)}
                     disabled={processingDraftId === d.id}
-                    className="text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 disabled:opacity-50 transition px-4"
+                    className="text-sm text-error border border-error/30 rounded hover:bg-error-soft disabled:opacity-50 transition px-4"
                   >
                     {processingDraftId === d.id ? 'Eliminando...' : 'Eliminar'}
                   </button>
@@ -792,7 +792,7 @@ export default function NuevaOperacionPage() {
         )}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-4">
+      <div className="bg-elevated border border-subtle rounded-lg p-5 space-y-4">
         {resumeNotice && (
           <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
             {resumeNotice}
@@ -800,21 +800,21 @@ export default function NuevaOperacionPage() {
         )}
         {/* Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+          <label className="block text-sm font-medium text-fg mb-1">Fecha</label>
           <div className="flex flex-wrap items-center gap-3">
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-2 text-sm min-w-0 max-w-full"
+              className="border border-subtle rounded px-3 py-2 text-sm min-w-0 max-w-full"
             />
-            {dayName && <span className="text-sm text-gray-500 shrink-0">{dayName}</span>}
+            {dayName && <span className="text-sm text-fg-muted shrink-0">{dayName}</span>}
           </div>
         </div>
 
         {/* Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de operación</label>
+          <label className="block text-sm font-medium text-fg mb-1">Tipo de operación</label>
           <select
             value={type}
             onChange={(e) => {
@@ -825,7 +825,7 @@ export default function NuevaOperacionPage() {
               setClientQuery('');
               setIsClientOpen(false);
             }}
-            className="w-full max-w-sm border border-gray-300 rounded px-3 py-2 text-sm"
+            className="w-full max-w-sm border border-subtle rounded px-3 py-2 text-sm"
           >
             {!movementId && <option value="">— Seleccionar —</option>}
             {MOVEMENT_TYPES.map((t) => (
@@ -838,24 +838,24 @@ export default function NuevaOperacionPage() {
         {type && clientRequired && (
           <div>
             <div className="flex flex-wrap items-center justify-between gap-2 max-w-full sm:max-w-sm mb-1 min-w-0">
-              <label className="text-sm font-medium text-gray-700 min-w-0">
+              <label className="text-sm font-medium text-fg min-w-0">
                 Cliente
               </label>
               {canCreateClient && (
                 <button
                   type="button"
                   onClick={() => setIsClientModalOpen(true)}
-                  className="text-xs text-blue-600 hover:text-blue-800 font-medium transition"
+                  className="text-xs text-info hover:text-info font-medium transition"
                 >
                   + Nuevo cliente
                 </button>
               )}
             </div>
             {clientMustHaveCC && !hasEligibleClients && !loadingClients && (
-              <p className="text-xs text-red-600 mb-1">No hay clientes con CC habilitada para este tipo de operación.</p>
+              <p className="text-xs text-error mb-1">No hay clientes con CC habilitada para este tipo de operación.</p>
             )}
             {loadingClients ? (
-              <p className="text-sm text-gray-500">Cargando clientes...</p>
+              <p className="text-sm text-fg-muted">Cargando clientes...</p>
             ) : (
               <div ref={comboRef} className="relative w-full max-w-sm">
                 <div className="flex">
@@ -872,21 +872,21 @@ export default function NuevaOperacionPage() {
                     }}
                     onFocus={() => setIsClientOpen(true)}
                     onKeyDown={handleComboKeyDown}
-                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                    className="w-full border border-subtle rounded px-3 py-2 text-sm"
                   />
                   {clientId && (
                     <button
                       type="button"
                       onClick={() => { clearClient(); inputRef.current?.focus(); }}
-                      className="ml-1 px-2 text-gray-400 hover:text-gray-600 text-lg"
+                      className="ml-1 px-2 text-fg-subtle hover:text-fg-muted text-lg"
                       title="Limpiar"
                     >&times;</button>
                   )}
                 </div>
                 {isClientOpen && (
-                  <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg max-h-64 overflow-auto">
+                  <div className="absolute z-50 mt-1 w-full bg-elevated border border-subtle rounded shadow-lg max-h-64 overflow-auto">
                     {filteredClients.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-gray-400">Sin resultados</div>
+                      <div className="px-3 py-2 text-sm text-fg-subtle">Sin resultados</div>
                     ) : (
                       filteredClients.map((c, idx) => (
                         <div
@@ -894,10 +894,10 @@ export default function NuevaOperacionPage() {
                           onMouseDown={(e) => { e.preventDefault(); selectClient(c); }}
                           className={`px-3 py-2 text-sm cursor-pointer transition-colors ${
                             idx === activeIndex
-                              ? 'bg-blue-600 text-white'
+                              ? 'bg-brand text-white'
                               : c.id === clientId
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'text-gray-800 hover:bg-gray-100'
+                                ? 'bg-brand-soft text-brand'
+                                : 'text-fg hover:bg-surface'
                           }`}
                         >
                           #{c.client_code} — {c.last_name}, {c.first_name}
@@ -929,16 +929,16 @@ export default function NuevaOperacionPage() {
           </div>
         )}
 
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-fg-muted">
           El borrador se crea automáticamente al tener fecha, tipo y cliente (si el tipo lo requiere).
           Podés editar la cabecera mientras esté en BORRADOR.
         </p>
         {(creatingHeader || patchingHeader) && (
-          <p className="text-xs text-blue-600">{creatingHeader ? 'Creando borrador…' : 'Actualizando cabecera…'}</p>
+          <p className="text-xs text-info">{creatingHeader ? 'Creando borrador…' : 'Actualizando cabecera…'}</p>
         )}
 
         {movementId && type && (
-          <div className="border-t border-gray-200 pt-4 mt-2">
+          <div className="border-t border-subtle pt-4 mt-2">
             {renderOperationForm()}
           </div>
         )}
@@ -947,20 +947,20 @@ export default function NuevaOperacionPage() {
       {confirmClearOpen && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center bg-black/40 p-4">
           <div className="modal-panel max-w-md w-full p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] space-y-4">
-            <p className="text-sm text-gray-800">
+            <p className="text-sm text-fg">
               Hay datos guardados en el borrador. Para cambiar el tipo o el cliente hay que descartarlos. ¿Continuar?
             </p>
             <div className="form-actions sm:justify-end">
               <button
                 type="button"
-                className="btn-touch border border-gray-300 rounded-md hover:bg-gray-50"
+                className="btn-touch border border-subtle rounded-md hover:bg-surface"
                 onClick={revertHeaderToLastSynced}
               >
                 Volver
               </button>
               <button
                 type="button"
-                className="btn-touch bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="btn-touch bg-brand text-white rounded-md hover:bg-brand-hover"
                 onClick={() => patchMovementHeader(true)}
               >
                 Descartar datos y aplicar
@@ -978,14 +978,14 @@ function TypeFormStub({ type, movementId, onDone }: { type: string; movementId: 
 
   return (
     <div className="border-t pt-4">
-      <p className="text-gray-500 text-sm mb-4">
+      <p className="text-fg-muted text-sm mb-4">
         Formulario de <strong>{label}</strong> — próximamente.
       </p>
-      <p className="text-xs text-gray-400 mb-4">Movement ID: {movementId}</p>
+      <p className="text-xs text-fg-subtle mb-4">Movement ID: {movementId}</p>
       <button
         type="button"
         onClick={onDone}
-        className="btn-touch bg-green-600 text-white rounded-md hover:bg-green-700 transition"
+        className="btn-touch bg-success text-white rounded-md hover:opacity-90 transition"
       >
         Ver movimiento
       </button>

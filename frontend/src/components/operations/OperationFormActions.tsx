@@ -36,7 +36,7 @@ export default function OperationFormActions({
         type="button"
         onClick={onSubmit}
         disabled={blockMain}
-        className="btn-touch rounded-md bg-blue-600 font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition"
+        className="btn-touch rounded-md bg-brand font-medium text-white hover:bg-brand-hover disabled:opacity-50 transition"
       >
         {submitting ? 'Guardando...' : 'Guardar'}
       </button>
@@ -44,7 +44,7 @@ export default function OperationFormActions({
         type="button"
         onClick={onSaveDraft}
         disabled={blockMain}
-        className="btn-touch rounded-md border border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-50 transition"
+        className="btn-touch rounded-md border border-subtle text-brand hover:bg-brand-soft disabled:opacity-50 transition"
       >
         {savingDraft ? 'Guardando borrador...' : 'Guardar borrador'}
       </button>
@@ -52,14 +52,14 @@ export default function OperationFormActions({
         type="button"
         onClick={onClear}
         disabled={blockClear}
-        className="btn-touch rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition"
+        className="btn-touch rounded-md border border-subtle text-fg-muted hover:bg-surface disabled:opacity-50 transition"
       >
         Limpiar
       </button>
       <button
         type="button"
         onClick={onCancel}
-        className="btn-touch rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition"
+        className="btn-touch rounded-md border border-subtle text-fg-muted hover:bg-surface transition"
       >
         Cancelar
       </button>

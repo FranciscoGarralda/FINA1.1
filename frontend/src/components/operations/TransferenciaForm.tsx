@@ -569,8 +569,8 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
   if (success) {
     return (
       <div className="border-t pt-4">
-        <p className="text-green-700 font-medium mb-4">Transferencia registrada correctamente.</p>
-        <button type="button" onClick={onDone} className="btn-touch bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+        <p className="text-success font-medium mb-4">Transferencia registrada correctamente.</p>
+        <button type="button" onClick={onDone} className="btn-touch bg-success text-white rounded-md hover:opacity-90 transition">
           Ver movimiento
         </button>
       </div>
@@ -579,46 +579,46 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
 
   return (
     <div className="border-t pt-4 space-y-6">
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <p className="text-error text-sm">{error}</p>}
       <ApiErrorBanner message={currenciesLoadError} />
-      {draftMessage && <p className="text-blue-600 text-sm">{draftMessage}</p>}
-      {draftLoading && <p className="text-gray-500 text-sm">Cargando borrador...</p>}
+      {draftMessage && <p className="text-info text-sm">{draftMessage}</p>}
+      {draftLoading && <p className="text-fg-muted text-sm">Cargando borrador...</p>}
 
-      <p className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+      <p className="rounded-md border border-subtle bg-brand-soft px-3 py-2 text-xs text-fg">
         Liquidación palo a palo: cargá el monto de <strong>salida</strong> y el de <strong>ingreso</strong> en cada divisa acordada; no es obligatorio usar cotización del sistema. REAL/PENDIENTE y CC siguen las reglas del tipo de operación.
       </p>
 
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Transferencia salida (lo que entregamos)</legend>
-        <p className="text-xs text-gray-500 mb-2">Salida: dinero que sale de nuestras cuentas.</p>
+        <legend className="text-sm font-semibold text-fg mb-2">Transferencia salida (lo que entregamos)</legend>
+        <p className="text-xs text-fg-muted mb-2">Salida: dinero que sale de nuestras cuentas.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Cuenta</label>
-            <select value={outLeg.account_id} onChange={(e) => updateLeg('out', 'account_id', e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Cuenta</label>
+            <select value={outLeg.account_id} onChange={(e) => updateLeg('out', 'account_id', e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Divisa</label>
-            <select value={outLeg.currency_id} onChange={(e) => updateLeg('out', 'currency_id', e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Divisa</label>
+            <select value={outLeg.currency_id} onChange={(e) => updateLeg('out', 'currency_id', e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {outAC.map((ac) => <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Formato</label>
+            <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
             <select
               value={outLeg.format}
               onChange={(e) => updateLeg('out', 'format', e.target.value as '' | 'CASH' | 'DIGITAL')}
               disabled={!outLeg.account_id || !outLeg.currency_id}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm disabled:bg-gray-100"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm disabled:bg-surface"
             >
               <option value="">—</option>
               {formatsFor(outLeg.account_id, outLeg.currency_id).map((f) => <option key={f} value={f}>{formatLabel(f)}</option>)}
             </select>
             {outLeg.account_id && outLeg.currency_id && formatsFor(outLeg.account_id, outLeg.currency_id).length === 0 && (
-              <p className="mt-1 text-[11px] text-gray-500">No hay formato habilitado para esta cuenta/divisa.</p>
+              <p className="mt-1 text-[11px] text-fg-muted">No hay formato habilitado para esta cuenta/divisa.</p>
             )}
           </div>
           <MoneyInput
@@ -627,7 +627,7 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
             onValueChange={handleOutAmountChange}
             placeholder="Ej: 10000"
           />
-          <label className="flex items-end pb-2 text-sm text-gray-700 cursor-pointer select-none gap-2">
+          <label className="flex items-end pb-2 text-sm text-fg cursor-pointer select-none gap-2">
             <input
               type="checkbox"
               checked={outLeg.settlement === 'PENDIENTE'}
@@ -639,36 +639,36 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Transferencia ingreso (lo que recibimos)</legend>
-        <p className="text-xs text-gray-500 mb-2">Ingreso: dinero que entra a nuestras cuentas.</p>
+        <legend className="text-sm font-semibold text-fg mb-2">Transferencia ingreso (lo que recibimos)</legend>
+        <p className="text-xs text-fg-muted mb-2">Ingreso: dinero que entra a nuestras cuentas.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Cuenta</label>
-            <select value={inLeg.account_id} onChange={(e) => updateLeg('in', 'account_id', e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Cuenta</label>
+            <select value={inLeg.account_id} onChange={(e) => updateLeg('in', 'account_id', e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Divisa</label>
-            <select value={inLeg.currency_id} onChange={(e) => updateLeg('in', 'currency_id', e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Divisa</label>
+            <select value={inLeg.currency_id} onChange={(e) => updateLeg('in', 'currency_id', e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {inAC.map((ac) => <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Formato</label>
+            <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
             <select
               value={inLeg.format}
               onChange={(e) => updateLeg('in', 'format', e.target.value as '' | 'CASH' | 'DIGITAL')}
               disabled={!inLeg.account_id || !inLeg.currency_id}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm disabled:bg-gray-100"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm disabled:bg-surface"
             >
               <option value="">—</option>
               {formatsFor(inLeg.account_id, inLeg.currency_id).map((f) => <option key={f} value={f}>{formatLabel(f)}</option>)}
             </select>
             {inLeg.account_id && inLeg.currency_id && formatsFor(inLeg.account_id, inLeg.currency_id).length === 0 && (
-              <p className="mt-1 text-[11px] text-gray-500">No hay formato habilitado para esta cuenta/divisa.</p>
+              <p className="mt-1 text-[11px] text-fg-muted">No hay formato habilitado para esta cuenta/divisa.</p>
             )}
           </div>
           <MoneyInput
@@ -677,7 +677,7 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
             onValueChange={handleInAmountChange}
             placeholder="Ej: 10200"
           />
-          <label className="flex items-end pb-2 text-sm text-gray-700 cursor-pointer select-none gap-2">
+          <label className="flex items-end pb-2 text-sm text-fg cursor-pointer select-none gap-2">
             <input
               type="checkbox"
               checked={inLeg.settlement === 'PENDIENTE'}
@@ -689,9 +689,9 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Comisión</legend>
+        <legend className="text-sm font-semibold text-fg mb-2">Comisión</legend>
         <div
-          className="mb-3 p-2 rounded hover:bg-gray-50 cursor-pointer inline-flex items-center gap-2"
+          className="mb-3 p-2 rounded hover:bg-surface cursor-pointer inline-flex items-center gap-2"
           onClick={() => setFeeEnabled((p) => !p)}
         >
           <input
@@ -700,41 +700,41 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
             onChange={(e) => setFeeEnabled(e.target.checked)}
             onClick={(e) => e.stopPropagation()}
           />
-          <span className="text-gray-700 text-sm">Tiene comisión</span>
+          <span className="text-fg text-sm">Tiene comisión</span>
         </div>
         {feeEnabled && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-0.5">Tipo</label>
-              <select value={feeMode} onChange={(e) => setFeeMode(e.target.value as 'PERCENT' | 'FIXED')} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+              <label className="block text-xs text-fg-muted mb-0.5">Tipo</label>
+              <select value={feeMode} onChange={(e) => setFeeMode(e.target.value as 'PERCENT' | 'FIXED')} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
                 <option value="PERCENT">Porcentaje (%)</option>
                 <option value="FIXED">Monto fijo</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-0.5">Tratamiento</label>
-              <select value={feeTreatment} onChange={(e) => setFeeTreatment(e.target.value as 'APARTE' | 'INCLUIDA')} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+              <label className="block text-xs text-fg-muted mb-0.5">Tratamiento</label>
+              <select value={feeTreatment} onChange={(e) => setFeeTreatment(e.target.value as 'APARTE' | 'INCLUIDA')} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
                 <option value="APARTE">Aparte (+)</option>
                 <option value="INCLUIDA">Incluida (-)</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-0.5">Quién paga</label>
-              <select value={feePayer} onChange={(e) => setFeePayer(e.target.value as 'CLIENTE_PAGA' | 'NOSOTROS_PAGAMOS')} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+              <label className="block text-xs text-fg-muted mb-0.5">Quién paga</label>
+              <select value={feePayer} onChange={(e) => setFeePayer(e.target.value as 'CLIENTE_PAGA' | 'NOSOTROS_PAGAMOS')} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
                 <option value="CLIENTE_PAGA">Cliente paga</option>
                 <option value="NOSOTROS_PAGAMOS">Nosotros pagamos</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-0.5">Cuenta comisión</label>
-              <select value={feeAccountId} onChange={(e) => updateFeeAccount(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+              <label className="block text-xs text-fg-muted mb-0.5">Cuenta comisión</label>
+              <select value={feeAccountId} onChange={(e) => updateFeeAccount(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
                 <option value="">—</option>
                 {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-0.5">Divisa comisión</label>
-              <select value={feeCurrencyId} onChange={(e) => updateFeeCurrency(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" disabled={!feeAccountId}>
+              <label className="block text-xs text-fg-muted mb-0.5">Divisa comisión</label>
+              <select value={feeCurrencyId} onChange={(e) => updateFeeCurrency(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm" disabled={!feeAccountId}>
                 <option value="">—</option>
                 {feeCurrencyOptions.map((ac) => (
                   <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>
@@ -742,16 +742,16 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-0.5">Formato comisión</label>
-              <select value={feeFormat} onChange={(e) => setFeeFormat(e.target.value as '' | 'CASH' | 'DIGITAL')} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm disabled:bg-gray-100" disabled={!feeAccountId || !feeCurrencyId}>
+              <label className="block text-xs text-fg-muted mb-0.5">Formato comisión</label>
+              <select value={feeFormat} onChange={(e) => setFeeFormat(e.target.value as '' | 'CASH' | 'DIGITAL')} className="w-full border border-subtle rounded px-2 py-1.5 text-sm disabled:bg-surface" disabled={!feeAccountId || !feeCurrencyId}>
                 <option value="">—</option>
                 {formatsFor(feeAccountId, feeCurrencyId).map((f) => <option key={f} value={f}>{formatLabel(f)}</option>)}
               </select>
               {feeAccountId && feeCurrencyId && formatsFor(feeAccountId, feeCurrencyId).length === 0 && (
-                <p className="mt-1 text-[11px] text-gray-500">No hay formato habilitado para esta cuenta/divisa.</p>
+                <p className="mt-1 text-[11px] text-fg-muted">No hay formato habilitado para esta cuenta/divisa.</p>
               )}
             </div>
-            <label className="sm:col-span-2 lg:col-span-2 flex items-end pb-2 text-sm text-gray-700 cursor-pointer select-none gap-2">
+            <label className="sm:col-span-2 lg:col-span-2 flex items-end pb-2 text-sm text-fg cursor-pointer select-none gap-2">
               <input
                 type="checkbox"
                 checked={feeSettlement === 'PENDIENTE'}
@@ -760,21 +760,21 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
               />
               Comisión pendiente
             </label>
-            {feeTreatment === 'INCLUIDA' && <p className="sm:col-span-2 lg:col-span-2 mt-1 text-[11px] text-gray-500">Con incluida no aplica pendiente de comisión.</p>}
+            {feeTreatment === 'INCLUIDA' && <p className="sm:col-span-2 lg:col-span-2 mt-1 text-[11px] text-fg-muted">Con incluida no aplica pendiente de comisión.</p>}
             <MoneyInput label={feeMode === 'PERCENT' ? 'Porcentaje' : 'Monto fijo'} value={feeValue} onValueChange={setFeeValue} fractionDigits={feeMode === 'PERCENT' ? 4 : 2} />
             <div className="flex items-end">
-              {expectedFee > 0 && <p className="text-sm font-mono text-gray-600">Comisión: <span className="font-medium">{feeCurrCode} {formatMoneyAR(expectedFee)}</span></p>}
+              {expectedFee > 0 && <p className="text-sm font-mono text-fg-muted">Comisión: <span className="font-medium">{feeCurrCode} {formatMoneyAR(expectedFee)}</span></p>}
             </div>
-            <p className="text-xs text-gray-600 sm:col-span-2 lg:col-span-4">{feeImpactLabel}</p>
+            <p className="text-xs text-fg-muted sm:col-span-2 lg:col-span-4">{feeImpactLabel}</p>
           </div>
         )}
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Impacto cliente</legend>
-        <div className="bg-gray-50 rounded p-3 text-sm space-y-1.5">
-          <p className="text-xs text-gray-600">Pendiente no duplica CC; solo indica que la ejecución real queda abierta.</p>
-          <div className="grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1 font-mono text-gray-700 text-xs sm:text-sm [&>span]:min-w-0 [&>span]:break-words">
+        <legend className="text-sm font-semibold text-fg mb-2">Impacto cliente</legend>
+        <div className="bg-surface rounded p-3 text-sm space-y-1.5">
+          <p className="text-xs text-fg-muted">Pendiente no duplica CC; solo indica que la ejecución real queda abierta.</p>
+          <div className="grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1 font-mono text-fg text-xs sm:text-sm [&>span]:min-w-0 [&>span]:break-words">
             <span>Salida:</span>
             <span>{outCurrCode} {formatMoneyAR(outAbs)} ({settlementLabel(outLeg.settlement)})</span>
             <span>Entrada:</span>
@@ -795,8 +795,8 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
                 <span>{outCurrCode} {formatMoneyAR(includedNetAmount)}</span>
               </>
             )}
-            <span className="border-t border-gray-200 pt-1 font-semibold">Impacto comercial (CC):</span>
-            <span className="border-t border-gray-200 pt-1 font-semibold">
+            <span className="border-t border-subtle pt-1 font-semibold">Impacto comercial (CC):</span>
+            <span className="border-t border-subtle pt-1 font-semibold">
               {!clientCcEnabled
                 ? 'No aplica (cliente sin CC habilitada)'
                 : feeEnabled
@@ -821,20 +821,20 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
             </span>
           </div>
           {feeEnabled && feeTreatment === 'INCLUIDA' && includedNetAmount <= 0 && (
-            <p className="text-red-600 text-xs mt-1">Con comisión incluida, el neto debe ser mayor a 0.</p>
+            <p className="text-error text-xs mt-1">Con comisión incluida, el neto debe ser mayor a 0.</p>
           )}
         </div>
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Totales</legend>
-        <div className="bg-gray-50 rounded p-3 text-sm">
+        <legend className="text-sm font-semibold text-fg mb-2">Totales</legend>
+        <div className="bg-surface rounded p-3 text-sm">
           {totalsByCurrency.length === 0 ? (
-            <p className="text-gray-500 text-xs">Completá datos para ver totales.</p>
+            <p className="text-fg-muted text-xs">Completá datos para ver totales.</p>
           ) : (
             <div className="space-y-2">
               {totalsByCurrency.map((row) => (
-                <div key={row.code} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 font-mono text-gray-700 text-xs sm:text-sm [&>span]:min-w-0 [&>span]:break-words">
+                <div key={row.code} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 font-mono text-fg text-xs sm:text-sm [&>span]:min-w-0 [&>span]:break-words">
                   <span className="font-semibold">{row.code}</span>
                   <span>CC: {clientCcEnabled ? formatMoneyAR(row.cc) : '—'}</span>
                   <span>Real ahora: {formatMoneyAR(row.real)}</span>

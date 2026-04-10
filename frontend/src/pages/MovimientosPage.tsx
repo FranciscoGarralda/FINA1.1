@@ -154,10 +154,10 @@ export default function MovimientosPage() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">Movimientos</h2>
+      <h2 className="text-lg font-semibold text-fg mb-4">Movimientos</h2>
       <ApiErrorBanner message={loadError} />
       {actionError && (
-        <div className="mb-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="mb-3 rounded border border-error/40 bg-error-soft px-3 py-2 text-sm text-error">
           {actionError}
         </div>
       )}
@@ -165,29 +165,29 @@ export default function MovimientosPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-4 items-end min-w-0">
         <div className="min-w-0 w-full sm:w-auto">
-          <label className="block text-xs text-gray-500 mb-0.5">Desde</label>
+          <label className="block text-xs text-fg-muted mb-0.5">Desde</label>
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => { setDateFrom(e.target.value); }}
-            className="w-full min-w-0 max-w-full sm:max-w-none sm:w-auto border border-gray-300 rounded px-2 py-1.5 text-sm"
+            className="w-full min-w-0 max-w-full sm:max-w-none sm:w-auto border border-subtle rounded px-2 py-1.5 text-sm"
           />
         </div>
         <div className="min-w-0 w-full sm:w-auto">
-          <label className="block text-xs text-gray-500 mb-0.5">Hasta</label>
+          <label className="block text-xs text-fg-muted mb-0.5">Hasta</label>
           <input
             type="date"
             value={dateTo}
             onChange={(e) => { setDateTo(e.target.value); }}
-            className="w-full min-w-0 max-w-full sm:max-w-none sm:w-auto border border-gray-300 rounded px-2 py-1.5 text-sm"
+            className="w-full min-w-0 max-w-full sm:max-w-none sm:w-auto border border-subtle rounded px-2 py-1.5 text-sm"
           />
         </div>
         <div className="min-w-0 w-full sm:w-auto">
-          <label className="block text-xs text-gray-500 mb-0.5">Tipo</label>
+          <label className="block text-xs text-fg-muted mb-0.5">Tipo</label>
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="w-full min-w-0 sm:w-auto border border-gray-300 rounded px-2 py-1.5 text-sm"
+            className="w-full min-w-0 sm:w-auto border border-subtle rounded px-2 py-1.5 text-sm"
           >
             <option value="">Todos</option>
             <option value="COMPRA">Compra</option>
@@ -205,17 +205,17 @@ export default function MovimientosPage() {
           </select>
         </div>
         <div className="min-w-0 w-full sm:w-auto flex-1 sm:flex-none sm:max-w-xs">
-          <label className="block text-xs text-gray-500 mb-0.5">Cliente</label>
+          <label className="block text-xs text-fg-muted mb-0.5">Cliente</label>
           <input
             type="text"
             placeholder="Buscar..."
             value={clientSearch}
             onChange={(e) => setClientSearch(e.target.value)}
-            className="w-full min-w-0 border border-gray-300 rounded px-2 py-1.5 text-sm sm:w-36"
+            className="w-full min-w-0 border border-subtle rounded px-2 py-1.5 text-sm sm:w-36"
           />
         </div>
         <div className="min-w-0 w-full sm:w-auto">
-          <label className="block text-xs text-gray-500 mb-0.5">Ordenar</label>
+          <label className="block text-xs text-fg-muted mb-0.5">Ordenar</label>
           <select
             value={`${sortBy}_${sortDir}`}
             onChange={(e) => {
@@ -223,7 +223,7 @@ export default function MovimientosPage() {
               setSortBy(sb);
               setSortDir(sd);
             }}
-            className="w-full min-w-0 sm:w-auto border border-gray-300 rounded px-2 py-1.5 text-sm"
+            className="w-full min-w-0 sm:w-auto border border-subtle rounded px-2 py-1.5 text-sm"
           >
             <option value="_desc">Más recientes</option>
             <option value="date_desc">Fecha ↓</option>
@@ -234,7 +234,7 @@ export default function MovimientosPage() {
         </div>
         <button
           onClick={handleFilterApply}
-          className="w-full sm:w-auto px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition"
+          className="w-full sm:w-auto px-3 py-1.5 bg-brand text-white text-sm rounded hover:bg-brand-hover transition"
         >
           Filtrar
         </button>
@@ -242,40 +242,40 @@ export default function MovimientosPage() {
 
       {/* Table */}
       {loading ? (
-        <p className="text-gray-500 text-sm">Cargando...</p>
+        <p className="text-fg-muted text-sm">Cargando...</p>
       ) : loadError ? null : !data || data.items.length === 0 ? (
-        <p className="text-gray-500 text-sm">No se encontraron movimientos.</p>
+        <p className="text-fg-muted text-sm">No se encontraron movimientos.</p>
       ) : (
         <>
-          <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
+          <div className="bg-elevated border border-subtle rounded-lg overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left px-3 py-2 font-medium text-gray-600">Nº Op.</th>
-                  <th className="text-left px-3 py-2 font-medium text-gray-600">Fecha</th>
-                  <th className="text-left px-3 py-2 font-medium text-gray-600">Tipo</th>
-                  <th className="text-left px-3 py-2 font-medium text-gray-600">Cliente</th>
-                  <th className="text-left px-3 py-2 font-medium text-gray-600">Resumen</th>
-                  <th className="text-left px-3 py-2 font-medium text-gray-600">Estado</th>
-                  <th className="text-left px-3 py-2 font-medium text-gray-600">Acciones</th>
+                <tr className="border-b bg-surface">
+                  <th className="text-left px-3 py-2 font-medium text-fg-muted">Nº Op.</th>
+                  <th className="text-left px-3 py-2 font-medium text-fg-muted">Fecha</th>
+                  <th className="text-left px-3 py-2 font-medium text-fg-muted">Tipo</th>
+                  <th className="text-left px-3 py-2 font-medium text-fg-muted">Cliente</th>
+                  <th className="text-left px-3 py-2 font-medium text-fg-muted">Resumen</th>
+                  <th className="text-left px-3 py-2 font-medium text-fg-muted">Estado</th>
+                  <th className="text-left px-3 py-2 font-medium text-fg-muted">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {data.items.map((m) => (
                   <tr
                     key={m.id}
-                    className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer transition"
+                    className="border-b last:border-b-0 hover:bg-surface cursor-pointer transition"
                     onClick={() => navigate(`/movimientos/${m.id}`)}
                   >
-                    <td className="px-3 py-2 font-mono text-gray-700">#{m.operation_number}</td>
-                    <td className="px-3 py-2 text-gray-600">{m.date}</td>
+                    <td className="px-3 py-2 font-mono text-fg">#{m.operation_number}</td>
+                    <td className="px-3 py-2 text-fg-muted">{m.date}</td>
                     <td className="px-3 py-2">
-                      <span className="text-xs bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
+                      <span className="text-xs bg-surface text-fg px-1.5 py-0.5 rounded">
                         {movementTypeLabel(m.type)}
                       </span>
                     </td>
                     <td className="px-3 py-2">{m.client_name ?? '(Interno)'}</td>
-                    <td className="px-3 py-2 text-xs text-gray-600 font-mono max-w-xs truncate">
+                    <td className="px-3 py-2 text-xs text-fg-muted font-mono max-w-xs truncate">
                       {m.summary_items && m.summary_items.length > 0 ? (
                         <SummaryDisplay items={m.summary_items} />
                       ) : m.resumen}
@@ -283,15 +283,15 @@ export default function MovimientosPage() {
                     <td className="px-3 py-2 space-x-1">
                       <span className={`text-xs font-medium px-2 py-0.5 rounded ${
                         m.status === 'CANCELADA'
-                          ? 'bg-red-50 text-red-700'
+                          ? 'bg-error-soft text-error'
                           : m.status === 'BORRADOR'
                             ? 'bg-amber-50 text-amber-700'
-                            : 'bg-green-50 text-green-700'
+                            : 'bg-success-soft text-success'
                       }`}>
                         {displayStatus(m.status)}
                       </span>
                       {m.has_open_pending && (
-                        <span className="text-xs bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded font-medium">
+                        <span className="text-xs bg-warning-soft text-warning px-1.5 py-0.5 rounded font-medium">
                           Pendiente
                         </span>
                       )}
@@ -302,7 +302,7 @@ export default function MovimientosPage() {
                           <button
                             type="button"
                             onClick={(e) => openActionConfirmation(e, m, 'modify')}
-                            className="w-full min-h-[2rem] shrink-0 px-2 py-1 text-center text-xs text-blue-700 border border-blue-300 rounded hover:bg-blue-50 transition sm:flex-1 sm:min-w-0"
+                            className="w-full min-h-[2rem] shrink-0 px-2 py-1 text-center text-xs text-brand border border-subtle rounded hover:bg-brand-soft transition sm:flex-1 sm:min-w-0"
                           >
                             Modificar
                           </button>
@@ -311,7 +311,7 @@ export default function MovimientosPage() {
                           <button
                             type="button"
                             onClick={(e) => openActionConfirmation(e, m, 'cancel')}
-                            className="w-full min-h-[2rem] shrink-0 px-2 py-1 text-center text-xs text-red-700 border border-red-300 rounded hover:bg-red-50 transition sm:flex-1 sm:min-w-0"
+                            className="w-full min-h-[2rem] shrink-0 px-2 py-1 text-center text-xs text-error border border-error/30 rounded hover:bg-error-soft transition sm:flex-1 sm:min-w-0"
                           >
                             Anular
                           </button>
@@ -336,21 +336,21 @@ export default function MovimientosPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4 min-w-0">
-              <span className="text-sm text-gray-500 break-words">
+              <span className="text-sm text-fg-muted break-words">
                 Página {data.page} de {totalPages} — {data.total} resultados
               </span>
               <div className="flex flex-wrap gap-2">
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage(page - 1)}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-40 hover:bg-gray-50 transition"
+                  className="px-3 py-1 text-sm border border-subtle rounded disabled:opacity-40 hover:bg-surface transition"
                 >
                   Anterior
                 </button>
                 <button
                   disabled={page >= totalPages}
                   onClick={() => setPage(page + 1)}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-40 hover:bg-gray-50 transition"
+                  className="px-3 py-1 text-sm border border-subtle rounded disabled:opacity-40 hover:bg-surface transition"
                 >
                   Siguiente
                 </button>
@@ -362,11 +362,11 @@ export default function MovimientosPage() {
       {pendingAction && (
         <div className="modal-backdrop">
           <div className="modal-panel max-w-md p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
-            <h3 className="mb-2 text-lg font-semibold text-gray-800">{actionTitle(pendingAction.kind)}</h3>
-            <p className="mb-3 text-sm text-gray-600">
+            <h3 className="mb-2 text-lg font-semibold text-fg">{actionTitle(pendingAction.kind)}</h3>
+            <p className="mb-3 text-sm text-fg-muted">
               {actionDescription(pendingAction.kind)}
             </p>
-            <p className="mb-4 text-sm text-gray-500">
+            <p className="mb-4 text-sm text-fg-muted">
               Operación #{pendingAction.operationNumber}
             </p>
             <FormActionsRow
@@ -375,7 +375,7 @@ export default function MovimientosPage() {
                 <button
                   type="button"
                   onClick={() => setPendingAction(null)}
-                  className="btn-touch text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="btn-touch text-fg-muted border border-subtle rounded-md hover:bg-surface"
                 >
                   Volver
                 </button>
@@ -385,7 +385,7 @@ export default function MovimientosPage() {
                   type="button"
                   onClick={executePendingAction}
                   className={`btn-touch text-white rounded-md ${
-                    pendingAction.kind === 'cancel' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
+                    pendingAction.kind === 'cancel' ? 'bg-error hover:opacity-90' : 'bg-brand hover:bg-brand-hover'
                   }`}
                 >
                   Confirmar

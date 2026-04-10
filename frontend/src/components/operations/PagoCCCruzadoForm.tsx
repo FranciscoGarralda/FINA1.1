@@ -190,8 +190,8 @@ export default function PagoCCCruzadoForm({ movementId, clientId, onDone, onCanc
   if (success) {
     return (
       <div className="border-t pt-4">
-        <p className="text-green-700 font-medium mb-4">Pago CC cruzado registrado correctamente.</p>
-        <button onClick={onDone} className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition">
+        <p className="text-success font-medium mb-4">Pago CC cruzado registrado correctamente.</p>
+        <button onClick={onDone} className="px-4 py-2 bg-success text-white text-sm rounded hover:opacity-90 transition">
           Ver movimiento
         </button>
       </div>
@@ -200,45 +200,45 @@ export default function PagoCCCruzadoForm({ movementId, clientId, onDone, onCanc
 
   return (
     <div className="border-t pt-4 space-y-6">
-      {error && <p className="text-red-600 text-sm">{error}</p>}
-      {draftMessage && <p className="text-blue-600 text-sm">{draftMessage}</p>}
-      {draftLoading && <p className="text-gray-500 text-sm">Cargando borrador...</p>}
+      {error && <p className="text-error text-sm">{error}</p>}
+      {draftMessage && <p className="text-info text-sm">{draftMessage}</p>}
+      {draftLoading && <p className="text-fg-muted text-sm">Cargando borrador...</p>}
 
-      <p className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+      <p className="rounded-md border border-subtle bg-brand-soft px-3 py-2 text-xs text-fg">
         Si el pago real y la deuda de CC son en <strong>divisas distintas</strong>, cargá cada monto acordado (palo a palo); no hace falta tipo de cambio del sistema. Con la <strong>misma</strong> divisa, pago y cancelación deben ser iguales.
       </p>
 
       {/* FLUJO REAL */}
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Flujo real</legend>
+        <legend className="text-sm font-semibold text-fg mb-2">Flujo real</legend>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Modo</label>
-            <select value={mode} onChange={(e) => setMode(e.target.value === 'SALE' ? 'SALE' : 'ENTRA')} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Modo</label>
+            <select value={mode} onChange={(e) => setMode(e.target.value === 'SALE' ? 'SALE' : 'ENTRA')} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="ENTRA">ENTRA</option>
               <option value="SALE">SALE</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Cuenta</label>
-            <select value={payAccountId} onChange={(e) => { setPayAccountId(e.target.value); setPayCurrencyId(''); }} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Cuenta</label>
+            <select value={payAccountId} onChange={(e) => { setPayAccountId(e.target.value); setPayCurrencyId(''); }} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Divisa pago</label>
-            <select value={payCurrencyId} onChange={(e) => setPayCurrencyId(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Divisa pago</label>
+            <select value={payCurrencyId} onChange={(e) => setPayCurrencyId(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {payAC.map((ac) => <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Formato</label>
+            <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
             <select
               value={payFormat}
               onChange={(e) => setPayFormat(e.target.value as MovementFormat)}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
               disabled={!payCurrencyId || allowedFormatsFromList(payAC, payCurrencyId).length === 0}
             >
               {allowedFormatsFromList(payAC, payCurrencyId).map((f) => (
@@ -246,7 +246,7 @@ export default function PagoCCCruzadoForm({ movementId, clientId, onDone, onCanc
               ))}
             </select>
             {payCurrencyId && allowedFormatsFromList(payAC, payCurrencyId).length === 0 && (
-              <p className="text-xs text-red-600 mt-1">Sin formato habilitado para esta divisa en la cuenta.</p>
+              <p className="text-xs text-error mt-1">Sin formato habilitado para esta divisa en la cuenta.</p>
             )}
           </div>
           <MoneyInput label={`Monto real (${mode})`} value={payAmount} onValueChange={setPayAmount} />
@@ -255,21 +255,21 @@ export default function PagoCCCruzadoForm({ movementId, clientId, onDone, onCanc
 
       {/* CANCELACIÓN CC */}
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700 mb-2">Cancelación CC</legend>
+        <legend className="text-sm font-semibold text-fg mb-2">Cancelación CC</legend>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Divisa deuda</label>
-            <select value={debtCurrencyId} onChange={(e) => setDebtCurrencyId(e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+            <label className="block text-xs text-fg-muted mb-0.5">Divisa deuda</label>
+            <select value={debtCurrencyId} onChange={(e) => setDebtCurrencyId(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
               <option value="">—</option>
               {currencies.map((c) => <option key={c.id} value={c.id}>{c.code}</option>)}
             </select>
           </div>
           <MoneyInput label="Monto a cancelar" value={cancelAmount} onValueChange={setCancelAmount} />
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">CC actual</label>
+            <label className="block text-xs text-fg-muted mb-0.5">CC actual</label>
             <p className={`text-sm font-mono py-1.5 font-medium ${
-              debtBalance !== null && parseFloat(debtBalance) < 0 ? 'text-red-600' :
-              debtBalance !== null && parseFloat(debtBalance) > 0 ? 'text-green-600' : 'text-gray-500'
+              debtBalance !== null && parseFloat(debtBalance) < 0 ? 'text-error' :
+              debtBalance !== null && parseFloat(debtBalance) > 0 ? 'text-success' : 'text-fg-muted'
             }`}>
               {debtBalance !== null && debtCurrencyCode
                 ? `${debtCurrencyCode} ${formatMoneyAR(debtBalance)}`
@@ -278,12 +278,12 @@ export default function PagoCCCruzadoForm({ movementId, clientId, onDone, onCanc
           </div>
         </div>
 
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="text-xs text-fg-muted mt-2">
           El impacto en CC se calcula automáticamente según saldo vivo en la divisa de cancelación.
         </p>
 
         {sameCurrency && (
-          <p className="text-xs text-gray-500 mt-2">Misma divisa — los montos deben coincidir.</p>
+          <p className="text-xs text-fg-muted mt-2">Misma divisa — los montos deben coincidir.</p>
         )}
       </fieldset>
 
