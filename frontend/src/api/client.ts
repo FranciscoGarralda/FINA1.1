@@ -7,6 +7,22 @@
  */
 const API_BASE = (import.meta.env.VITE_API_BASE?.trim() || '/api').replace(/\/$/, '');
 
+/** Solo en desarrollo: telemetría opcional al servidor de debug local (no producción). */
+function debugIngest401(location: string, data: Record<string, unknown>): void {
+  if (!import.meta.env.DEV) return;
+  fetch('http://127.0.0.1:7846/ingest/9ff95368-0f5e-4d8b-9457-120a569a7a61', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'f89233' },
+    body: JSON.stringify({
+      sessionId: 'f89233',
+      runId: 'pre-fix',
+      location,
+      ...data,
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+}
+
 function getToken(): string | null {
   return localStorage.getItem('token');
 }
@@ -23,6 +39,11 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   });
 
   if (res.status === 401) {
+    debugIngest401('client.ts:request', {
+      hypothesisId: 'H1',
+      message: '401 response',
+      data: { method, path, isLoginPath: path === '/login' || path.startsWith('/login/') },
+    });
     window.dispatchEvent(new CustomEvent('auth:session-expired'));
     throw new Error('Unauthorized');
   }
@@ -52,6 +73,11 @@ export async function downloadAuthenticated(path: string, fallbackFilename: stri
   const res = await fetch(`${API_BASE}${path}`, { headers });
 
   if (res.status === 401) {
+    debugIngest401('client.ts:downloadAuthenticated', {
+      hypothesisId: 'H1-download',
+      message: '401 response',
+      data: { path },
+    });
     window.dispatchEvent(new CustomEvent('auth:session-expired'));
     throw new Error('Unauthorized');
   }
