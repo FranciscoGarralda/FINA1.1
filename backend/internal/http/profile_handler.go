@@ -126,6 +126,8 @@ func handleProfileError(w http.ResponseWriter, err error) {
 		RespondError(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "La contraseña actual es incorrecta.")
 	case errors.Is(err, services.ErrNewPasswordRequired):
 		RespondError(w, http.StatusBadRequest, "VALIDATION", "La nueva contraseña es obligatoria.")
+	case errors.Is(err, services.ErrPasswordTooShort):
+		RespondError(w, http.StatusBadRequest, "VALIDATION", "La contraseña debe tener al menos 8 caracteres.")
 	case errors.Is(err, services.ErrCurrentPinInvalid):
 		RespondError(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "El PIN actual es incorrecto.")
 	case errors.Is(err, services.ErrNewPinRequired):

@@ -21,7 +21,15 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const initialPermissionsRaw = localStorage.getItem('permissions');
-  const initialPermissions = initialPermissionsRaw ? JSON.parse(initialPermissionsRaw) as string[] : [];
+  const initialPermissions: string[] = (() => {
+    if (!initialPermissionsRaw) return [];
+    try {
+      const parsed: unknown = JSON.parse(initialPermissionsRaw);
+      return Array.isArray(parsed) ? (parsed as string[]) : [];
+    } catch {
+      return [];
+    }
+  })();
 
   const [auth, setAuth] = useState<AuthState>({
     token: localStorage.getItem('token'),

@@ -52,7 +52,7 @@ func main() {
 		log.Fatalf("BOOTSTRAP_ROLE must be one of: SUPERADMIN, ADMIN, SUBADMIN, OPERATOR, COURIER (got %q)", role)
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
 		log.Fatalf("bcrypt: %v", err)
 	}

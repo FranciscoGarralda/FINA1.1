@@ -10,6 +10,17 @@ interface LoginResponse {
   user_id: string;
 }
 
+interface ApiError {
+  error?: string;
+  message?: string;
+}
+
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  INVALID_CREDENTIALS: 'Usuario o contraseña incorrectos.',
+  ACCOUNT_LOCKED:      'Cuenta bloqueada temporalmente. Intentá de nuevo en 15 minutos.',
+  ACCOUNT_INACTIVE:    'Tu cuenta está desactivada. Contactá al administrador.',
+};
+
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -26,8 +37,9 @@ export default function LoginPage() {
       const data = await api.post<LoginResponse>('/login', { username, password });
       login(data.token, data.role, data.user_id);
       navigate('/inicio', { replace: true });
-    } catch (err: any) {
-      setError(err?.message || 'Credenciales inválidas');
+    } catch (err: unknown) {
+      const code = (err as ApiError)?.error ?? '';
+      setError(AUTH_ERROR_MESSAGES[code] ?? 'Error al iniciar sesión. Intentá de nuevo.');
     } finally {
       setLoading(false);
     }

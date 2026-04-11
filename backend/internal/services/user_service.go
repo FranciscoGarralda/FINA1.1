@@ -10,9 +10,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// bcryptCost es el factor de trabajo para bcrypt. OWASP 2024 recomienda ≥12.
+const bcryptCost = 12
+
+// minPasswordLength es la longitud mínima aceptada para contraseñas de usuarios.
+const minPasswordLength = 8
+
 var (
 	ErrUsernameRequired       = errors.New("USERNAME_REQUIRED")
 	ErrPasswordRequired       = errors.New("PASSWORD_REQUIRED")
+	ErrPasswordTooShort       = errors.New("PASSWORD_TOO_SHORT")
 	ErrPinRequired            = errors.New("PIN_REQUIRED")
 	ErrPinInvalidLength       = errors.New("PIN_INVALID_LENGTH")
 	ErrCannotEditSuperadmin   = errors.New("CANNOT_EDIT_SUPERADMIN")
@@ -61,11 +68,14 @@ func (s *UserService) Create(ctx context.Context, input CreateUserInput, callerR
 	if input.Password == "" {
 		return "", ErrPasswordRequired
 	}
+	if len(input.Password) < minPasswordLength {
+		return "", ErrPasswordTooShort
+	}
 	if callerRole == "SUBADMIN" && input.Role == "SUPERADMIN" {
 		return "", ErrCannotAssignSuperadmin
 	}
 
-	passHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	passHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcryptCost)
 	if err != nil {
 		return "", err
 	}
@@ -75,7 +85,7 @@ func (s *UserService) Create(ctx context.Context, input CreateUserInput, callerR
 		if err := s.validatePin(ctx, input.Pin); err != nil {
 			return "", err
 		}
-		ph, err := bcrypt.GenerateFromPassword([]byte(input.Pin), bcrypt.DefaultCost)
+		ph, err := bcrypt.GenerateFromPassword([]byte(input.Pin), bcryptCost)
 		if err != nil {
 			return "", err
 		}
@@ -122,7 +132,10 @@ func (s *UserService) Update(ctx context.Context, targetID string, input UpdateU
 
 	var passHashPtr *string
 	if input.Password != "" {
-		ph, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		if len(input.Password) < minPasswordLength {
+			return ErrPasswordTooShort
+		}
+		ph, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcryptCost)
 		if err != nil {
 			return err
 		}
@@ -138,7 +151,7 @@ func (s *UserService) Update(ctx context.Context, targetID string, input UpdateU
 			if err := s.validatePin(ctx, input.Pin); err != nil {
 				return err
 			}
-			ph, err := bcrypt.GenerateFromPassword([]byte(input.Pin), bcrypt.DefaultCost)
+			ph, err := bcrypt.GenerateFromPassword([]byte(input.Pin), bcryptCost)
 			if err != nil {
 				return err
 			}
@@ -167,6 +180,9 @@ func (s *UserService) ResetPassword(ctx context.Context, targetID string, input 
 	if input.Password == "" {
 		return ErrPasswordRequired
 	}
+	if len(input.Password) < minPasswordLength {
+		return ErrPasswordTooShort
+	}
 
 	if targetID == callerID {
 		return ErrCannotResetOwnPassword
@@ -181,7 +197,7 @@ func (s *UserService) ResetPassword(ctx context.Context, targetID string, input 
 		return ErrCannotEditSuperadmin
 	}
 
-	passHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	passHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcryptCost)
 	if err != nil {
 		return err
 	}
@@ -209,6 +225,9 @@ func (s *UserService) ChangeOwnPassword(ctx context.Context, userID string, inpu
 	if input.CurrentPassword == "" || input.NewPassword == "" {
 		return ErrNewPasswordRequired
 	}
+	if len(input.NewPassword) < minPasswordLength {
+		return ErrPasswordTooShort
+	}
 
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
@@ -219,7 +238,7 @@ func (s *UserService) ChangeOwnPassword(ctx context.Context, userID string, inpu
 		return ErrCurrentPasswordInvalid
 	}
 
-	newHash, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+	newHash, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcryptCost)
 	if err != nil {
 		return err
 	}
@@ -279,7 +298,7 @@ func (s *UserService) ChangeOwnPin(ctx context.Context, userID string, input Cha
 		return ErrPinInvalidLength
 	}
 
-	newHash, err := bcrypt.GenerateFromPassword([]byte(input.NewPin), bcrypt.DefaultCost)
+	newHash, err := bcrypt.GenerateFromPassword([]byte(input.NewPin), bcryptCost)
 	if err != nil {
 		return err
 	}

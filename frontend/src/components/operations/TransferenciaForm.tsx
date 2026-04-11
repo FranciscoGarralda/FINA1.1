@@ -1195,6 +1195,10 @@ export default function TransferenciaForm({
       <fieldset>
         <legend className="text-sm font-semibold text-fg mb-2">Totales</legend>
         <div className="bg-surface rounded p-3 text-sm">
+          <p className="text-xs text-fg-muted mb-2">
+            Comisión pendiente: el importe figura en Pendiente; Real ahora solo incluye comisión liquidada al momento. CC refleja el
+            impacto comercial independientemente de la liquidación.
+          </p>
           <p className="text-xs text-fg-muted mb-2">CC negativo = más deuda del cliente en esa moneda.</p>
           {totalsByCurrency.length === 0 ? (
             <p className="text-fg-muted text-xs">Completá datos para ver totales.</p>

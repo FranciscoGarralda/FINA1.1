@@ -91,6 +91,8 @@ func handleUserError(w http.ResponseWriter, err error) {
 		RespondError(w, http.StatusBadRequest, "VALIDATION", "El nombre de usuario es obligatorio.")
 	case errors.Is(err, services.ErrPasswordRequired):
 		RespondError(w, http.StatusBadRequest, "VALIDATION", "La contraseña es obligatoria.")
+	case errors.Is(err, services.ErrPasswordTooShort):
+		RespondError(w, http.StatusBadRequest, "VALIDATION", "La contraseña debe tener al menos 8 caracteres.")
 	case errors.Is(err, services.ErrPinRequired):
 		RespondError(w, http.StatusBadRequest, "VALIDATION", "El PIN es obligatorio para repartidores.")
 	case errors.Is(err, services.ErrPinInvalidLength):
