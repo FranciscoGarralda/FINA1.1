@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import type { CurrencyAmount, DailySummary, ReportData, ReportMetricKey } from '../types/reportes';
+import { SkeletonCard } from '../components/common/Skeleton';
 import { formatMoneyAR } from '../utils/money';
 
 function todayStr() {
@@ -376,7 +377,13 @@ export default function InicioPage() {
       </div>
 
       {sumError && <p className="text-error text-sm">{sumError}</p>}
-      {sumLoading && <p className="text-fg-muted text-sm">Cargando resumen…</p>}
+      {sumLoading && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      )}
 
       {!sumLoading && summary && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

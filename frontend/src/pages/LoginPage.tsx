@@ -1,5 +1,5 @@
-import { useState, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, FormEvent } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import ThemeToggle from '../components/common/ThemeToggle';
@@ -26,8 +26,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSessionBanner, setShowSessionBanner] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const st = location.state as { sessionExpired?: boolean } | null;
+    if (st?.sessionExpired) setShowSessionBanner(true);
+  }, [location.state]);
+
+  useEffect(() => {
+    if (!showSessionBanner) return;
+    const t = window.setTimeout(() => setShowSessionBanner(false), 6000);
+    return () => window.clearTimeout(t);
+  }, [showSessionBanner]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -52,13 +65,21 @@ export default function LoginPage() {
       </div>
       <div className="card-surface w-full max-w-sm shadow-none">
         <h1 className="text-h1 text-center mb-6 text-fg tracking-wide">Fina</h1>
+        {showSessionBanner && (
+          <p className="text-sm text-fg-muted border border-subtle rounded-md p-3 mb-4" role="status">
+            Tu sesión expiró. Por favor volvé a ingresar.
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-fg-muted mb-1">Usuario</label>
             <input
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setShowSessionBanner(false);
+                setUsername(e.target.value);
+              }}
               className="input-field"
               required
               autoComplete="username"
@@ -69,7 +90,10 @@ export default function LoginPage() {
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setShowSessionBanner(false);
+                setPassword(e.target.value);
+              }}
               className="input-field"
               required
               autoComplete="current-password"

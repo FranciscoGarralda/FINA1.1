@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
+import { SkeletonTable } from '../components/common/Skeleton';
 import FormActionsRow from '../components/common/FormActionsRow';
 import { movementTypeLabel } from '../utils/movementTypeLabels';
 import { formatMoneyAR } from '../utils/money';
@@ -241,8 +242,8 @@ export default function MovimientosPage() {
       </div>
 
       {/* Table */}
-      {loading ? (
-        <p className="text-fg-muted text-sm">Cargando...</p>
+      {loading && data === null ? (
+        <SkeletonTable rows={8} cols={5} />
       ) : loadError ? null : !data || data.items.length === 0 ? (
         <p className="text-fg-muted text-sm">No se encontraron movimientos.</p>
       ) : (

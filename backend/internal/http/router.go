@@ -84,9 +84,9 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
-	mux.HandleFunc("POST /api/login", loginHandler(authSvc))
+	mux.Handle("POST /api/login", LoginRateLimitMiddleware(loginHandler(authSvc)))
 	// Login por PIN (p. ej. COURIER); el login web usa POST /api/login. Ver docs/api-pendientes-auth-permisos.md.
-	mux.HandleFunc("POST /api/login/pin", loginPINHandler(authSvc))
+	mux.Handle("POST /api/login/pin", LoginRateLimitMiddleware(loginPINHandler(authSvc)))
 
 	// Settings
 	mux.Handle("GET /api/settings", RequirePermission(jwtSecret, userPermissionsSvc, "settings.view", viewRoles, http.HandlerFunc(getSettingsHandler(settingsSvc))))

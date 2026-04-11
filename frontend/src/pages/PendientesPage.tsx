@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { api } from '../api/client';
 import ClientSearchCombo from '../components/common/ClientSearchCombo';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
+import { SkeletonTable } from '../components/common/Skeleton';
 import FormActionsRow from '../components/common/FormActionsRow';
 import MoneyInput from '../components/common/MoneyInput';
 import { useAuth } from '../context/AuthContext';
@@ -136,8 +137,8 @@ export default function PendientesPage() {
 
       <ApiErrorBanner message={error} />
 
-      {loading ? (
-        <p className="text-fg-muted text-sm">Cargando...</p>
+      {loading && items.length === 0 ? (
+        <SkeletonTable rows={6} cols={4} />
       ) : items.length === 0 ? (
         <p className="text-fg-muted text-sm">No hay pendientes abiertos.</p>
       ) : (

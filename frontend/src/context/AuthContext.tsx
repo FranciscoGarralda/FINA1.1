@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 
 interface AuthState {
@@ -18,6 +19,22 @@ interface AuthContextType extends AuthState {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+function useSessionExpiry(logout: () => void) {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const onExpired = () => {
+      sessionStorage.setItem(
+        'redirect_after_login',
+        `${window.location.pathname}${window.location.search}${window.location.hash}`,
+      );
+      logout();
+      navigate('/login', { replace: true, state: { sessionExpired: true } });
+    };
+    window.addEventListener('auth:session-expired', onExpired);
+    return () => window.removeEventListener('auth:session-expired', onExpired);
+  }, [logout, navigate]);
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const initialPermissionsRaw = localStorage.getItem('permissions');
@@ -54,6 +71,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('permissions');
     setAuth({ token: null, role: null, userId: null, permissions: [] });
   }, []);
+
+  useSessionExpiry(logout);
 
   const refreshPermissions = useCallback(async () => {
     if (!auth.token) return;

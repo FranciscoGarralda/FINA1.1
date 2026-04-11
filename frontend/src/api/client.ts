@@ -23,11 +23,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   });
 
   if (res.status === 401) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('user_id');
-    localStorage.removeItem('permissions');
-    window.location.href = '/login';
+    window.dispatchEvent(new CustomEvent('auth:session-expired'));
     throw new Error('Unauthorized');
   }
 
@@ -56,11 +52,7 @@ export async function downloadAuthenticated(path: string, fallbackFilename: stri
   const res = await fetch(`${API_BASE}${path}`, { headers });
 
   if (res.status === 401) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('user_id');
-    localStorage.removeItem('permissions');
-    window.location.href = '/login';
+    window.dispatchEvent(new CustomEvent('auth:session-expired'));
     throw new Error('Unauthorized');
   }
 
