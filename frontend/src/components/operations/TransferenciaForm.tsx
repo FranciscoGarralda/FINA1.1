@@ -8,7 +8,12 @@ import { allowedFormatsFromList, formatLabel } from '../../utils/accountCurrency
 import { useActiveAccounts } from '../../hooks/useActiveAccounts';
 import OperationFormActions from './OperationFormActions';
 
-interface AccountCurrency { currency_id: string; currency_code: string; cash_enabled: boolean; digital_enabled: boolean; }
+interface AccountCurrency {
+  currency_id: string;
+  currency_code: string;
+  cash_enabled: boolean;
+  digital_enabled: boolean;
+}
 
 interface Props {
   movementId: string;
@@ -147,7 +152,45 @@ function mapDraft(draft: TransferenciaDraftData | LegacyTransferenciaDraftData):
   };
 }
 
-export default function TransferenciaForm({ movementId, clientId: _clientId, clientCcEnabled, onDone, onCancel }: Props) {
+function feeComisionadoExplainer(
+  feeTreatment: 'APARTE' | 'INCLUIDA',
+  feePayer: 'CLIENTE_PAGA' | 'NOSOTROS_PAGAMOS',
+): string {
+  if (feeTreatment === 'INCLUIDA') {
+    return 'Comisión incluida dentro del monto de las patas. No aparece como línea aparte en CC. Cargá los importes coherentes con lo pactado.';
+  }
+  if (feePayer === 'CLIENTE_PAGA') {
+    return 'La comisión va aparte; aumenta la deuda del cliente en CC (saldo más negativo en la convención actual).';
+  }
+  return 'La comisión la asume la casa; mejora la posición del cliente en CC (menos deuda / más a favor).';
+}
+
+function impactoClienteCcCierre(
+  clientCcEnabled: boolean,
+  feeEnabled: boolean,
+  feeTreatment: 'APARTE' | 'INCLUIDA',
+  feePayer: 'CLIENTE_PAGA' | 'NOSOTROS_PAGAMOS',
+): string | null {
+  if (!clientCcEnabled) return null;
+  if (!feeEnabled) {
+    return 'Efecto CC: la salida resta y la entrada suma en cuenta corriente por divisa. CC negativo = más deuda del cliente en esa moneda.';
+  }
+  if (feeTreatment === 'INCLUIDA') {
+    return 'Efecto CC: la comisión incluida no suma una línea extra de comisión en CC; el efecto queda dentro de los montos de patas que cargues. CC negativo = más deuda del cliente en esa moneda.';
+  }
+  if (feePayer === 'CLIENTE_PAGA') {
+    return 'Efecto CC: además de salida/entrada, la comisión aparte empeora el saldo del cliente en la divisa de la comisión (más negativo). CC negativo = más deuda del cliente en esa moneda.';
+  }
+  return 'Efecto CC: además de salida/entrada, la comisión aparte asumida por la casa mejora el saldo del cliente en la divisa de la comisión (menos negativo / más a favor). CC negativo = más deuda del cliente en esa moneda.';
+}
+
+export default function TransferenciaForm({
+  movementId,
+  clientId: _clientId,
+  clientCcEnabled,
+  onDone,
+  onCancel,
+}: Props) {
   const localDraftKey = `transferencia_local_draft:${movementId}`;
   const accounts = useActiveAccounts();
   const [acCache, setAcCache] = useState<Record<string, AccountCurrency[]>>({});
@@ -164,6 +207,10 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
   const [feeAccountId, setFeeAccountId] = useState('');
   const [feeFormat, setFeeFormat] = useState<'' | 'CASH' | 'DIGITAL'>('');
 
+  /** Solo UI; no va en borrador ni en API. */
+  const [firstLegDirection, setFirstLegDirection] = useState<'SALIDA' | 'INGRESO'>('SALIDA');
+  const [p2UserEdited, setP2UserEdited] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftLoading, setDraftLoading] = useState(true);
@@ -171,10 +218,11 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
   const [currenciesLoadError, setCurrenciesLoadError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
   const [success, setSuccess] = useState(false);
-  const [amountMirror, setAmountMirror] = useState<{ outManual: boolean; inManual: boolean }>({
-    outManual: false,
-    inManual: false,
-  });
+
+  const [calcBruto, setCalcBruto] = useState('');
+  const [calcFeeMode, setCalcFeeMode] = useState<'PERCENT' | 'FIXED'>('PERCENT');
+  const [calcFeeValue, setCalcFeeValue] = useState('');
+  const [calcClipboardErr, setCalcClipboardErr] = useState<string | null>(null);
 
   useEffect(() => {
     const accountIds = [outLeg.account_id, inLeg.account_id, feeAccountId].filter(Boolean);
@@ -223,10 +271,10 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
       setFeeCurrencyId(mapped.feeCurrencyId);
       setFeeAccountId(mapped.feeAccountId);
       setFeeFormat(mapped.feeFormat);
-      setAmountMirror({
-        outManual: mapped.out_leg.amount.trim() !== '',
-        inManual: mapped.in_leg.amount.trim() !== '',
-      });
+      setFirstLegDirection('SALIDA');
+      const o = mapped.out_leg.amount.trim();
+      const i = mapped.in_leg.amount.trim();
+      setP2UserEdited(o !== '' && i !== '' && o !== i);
     };
 
     const applyLocalFallback = () => {
@@ -243,7 +291,8 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
       }
     };
 
-    api.get<DraftApiResponse<TransferenciaDraftData | LegacyTransferenciaDraftData>>(`/movements/${movementId}/draft`)
+    api
+      .get<DraftApiResponse<TransferenciaDraftData | LegacyTransferenciaDraftData>>(`/movements/${movementId}/draft`)
       .then((res) => {
         if (cancelled) return;
         const payload = res?.payload;
@@ -263,7 +312,7 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
         try {
           localStorage.setItem(localDraftKey, JSON.stringify(mapped));
         } catch {
-          // non-blocking local cache
+          // non-blocking
         }
         setDraftMessage('Borrador reanudado.');
       })
@@ -277,6 +326,9 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
       cancelled = true;
     };
   }, [movementId, localDraftKey]);
+
+  const firstLegKind: 'out' | 'in' = firstLegDirection === 'SALIDA' ? 'out' : 'in';
+  const secondLegKind: 'out' | 'in' = firstLegKind === 'out' ? 'in' : 'out';
 
   const outAC = useMemo(() => acCache[outLeg.account_id] || [], [acCache, outLeg.account_id]);
   const inAC = useMemo(() => acCache[inLeg.account_id] || [], [acCache, inLeg.account_id]);
@@ -311,10 +363,76 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
     return roundTo(outAbs - expectedFee, 2);
   }, [outAbs, feeEnabled, feeTreatment, expectedFee]);
 
+  const calcHelpActive = feeEnabled && feeTreatment === 'INCLUIDA';
+
+  const calcDerived = useMemo(() => {
+    const empty = {
+      helpAlert: null as string | null,
+      roundWarning: null as string | null,
+      bruto: null as number | null,
+      feeCalc: null as number | null,
+      netoCalc: null as number | null,
+      showNumeric: false,
+    };
+    if (!calcHelpActive) return empty;
+
+    const rawBruto = calcBruto.trim().replace(',', '.');
+    if (!rawBruto) {
+      return { ...empty, helpAlert: 'Ingresá un bruto mayor a 0.' };
+    }
+    const brutoParsed = parseFloat(rawBruto);
+    if (!Number.isFinite(brutoParsed) || brutoParsed <= 0) {
+      return { ...empty, helpAlert: 'Ingresá un bruto mayor a 0.' };
+    }
+    const bruto = roundTo(brutoParsed, 2);
+
+    const rawFee = calcFeeValue.trim().replace(',', '.');
+    const feeParsed = parseFloat(rawFee);
+    let feeCalc = 0;
+    if (calcFeeMode === 'PERCENT') {
+      if (!Number.isFinite(feeParsed) || feeParsed < 0) {
+        return { ...empty, helpAlert: 'Valor % inválido.' };
+      }
+      feeCalc = roundTo((bruto * feeParsed) / 100, 2);
+    } else {
+      if (!Number.isFinite(feeParsed) || feeParsed < 0) {
+        return { ...empty, helpAlert: 'Monto fijo inválido.' };
+      }
+      feeCalc = roundTo(feeParsed, 2);
+    }
+
+    if (feeCalc > bruto) {
+      return { ...empty, helpAlert: 'La comisión no puede superar el bruto.', bruto, feeCalc };
+    }
+    const netoCalc = roundTo(bruto - feeCalc, 2);
+    if (netoCalc <= 0) {
+      return {
+        ...empty,
+        helpAlert: 'El neto debe ser mayor a 0 (revisá bruto/comisión).',
+        bruto,
+        feeCalc,
+        netoCalc,
+      };
+    }
+    const sum = roundTo(netoCalc + feeCalc, 2);
+    const roundWarning = Math.abs(sum - bruto) > 0.01 ? 'Revisá redondeo.' : null;
+    return { helpAlert: null, roundWarning, bruto, feeCalc, netoCalc, showNumeric: true };
+  }, [calcHelpActive, calcBruto, calcFeeMode, calcFeeValue]);
+
+  async function copyCalcPlainToClipboard(value: number) {
+    const plain = String(roundTo(value, 2));
+    try {
+      await navigator.clipboard.writeText(plain);
+      setCalcClipboardErr(null);
+    } catch {
+      setCalcClipboardErr('No se pudo copiar; seleccioná manualmente.');
+    }
+  }
+
   const outPendingLabel = outLeg.settlement === 'PENDIENTE' ? 'Sí' : 'No';
   const inPendingLabel = inLeg.settlement === 'PENDIENTE' ? 'Sí' : 'No';
-  const feeImpactLabel = feePayer === 'CLIENTE_PAGA' ? 'Comisión en contra del cliente' : 'Comisión a favor del cliente';
-  const feeCurrencyOptions = feeAccountId ? (acCache[feeAccountId] || []) : [];
+  const feeComisionadoText = useMemo(() => feeComisionadoExplainer(feeTreatment, feePayer), [feeTreatment, feePayer]);
+  const feeCurrencyOptions = feeAccountId ? acCache[feeAccountId] || [] : [];
   const settlementLabel = (settlement: 'REAL' | 'PENDIENTE') => (settlement === 'REAL' ? 'Liquidado ahora' : 'Queda pendiente');
   const feeAmountSigned = expectedFee > 0 ? (feePayer === 'CLIENTE_PAGA' ? -expectedFee : expectedFee) : 0;
   const feeRealSigned = feeEnabled && feeTreatment === 'APARTE' && feeSettlement === 'REAL' ? feeAmountSigned : 0;
@@ -340,7 +458,6 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
     add(inLeg.currency_id, inCurrCode, 'pending', inLeg.settlement === 'PENDIENTE' ? inAbs : 0);
 
     if (feeEnabled && expectedFee > 0 && feeCurrCode) {
-      // Comisión incluida: el fee ya está representado en el monto de pata(s); no sumar otra línea CC de comisión.
       if (clientCcEnabled && feeTreatment === 'APARTE') {
         add(feeCurrencyId, feeCurrCode, 'cc', feeAmountSigned);
       }
@@ -351,9 +468,69 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
     return Object.values(totals);
   }, [
     clientCcEnabled,
-    outLeg.currency_id, outCurrCode, outAbs, outLeg.settlement,
-    inLeg.currency_id, inCurrCode, inAbs, inLeg.settlement,
-    feeEnabled, feeTreatment, expectedFee, feeCurrCode, feeCurrencyId, feeAmountSigned, feeRealSigned, feePendingSigned,
+    outLeg.currency_id,
+    outCurrCode,
+    outAbs,
+    outLeg.settlement,
+    inLeg.currency_id,
+    inCurrCode,
+    inAbs,
+    inLeg.settlement,
+    feeEnabled,
+    feeTreatment,
+    expectedFee,
+    feeCurrCode,
+    feeCurrencyId,
+    feeAmountSigned,
+    feeRealSigned,
+    feePendingSigned,
+  ]);
+
+  const sameLegCurrency = Boolean(outLeg.currency_id && outLeg.currency_id === inLeg.currency_id);
+  const secondLegSuggestHint = sameLegCurrency ? '' : 'Divisas distintas — cargá cada monto por separado.';
+
+  const secondLegActiveSuggestHint = useMemo(() => {
+    if (!sameLegCurrency) return '';
+    if (!feeEnabled) return 'Monto sugerido igual al de la primera pata (misma divisa).';
+    if (feeTreatment === 'INCLUIDA') return 'Monto sugerido igual al de la primera pata (comisión incluida; cargá patas coherentes con lo pactado).';
+    return 'Monto sugerido = primera pata + comisión calculada (misma divisa; editable).';
+  }, [sameLegCurrency, feeEnabled, feeTreatment]);
+
+  useEffect(() => {
+    if (p2UserEdited) return;
+    if (!sameLegCurrency) return;
+    const fk = firstLegKind === 'out' ? outLeg : inLeg;
+    const sk = secondLegKind === 'out' ? outLeg : inLeg;
+    const firstNum = parseFloat(fk.amount);
+    if (!Number.isFinite(firstNum) || firstNum <= 0) return;
+
+    let suggestedNum: number;
+    if (!feeEnabled) {
+      suggestedNum = roundTo(firstNum, 2);
+    } else if (feeTreatment === 'INCLUIDA') {
+      suggestedNum = roundTo(firstNum, 2);
+    } else {
+      suggestedNum = roundTo(firstNum + expectedFee, 2);
+    }
+
+    const nextStr = String(suggestedNum);
+    if (sk.amount.trim() === nextStr.trim()) return;
+
+    if (secondLegKind === 'out') {
+      setOutLeg((prev) => ({ ...prev, amount: nextStr }));
+    } else {
+      setInLeg((prev) => ({ ...prev, amount: nextStr }));
+    }
+  }, [
+    p2UserEdited,
+    sameLegCurrency,
+    firstLegKind,
+    secondLegKind,
+    outLeg,
+    inLeg,
+    feeEnabled,
+    feeTreatment,
+    expectedFee,
   ]);
 
   function formatsFor(accountId: string, currencyId: string): Array<'CASH' | 'DIGITAL'> {
@@ -377,37 +554,26 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
     });
   }
 
-  function handleOutAmountChange(value: string) {
-    const outEmpty = value.trim() === '';
-    const inCurrentEmpty = inLeg.amount.trim() === '';
-    const shouldMirrorToIn = inCurrentEmpty || !amountMirror.inManual;
-
-    setOutLeg((prev) => ({ ...prev, amount: value }));
-    if (shouldMirrorToIn) {
+  function onFirstLegAmountChange(value: string) {
+    setP2UserEdited(false);
+    if (firstLegKind === 'out') {
+      setOutLeg((prev) => ({ ...prev, amount: value }));
+    } else {
       setInLeg((prev) => ({ ...prev, amount: value }));
     }
-    setAmountMirror((prev) => ({
-      outManual: !outEmpty,
-      inManual: shouldMirrorToIn ? false : prev.inManual,
-    }));
   }
 
-  function handleInAmountChange(value: string) {
-    const inEmpty = value.trim() === '';
-    const outCurrentEmpty = outLeg.amount.trim() === '';
-    const shouldMirrorToOut = outCurrentEmpty || !amountMirror.outManual;
-
-    setInLeg((prev) => ({ ...prev, amount: value }));
-    if (shouldMirrorToOut) {
+  function onSecondLegAmountChange(value: string) {
+    setP2UserEdited(true);
+    if (secondLegKind === 'out') {
       setOutLeg((prev) => ({ ...prev, amount: value }));
+    } else {
+      setInLeg((prev) => ({ ...prev, amount: value }));
     }
-    setAmountMirror((prev) => ({
-      inManual: !inEmpty,
-      outManual: shouldMirrorToOut ? false : prev.outManual,
-    }));
   }
 
   function updateFeeAccount(nextAccountId: string) {
+    setP2UserEdited(false);
     setFeeAccountId(nextAccountId);
     const availableCurrencies = acCache[nextAccountId] || [];
     if (!availableCurrencies.some((c) => c.currency_id === feeCurrencyId)) {
@@ -417,6 +583,7 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
   }
 
   function updateFeeCurrency(nextCurrencyId: string) {
+    setP2UserEdited(false);
     setFeeCurrencyId(nextCurrencyId);
     const availableFormats = formatsFor(feeAccountId, nextCurrencyId);
     setFeeFormat(availableFormats[0] || '');
@@ -435,11 +602,11 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
       try {
         localStorage.setItem(localDraftKey, JSON.stringify(buildDraftData()));
       } catch {
-        // non-blocking local cache
+        // non-blocking
       }
       setDraftMessage('Borrador guardado.');
-    } catch (err: any) {
-      const msg = err?.message || 'No se pudo guardar el borrador.';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'No se pudo guardar el borrador.';
       if (String(msg).includes('BORRADOR')) {
         setError('La operación ya no está en BORRADOR. Reanudá un borrador válido o creá una nueva operación.');
         return;
@@ -538,8 +705,8 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
         // noop
       }
       setSuccess(true);
-    } catch (err: any) {
-      setError(err?.message || 'Error al guardar la transferencia.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al guardar la transferencia.');
     } finally {
       setSubmitting(false);
     }
@@ -558,13 +725,100 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
     setFeeCurrencyId('');
     setFeeAccountId('');
     setFeeFormat('');
-    setAmountMirror({ outManual: false, inManual: false });
+    setFirstLegDirection('SALIDA');
+    setP2UserEdited(false);
+    setCalcBruto('');
+    setCalcFeeMode('PERCENT');
+    setCalcFeeValue('');
+    setCalcClipboardErr(null);
     try {
       localStorage.removeItem(localDraftKey);
     } catch {
       // noop
     }
   }
+
+  function renderLegFieldset(kind: 'out' | 'in', position: 'first' | 'second') {
+    const leg = kind === 'out' ? outLeg : inLeg;
+    const acList = kind === 'out' ? outAC : inAC;
+    const legend = kind === 'out' ? 'Salida — lo que entregamos' : 'Ingreso — lo que recibimos';
+    const help = kind === 'out' ? 'Salida: dinero que sale de nuestras cuentas.' : 'Ingreso: dinero que entra a nuestras cuentas.';
+    const onAmount = position === 'first' ? onFirstLegAmountChange : onSecondLegAmountChange;
+    const amountLabel = kind === 'out' ? 'Monto salida' : 'Monto entrada';
+    const amountHint = position === 'second' ? secondLegSuggestHint || secondLegActiveSuggestHint : undefined;
+
+    return (
+      <fieldset key={`${kind}-${position}`}>
+        <legend className="text-sm font-semibold text-fg mb-2">{legend}</legend>
+        <p className="text-xs text-fg-muted mb-2">{help}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div>
+            <label className="block text-xs text-fg-muted mb-0.5">Cuenta</label>
+            <select
+              value={leg.account_id}
+              onChange={(e) => updateLeg(kind, 'account_id', e.target.value)}
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
+            >
+              <option value="">—</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-fg-muted mb-0.5">Divisa</label>
+            <select
+              value={leg.currency_id}
+              onChange={(e) => updateLeg(kind, 'currency_id', e.target.value)}
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
+            >
+              <option value="">—</option>
+              {acList.map((ac) => (
+                <option key={ac.currency_id} value={ac.currency_id}>
+                  {ac.currency_code}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
+            <select
+              value={leg.format}
+              onChange={(e) => updateLeg(kind, 'format', e.target.value as '' | 'CASH' | 'DIGITAL')}
+              disabled={!leg.account_id || !leg.currency_id}
+              className="w-full border border-subtle rounded px-2 py-1.5 text-sm disabled:bg-surface"
+            >
+              <option value="">—</option>
+              {formatsFor(leg.account_id, leg.currency_id).map((f) => (
+                <option key={f} value={f}>
+                  {formatLabel(f)}
+                </option>
+              ))}
+            </select>
+            {leg.account_id && leg.currency_id && formatsFor(leg.account_id, leg.currency_id).length === 0 && (
+              <p className="mt-1 text-[11px] text-fg-muted">No hay formato habilitado para esta cuenta/divisa.</p>
+            )}
+          </div>
+          <div className="sm:col-span-2 lg:col-span-1">
+            <MoneyInput label={amountLabel} value={leg.amount} onValueChange={onAmount} placeholder={kind === 'out' ? 'Ej: 10000' : 'Ej: 10200'} />
+            {amountHint ? <p className="text-xs text-fg-muted mt-1">{amountHint}</p> : null}
+          </div>
+        </div>
+        <label className="mt-2 flex items-center gap-2 text-sm text-fg cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={leg.settlement === 'PENDIENTE'}
+            onChange={(e) => updateLeg(kind, 'settlement', e.target.checked ? 'PENDIENTE' : 'REAL')}
+          />
+          Dejar como pendiente
+        </label>
+      </fieldset>
+    );
+  }
+
+  const impactoCcCierre = impactoClienteCcCierre(clientCcEnabled, feeEnabled, feeTreatment, feePayer);
 
   if (success) {
     return (
@@ -585,190 +839,192 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
       {draftLoading && <p className="text-fg-muted text-sm">Cargando borrador...</p>}
 
       <p className="rounded-md border border-subtle bg-brand-soft px-3 py-2 text-xs text-fg">
-        Liquidación palo a palo: cargá el monto de <strong>salida</strong> y el de <strong>ingreso</strong> en cada divisa acordada; no es obligatorio usar cotización del sistema. REAL/PENDIENTE y CC siguen las reglas del tipo de operación.
+        Elegí si cargás primero <strong>salida</strong> o <strong>ingreso</strong>; el envío al servidor sigue usando siempre{' '}
+        <span className="font-mono">out_leg</span> / <span className="font-mono">in_leg</span>. REAL/PENDIENTE y CC siguen las reglas del tipo de operación.
       </p>
 
-      <fieldset>
-        <legend className="text-sm font-semibold text-fg mb-2">Transferencia salida (lo que entregamos)</legend>
-        <p className="text-xs text-fg-muted mb-2">Salida: dinero que sale de nuestras cuentas.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          <div>
-            <label className="block text-xs text-fg-muted mb-0.5">Cuenta</label>
-            <select value={outLeg.account_id} onChange={(e) => updateLeg('out', 'account_id', e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
-              <option value="">—</option>
-              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-fg-muted mb-0.5">Divisa</label>
-            <select value={outLeg.currency_id} onChange={(e) => updateLeg('out', 'currency_id', e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
-              <option value="">—</option>
-              {outAC.map((ac) => <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
-            <select
-              value={outLeg.format}
-              onChange={(e) => updateLeg('out', 'format', e.target.value as '' | 'CASH' | 'DIGITAL')}
-              disabled={!outLeg.account_id || !outLeg.currency_id}
-              className="w-full border border-subtle rounded px-2 py-1.5 text-sm disabled:bg-surface"
-            >
-              <option value="">—</option>
-              {formatsFor(outLeg.account_id, outLeg.currency_id).map((f) => <option key={f} value={f}>{formatLabel(f)}</option>)}
-            </select>
-            {outLeg.account_id && outLeg.currency_id && formatsFor(outLeg.account_id, outLeg.currency_id).length === 0 && (
-              <p className="mt-1 text-[11px] text-fg-muted">No hay formato habilitado para esta cuenta/divisa.</p>
-            )}
-          </div>
-          <MoneyInput
-            label="Monto salida"
-            value={outLeg.amount}
-            onValueChange={handleOutAmountChange}
-            placeholder="Ej: 10000"
-          />
-          <label className="flex items-end pb-2 text-sm text-fg cursor-pointer select-none gap-2">
+      <div className="border border-subtle rounded-lg p-3 bg-surface space-y-2">
+        <p className="text-sm font-semibold text-fg">Primera pata a cargar</p>
+        <div className="flex flex-wrap gap-3 text-sm text-fg">
+          <label className="inline-flex items-center gap-2 cursor-pointer select-none">
             <input
-              type="checkbox"
-              checked={outLeg.settlement === 'PENDIENTE'}
-              onChange={(e) => updateLeg('out', 'settlement', e.target.checked ? 'PENDIENTE' : 'REAL')}
+              type="radio"
+              name="first-leg-dir"
+              checked={firstLegDirection === 'SALIDA'}
+              onChange={() => {
+                setFirstLegDirection('SALIDA');
+                setP2UserEdited(false);
+              }}
             />
-            Dejar como pendiente
+            Salida
+          </label>
+          <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="radio"
+              name="first-leg-dir"
+              checked={firstLegDirection === 'INGRESO'}
+              onChange={() => {
+                setFirstLegDirection('INGRESO');
+                setP2UserEdited(false);
+              }}
+            />
+            Ingreso
           </label>
         </div>
-      </fieldset>
+      </div>
+
+      {renderLegFieldset(firstLegKind, 'first')}
 
       <fieldset>
-        <legend className="text-sm font-semibold text-fg mb-2">Transferencia ingreso (lo que recibimos)</legend>
-        <p className="text-xs text-fg-muted mb-2">Ingreso: dinero que entra a nuestras cuentas.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          <div>
-            <label className="block text-xs text-fg-muted mb-0.5">Cuenta</label>
-            <select value={inLeg.account_id} onChange={(e) => updateLeg('in', 'account_id', e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
-              <option value="">—</option>
-              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-fg-muted mb-0.5">Divisa</label>
-            <select value={inLeg.currency_id} onChange={(e) => updateLeg('in', 'currency_id', e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
-              <option value="">—</option>
-              {inAC.map((ac) => <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-fg-muted mb-0.5">Formato</label>
-            <select
-              value={inLeg.format}
-              onChange={(e) => updateLeg('in', 'format', e.target.value as '' | 'CASH' | 'DIGITAL')}
-              disabled={!inLeg.account_id || !inLeg.currency_id}
-              className="w-full border border-subtle rounded px-2 py-1.5 text-sm disabled:bg-surface"
-            >
-              <option value="">—</option>
-              {formatsFor(inLeg.account_id, inLeg.currency_id).map((f) => <option key={f} value={f}>{formatLabel(f)}</option>)}
-            </select>
-            {inLeg.account_id && inLeg.currency_id && formatsFor(inLeg.account_id, inLeg.currency_id).length === 0 && (
-              <p className="mt-1 text-[11px] text-fg-muted">No hay formato habilitado para esta cuenta/divisa.</p>
-            )}
-          </div>
-          <MoneyInput
-            label="Monto entrada"
-            value={inLeg.amount}
-            onValueChange={handleInAmountChange}
-            placeholder="Ej: 10200"
-          />
-          <label className="flex items-end pb-2 text-sm text-fg cursor-pointer select-none gap-2">
-            <input
-              type="checkbox"
-              checked={inLeg.settlement === 'PENDIENTE'}
-              onChange={(e) => updateLeg('in', 'settlement', e.target.checked ? 'PENDIENTE' : 'REAL')}
-            />
-            Dejar como pendiente
-          </label>
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend className="text-sm font-semibold text-fg mb-2">Comisión</legend>
+        <legend className="text-sm font-semibold text-fg mb-2">Comisionado</legend>
         <div
           className="mb-3 p-2 rounded hover:bg-surface cursor-pointer inline-flex items-center gap-2"
-          onClick={() => setFeeEnabled((p) => !p)}
+          onClick={() => {
+            setFeeEnabled((p) => !p);
+            setP2UserEdited(false);
+          }}
         >
           <input
             type="checkbox"
             checked={feeEnabled}
-            onChange={(e) => setFeeEnabled(e.target.checked)}
+            onChange={(e) => {
+              setFeeEnabled(e.target.checked);
+              setP2UserEdited(false);
+            }}
             onClick={(e) => e.stopPropagation()}
           />
           <span className="text-fg text-sm">Tiene comisión</span>
         </div>
         {feeEnabled && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs text-fg-muted mb-0.5">Tipo</label>
-              <select value={feeMode} onChange={(e) => setFeeMode(e.target.value as 'PERCENT' | 'FIXED')} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
-                <option value="PERCENT">Porcentaje (%)</option>
-                <option value="FIXED">Monto fijo</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-fg-muted mb-0.5">Tratamiento</label>
-              <select value={feeTreatment} onChange={(e) => setFeeTreatment(e.target.value as 'APARTE' | 'INCLUIDA')} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
-                <option value="APARTE">Aparte (+)</option>
-                <option value="INCLUIDA">Incluida (-)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-fg-muted mb-0.5">Quién paga</label>
-              <select value={feePayer} onChange={(e) => setFeePayer(e.target.value as 'CLIENTE_PAGA' | 'NOSOTROS_PAGAMOS')} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
-                <option value="CLIENTE_PAGA">Cliente paga</option>
-                <option value="NOSOTROS_PAGAMOS">Nosotros pagamos</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-fg-muted mb-0.5">Cuenta comisión</label>
-              <select value={feeAccountId} onChange={(e) => updateFeeAccount(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
-                <option value="">—</option>
-                {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-fg-muted mb-0.5">Divisa comisión</label>
-              <select value={feeCurrencyId} onChange={(e) => updateFeeCurrency(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm" disabled={!feeAccountId}>
-                <option value="">—</option>
-                {feeCurrencyOptions.map((ac) => (
-                  <option key={ac.currency_id} value={ac.currency_id}>{ac.currency_code}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-fg-muted mb-0.5">Formato comisión</label>
-              <select value={feeFormat} onChange={(e) => setFeeFormat(e.target.value as '' | 'CASH' | 'DIGITAL')} className="w-full border border-subtle rounded px-2 py-1.5 text-sm disabled:bg-surface" disabled={!feeAccountId || !feeCurrencyId}>
-                <option value="">—</option>
-                {formatsFor(feeAccountId, feeCurrencyId).map((f) => <option key={f} value={f}>{formatLabel(f)}</option>)}
-              </select>
-              {feeAccountId && feeCurrencyId && formatsFor(feeAccountId, feeCurrencyId).length === 0 && (
-                <p className="mt-1 text-[11px] text-fg-muted">No hay formato habilitado para esta cuenta/divisa.</p>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs text-fg-muted mb-0.5">Tipo</label>
+                <select
+                  value={feeMode}
+                  onChange={(e) => {
+                    setFeeMode(e.target.value as 'PERCENT' | 'FIXED');
+                    setP2UserEdited(false);
+                  }}
+                  className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
+                >
+                  <option value="PERCENT">Porcentaje (%)</option>
+                  <option value="FIXED">Monto fijo</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-fg-muted mb-0.5">Tratamiento</label>
+                <select
+                  value={feeTreatment}
+                  onChange={(e) => {
+                    setFeeTreatment(e.target.value as 'APARTE' | 'INCLUIDA');
+                    setP2UserEdited(false);
+                  }}
+                  className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
+                >
+                  <option value="APARTE">Aparte (+)</option>
+                  <option value="INCLUIDA">Incluida (-)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-fg-muted mb-0.5">Quién paga</label>
+                <select
+                  value={feePayer}
+                  onChange={(e) => {
+                    setFeePayer(e.target.value as 'CLIENTE_PAGA' | 'NOSOTROS_PAGAMOS');
+                    setP2UserEdited(false);
+                  }}
+                  className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
+                >
+                  <option value="CLIENTE_PAGA">Cliente paga</option>
+                  <option value="NOSOTROS_PAGAMOS">Nosotros pagamos</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-fg-muted mb-0.5">Cuenta comisión</label>
+                <select value={feeAccountId} onChange={(e) => updateFeeAccount(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
+                  <option value="">—</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-fg-muted mb-0.5">Divisa comisión</label>
+                <select value={feeCurrencyId} onChange={(e) => updateFeeCurrency(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm" disabled={!feeAccountId}>
+                  <option value="">—</option>
+                  {feeCurrencyOptions.map((ac) => (
+                    <option key={ac.currency_id} value={ac.currency_id}>
+                      {ac.currency_code}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-fg-muted mb-0.5">Formato comisión</label>
+                <select
+                  value={feeFormat}
+                  onChange={(e) => {
+                    setFeeFormat(e.target.value as '' | 'CASH' | 'DIGITAL');
+                    setP2UserEdited(false);
+                  }}
+                  className="w-full border border-subtle rounded px-2 py-1.5 text-sm disabled:bg-surface"
+                  disabled={!feeAccountId || !feeCurrencyId}
+                >
+                  <option value="">—</option>
+                  {formatsFor(feeAccountId, feeCurrencyId).map((f) => (
+                    <option key={f} value={f}>
+                      {formatLabel(f)}
+                    </option>
+                  ))}
+                </select>
+                {feeAccountId && feeCurrencyId && formatsFor(feeAccountId, feeCurrencyId).length === 0 && (
+                  <p className="mt-1 text-[11px] text-fg-muted">No hay formato habilitado para esta cuenta/divisa.</p>
+                )}
+              </div>
+              <label className="sm:col-span-2 lg:col-span-2 flex items-end pb-2 text-sm text-fg cursor-pointer select-none gap-2">
+                <input
+                  type="checkbox"
+                  checked={feeSettlement === 'PENDIENTE'}
+                  onChange={(e) => {
+                    setFeeSettlement(e.target.checked ? 'PENDIENTE' : 'REAL');
+                    setP2UserEdited(false);
+                  }}
+                  disabled={feeTreatment === 'INCLUIDA'}
+                />
+                Comisión pendiente
+              </label>
+              {feeTreatment === 'INCLUIDA' && (
+                <p className="sm:col-span-2 lg:col-span-2 mt-1 text-[11px] text-fg-muted">Con incluida no aplica pendiente de comisión.</p>
               )}
-            </div>
-            <label className="sm:col-span-2 lg:col-span-2 flex items-end pb-2 text-sm text-fg cursor-pointer select-none gap-2">
-              <input
-                type="checkbox"
-                checked={feeSettlement === 'PENDIENTE'}
-                onChange={(e) => setFeeSettlement(e.target.checked ? 'PENDIENTE' : 'REAL')}
-                disabled={feeTreatment === 'INCLUIDA'}
+              <MoneyInput
+                label={feeMode === 'PERCENT' ? 'Porcentaje' : 'Monto fijo'}
+                value={feeValue}
+                onValueChange={(v) => {
+                  setFeeValue(v);
+                  setP2UserEdited(false);
+                }}
+                fractionDigits={feeMode === 'PERCENT' ? 4 : 2}
               />
-              Comisión pendiente
-            </label>
-            {feeTreatment === 'INCLUIDA' && <p className="sm:col-span-2 lg:col-span-2 mt-1 text-[11px] text-fg-muted">Con incluida no aplica pendiente de comisión.</p>}
-            <MoneyInput label={feeMode === 'PERCENT' ? 'Porcentaje' : 'Monto fijo'} value={feeValue} onValueChange={setFeeValue} fractionDigits={feeMode === 'PERCENT' ? 4 : 2} />
-            <div className="flex items-end">
-              {expectedFee > 0 && <p className="text-sm font-mono text-fg-muted">Comisión: <span className="font-medium">{feeCurrCode} {formatMoneyAR(expectedFee)}</span></p>}
+              <div className="flex items-end">
+                {expectedFee > 0 && (
+                  <p className="text-sm font-mono text-fg-muted">
+                    Comisión:{' '}
+                    <span className="font-medium">
+                      {feeCurrCode} {formatMoneyAR(expectedFee)}
+                    </span>
+                  </p>
+                )}
+              </div>
             </div>
-            <p className="text-xs text-fg-muted sm:col-span-2 lg:col-span-4">{feeImpactLabel}</p>
+            <p className="text-xs text-fg-muted border border-subtle rounded-lg p-3 bg-surface">{feeComisionadoText}</p>
           </div>
         )}
       </fieldset>
+
+      {renderLegFieldset(secondLegKind, 'second')}
 
       <fieldset>
         <legend className="text-sm font-semibold text-fg mb-2">Impacto cliente</legend>
@@ -776,32 +1032,36 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
           <p className="text-xs text-fg-muted">Pendiente no duplica CC; solo indica que la ejecución real queda abierta.</p>
           <div className="grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1 font-mono text-fg text-xs sm:text-sm [&>span]:min-w-0 [&>span]:break-words">
             <span>Salida:</span>
-            <span>{outCurrCode} {formatMoneyAR(outAbs)} ({settlementLabel(outLeg.settlement)})</span>
+            <span>
+              {outCurrCode} {formatMoneyAR(outAbs)} ({settlementLabel(outLeg.settlement)})
+            </span>
             <span>Entrada:</span>
-            <span>{inCurrCode} {formatMoneyAR(inAbs)} ({settlementLabel(inLeg.settlement)})</span>
+            <span>
+              {inCurrCode} {formatMoneyAR(inAbs)} ({settlementLabel(inLeg.settlement)})
+            </span>
             <span>Pendiente salida:</span>
             <span>{outPendingLabel}</span>
             <span>Pendiente entrada:</span>
             <span>{inPendingLabel}</span>
             {feeEnabled && expectedFee > 0 && (
               <>
-                <span>Comisión ({feeTreatment === 'APARTE' ? '+' : '−'}):</span>
-                <span>{feeCurrCode} {formatMoneyAR(expectedFee)}</span>
+                <span>{feeTreatment === 'APARTE' ? 'Comisión (aparte):' : 'Comisión (incluida en patas):'}</span>
+                <span>
+                  {feeCurrCode} {formatMoneyAR(expectedFee)}
+                </span>
               </>
             )}
             {feeEnabled && feeTreatment === 'INCLUIDA' && (
               <>
                 <span>Neto salida (incluida):</span>
-                <span>{outCurrCode} {formatMoneyAR(includedNetAmount)}</span>
+                <span>
+                  {outCurrCode} {formatMoneyAR(includedNetAmount)}
+                </span>
               </>
             )}
             <span className="border-t border-subtle pt-1 font-semibold">Impacto comercial (CC):</span>
             <span className="border-t border-subtle pt-1 font-semibold">
-              {!clientCcEnabled
-                ? 'No aplica (cliente sin CC habilitada)'
-                : feeEnabled
-                  ? feeImpactLabel
-                  : 'Sin comisión'}
+              {!clientCcEnabled ? 'No aplica (cliente sin CC habilitada)' : feeEnabled ? feeComisionadoText : 'Sin comisión'}
             </span>
             <span>Impacto real ahora:</span>
             <span>Solo patas/commission en REAL</span>
@@ -809,26 +1069,136 @@ export default function TransferenciaForm({ movementId, clientId: _clientId, cli
             <span>Solo patas/commission en PENDIENTE</span>
             <span>Liquidación comisión:</span>
             <span>
-              {feeEnabled
-                ? settlementLabel((feeSettlement === 'REAL' || feeTreatment === 'INCLUIDA') ? 'REAL' : 'PENDIENTE')
-                : 'N/A'}
+              {feeEnabled ? settlementLabel(feeSettlement === 'REAL' || feeTreatment === 'INCLUIDA' ? 'REAL' : 'PENDIENTE') : 'N/A'}
             </span>
             <span>Tipo pendiente comisión:</span>
             <span>
               {feeEnabled && feeSettlement === 'PENDIENTE' && feeTreatment === 'APARTE'
-                ? (feePayer === 'CLIENTE_PAGA' ? 'PENDIENTE_DE_COBRO_COMISION' : 'PENDIENTE_DE_PAGO_COMISION')
+                ? feePayer === 'CLIENTE_PAGA'
+                  ? 'PENDIENTE_DE_COBRO_COMISION'
+                  : 'PENDIENTE_DE_PAGO_COMISION'
                 : 'N/A'}
             </span>
           </div>
           {feeEnabled && feeTreatment === 'INCLUIDA' && includedNetAmount <= 0 && (
             <p className="text-error text-xs mt-1">Con comisión incluida, el neto debe ser mayor a 0.</p>
           )}
+          {impactoCcCierre ? <p className="text-xs text-fg-muted border-t border-subtle pt-2 mt-2">{impactoCcCierre}</p> : null}
         </div>
       </fieldset>
+
+      {!calcHelpActive ? (
+        <div className="border border-subtle rounded-lg p-3 bg-surface opacity-60 pointer-events-none min-w-0">
+          <p className="text-xs text-fg-muted">Ayuda disponible solo con comisión activa y tratamiento Incluida.</p>
+        </div>
+      ) : (
+        <details className="border border-subtle rounded-lg p-3 bg-surface min-w-0">
+          <summary className="cursor-pointer text-sm font-semibold text-fg list-none [&::-webkit-details-marker]:hidden">
+            Ayuda: comisión incluida (no registra movimientos)
+          </summary>
+          <div className="mt-3 space-y-3 text-xs text-fg-muted">
+            <p>
+              Lo que se ejecuta y va al backend es lo que cargás en las patas. Esta sección solo calcula. Con comisión Incluida, el sistema no parte solo un bruto en neto+fee al guardar (igual que hoy).
+            </p>
+            <p>
+              El neto contable que importa es el que figura en <strong className="text-fg">Impacto cliente</strong> una vez que cargás las patas (fila «Neto salida (incluida)»); esta ayuda solo sirve para pensar el bruto/comisión antes de cargar.
+            </p>
+
+            {calcDerived.helpAlert ? (
+              <p role="alert" className="text-error text-sm">
+                {calcDerived.helpAlert}
+              </p>
+            ) : null}
+            {calcClipboardErr ? (
+              <p role="alert" className="text-error text-sm">
+                {calcClipboardErr}
+              </p>
+            ) : null}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="calc-bruto" className="block text-fg-muted mb-0.5">
+                  Bruto operativo (ayuda)
+                </label>
+                <input
+                  id="calc-bruto"
+                  type="text"
+                  inputMode="decimal"
+                  value={calcBruto}
+                  onChange={(e) => setCalcBruto(e.target.value)}
+                  className="w-full border border-subtle rounded px-2 py-1.5 text-sm text-fg bg-app"
+                />
+              </div>
+              <div>
+                <label htmlFor="calc-fee-mode" className="block text-fg-muted mb-0.5">
+                  Comisión en ayuda
+                </label>
+                <select
+                  id="calc-fee-mode"
+                  value={calcFeeMode}
+                  onChange={(e) => setCalcFeeMode(e.target.value as 'PERCENT' | 'FIXED')}
+                  className="w-full border border-subtle rounded px-2 py-1.5 text-sm text-fg bg-app"
+                >
+                  <option value="PERCENT">Porcentaje (%)</option>
+                  <option value="FIXED">Monto fijo</option>
+                </select>
+                <p className="mt-1 text-[11px] text-fg-muted">El % se calcula sobre el bruto ingresado en esta ayuda.</p>
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="calc-fee-val" className="block text-fg-muted mb-0.5">
+                  {calcFeeMode === 'PERCENT' ? 'Porcentaje' : 'Monto fijo'}
+                </label>
+                <input
+                  id="calc-fee-val"
+                  type="text"
+                  inputMode="decimal"
+                  value={calcFeeValue}
+                  onChange={(e) => setCalcFeeValue(e.target.value)}
+                  className="w-full border border-subtle rounded px-2 py-1.5 text-sm text-fg bg-app"
+                />
+              </div>
+            </div>
+
+            {(() => {
+              const feeC = calcDerived.feeCalc;
+              const netoC = calcDerived.netoCalc;
+              const brutoC = calcDerived.bruto;
+              if (!calcDerived.showNumeric || feeC == null || netoC == null || brutoC == null) return null;
+              return (
+                <div className="space-y-2 font-mono text-sm text-fg">
+                  <p>Comisión calculada (ayuda): {formatMoneyAR(feeC)}</p>
+                  <p>Neto sugerido (ayuda): {formatMoneyAR(netoC)}</p>
+                  <p>
+                    Check: {formatMoneyAR(netoC)} + {formatMoneyAR(feeC)} = {formatMoneyAR(brutoC)}
+                  </p>
+                  {calcDerived.roundWarning ? <p className="text-fg-muted font-sans text-xs">{calcDerived.roundWarning}</p> : null}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button
+                      type="button"
+                      className="rounded border border-subtle px-2 py-1 text-xs text-fg hover:bg-overlay-hover"
+                      onClick={() => void copyCalcPlainToClipboard(netoC)}
+                    >
+                      Copiar neto sugerido
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded border border-subtle px-2 py-1 text-xs text-fg hover:bg-overlay-hover"
+                      onClick={() => void copyCalcPlainToClipboard(feeC)}
+                    >
+                      Copiar comisión calculada
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </details>
+      )}
 
       <fieldset>
         <legend className="text-sm font-semibold text-fg mb-2">Totales</legend>
         <div className="bg-surface rounded p-3 text-sm">
+          <p className="text-xs text-fg-muted mb-2">CC negativo = más deuda del cliente en esa moneda.</p>
           {totalsByCurrency.length === 0 ? (
             <p className="text-fg-muted text-xs">Completá datos para ver totales.</p>
           ) : (
