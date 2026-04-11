@@ -20,35 +20,10 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-function debugIngestSession(location: string, payload: Record<string, unknown>): void {
-  if (!import.meta.env.DEV) return;
-  fetch('http://127.0.0.1:7846/ingest/9ff95368-0f5e-4d8b-9457-120a569a7a61', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'f89233' },
-    body: JSON.stringify({
-      sessionId: 'f89233',
-      runId: 'pre-fix',
-      location,
-      ...payload,
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-}
-
 function useSessionExpiry(logout: () => void) {
   const navigate = useNavigate();
   useEffect(() => {
-    let sessionExpiredCalls = 0;
     const onExpired = () => {
-      sessionExpiredCalls += 1;
-      debugIngestSession('AuthContext:useSessionExpiry', {
-        hypothesisId: 'H2',
-        message: 'auth:session-expired handler',
-        data: {
-          callCount: sessionExpiredCalls,
-          pathname: typeof window !== 'undefined' ? window.location.pathname : '',
-        },
-      });
       sessionStorage.setItem(
         'redirect_after_login',
         `${window.location.pathname}${window.location.search}${window.location.hash}`,

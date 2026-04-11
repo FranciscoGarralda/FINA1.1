@@ -19,6 +19,7 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: 'Usuario o contraseña incorrectos.',
   ACCOUNT_LOCKED:      'Cuenta bloqueada temporalmente. Intentá de nuevo en 15 minutos.',
   ACCOUNT_INACTIVE:    'Tu cuenta está desactivada. Contactá al administrador.',
+  TOO_MANY_REQUESTS:   'Demasiados intentos. Esperá un minuto e intentá de nuevo.',
 };
 
 export default function LoginPage() {
@@ -49,7 +50,9 @@ export default function LoginPage() {
     try {
       const data = await api.post<LoginResponse>('/login', { username, password });
       login(data.token, data.role, data.user_id);
-      navigate('/inicio', { replace: true });
+      const redirectTo = sessionStorage.getItem('redirect_after_login');
+      sessionStorage.removeItem('redirect_after_login');
+      navigate(redirectTo && redirectTo !== '/login' ? redirectTo : '/inicio', { replace: true });
     } catch (err: unknown) {
       const code = (err as ApiError)?.error ?? '';
       setError(AUTH_ERROR_MESSAGES[code] ?? 'Error al iniciar sesión. Intentá de nuevo.');
