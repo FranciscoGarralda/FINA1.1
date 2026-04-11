@@ -930,10 +930,7 @@ export default function TransferenciaForm({
                 <label className="block text-xs text-fg-muted mb-0.5">Quién paga</label>
                 <select
                   value={feePayer}
-                  onChange={(e) => {
-                    setFeePayer(e.target.value as 'CLIENTE_PAGA' | 'NOSOTROS_PAGAMOS');
-                    setP2UserEdited(false);
-                  }}
+                  onChange={(e) => setFeePayer(e.target.value as 'CLIENTE_PAGA' | 'NOSOTROS_PAGAMOS')}
                   className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
                 >
                   <option value="CLIENTE_PAGA">Cliente paga</option>
