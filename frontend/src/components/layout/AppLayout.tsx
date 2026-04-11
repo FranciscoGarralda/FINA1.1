@@ -103,7 +103,23 @@ export default function AppLayout() {
             </button>
           </div>
           <h1 className="flex-1 min-w-0 text-center text-h1 text-fg truncate px-1 tracking-wide">Fina</h1>
-          <div className="flex items-center justify-end shrink-0 min-w-[4.5rem] sm:min-w-[5.5rem]">
+          <div className="flex items-center justify-end gap-2 shrink-0 min-w-[2.75rem] sm:min-w-[9rem]">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-control text-fg-muted hover:text-fg hover:bg-overlay-hover transition-colors duration-interaction ease-out"
+              aria-label="Actualizar"
+              title="Actualizar"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </button>
             <span className="text-xs border border-subtle bg-surface text-fg-muted px-2 py-1 rounded-control max-w-[5.5rem] truncate hidden sm:inline-block">
               {role}
             </span>
