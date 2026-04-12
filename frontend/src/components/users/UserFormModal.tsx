@@ -4,6 +4,7 @@ import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import type { UserPermissionMatrixItem, UserPermissionsResponse } from '../../types/userPermissions';
 import FormActionsRow from '../common/FormActionsRow';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 const ROLES = ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR', 'COURIER'];
 
@@ -47,12 +48,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
     }
   }, [user]);
 
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   const availableRoles = callerRole === 'SUBADMIN' ? ROLES.filter((r) => r !== 'SUPERADMIN') : ROLES;
   const canResetPassword = can('users.reset_password');
@@ -229,7 +225,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
 
   return createPortal(
     <div className="modal-backdrop">
-      <div className="modal-panel max-w-3xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+      <div className="modal-panel modal-enter max-w-3xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h2 className="text-lg font-semibold mb-4">{isEdit ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
         {isEdit && (
           <div className="border-b border-subtle mb-4">
@@ -379,7 +375,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
           )}
 
           {error && <p className="text-error text-sm">{error}</p>}
-          {success && <p className="text-success text-sm">{success}</p>}
+          {success && <p className="success-message">{success}</p>}
 
           <FormActionsRow
             variant="modal"

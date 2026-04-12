@@ -365,7 +365,7 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
   if (success) {
     return (
       <div className="border-t pt-4">
-        <p className="text-success font-medium mb-4">Venta registrada correctamente.</p>
+        <p className="success-message">Venta registrada correctamente.</p>
         <button type="button" onClick={onDone} className="btn-touch bg-success text-white rounded-md hover:opacity-90 transition">
           Ver movimiento
         </button>

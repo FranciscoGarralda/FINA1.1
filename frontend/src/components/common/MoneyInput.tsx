@@ -63,7 +63,7 @@ export default function MoneyInput({
         onFocus={handleFocus}
         placeholder={placeholder}
         disabled={disabled}
-        className={`w-full border border-subtle rounded px-2 py-1.5 text-sm ${disabled ? 'bg-surface' : ''} ${className}`}
+        className={`input-field font-mono text-right max-w-full ${disabled ? 'opacity-60' : ''} ${className}`.trim()}
       />
     </div>
   );

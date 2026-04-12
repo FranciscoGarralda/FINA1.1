@@ -865,7 +865,7 @@ export default function TransferenciaForm({
   if (success) {
     return (
       <div className="border-t pt-4">
-        <p className="text-success font-medium mb-4">Transferencia registrada correctamente.</p>
+        <p className="success-message">Transferencia registrada correctamente.</p>
         <button type="button" onClick={onDone} className="btn-touch bg-success text-white rounded-md hover:opacity-90 transition">
           Ver movimiento
         </button>

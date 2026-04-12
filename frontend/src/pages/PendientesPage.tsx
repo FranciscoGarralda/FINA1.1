@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { createPortal } from 'react-dom';
 import { api } from '../api/client';
 import ClientSearchCombo from '../components/common/ClientSearchCombo';
@@ -143,7 +144,7 @@ export default function PendientesPage() {
       ) : items.length === 0 ? (
         <p className="text-fg-muted text-sm">No hay pendientes abiertos.</p>
       ) : (
-        <div className="bg-elevated border border-subtle rounded-lg overflow-x-auto">
+        <div className="bg-elevated border border-subtle rounded-lg table-scroll">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-surface">
@@ -282,10 +283,7 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
   const [error, setError] = useState('');
   const [loadErr, setLoadErr] = useState('');
 
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, []);
+  useBodyScrollLock(true);
 
   useEffect(() => {
     setClientsLoading(true);
@@ -351,7 +349,7 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
 
   return createPortal(
     <div className="modal-backdrop">
-      <div className="modal-panel max-w-lg w-full p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] max-h-[90vh] overflow-y-auto">
+      <div className="modal-panel modal-enter max-w-lg w-full p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold text-fg mb-1">Pendiente inicial (apertura)</h3>
         <p className="text-xs text-fg-muted mb-4">
           Obligación de caja previa al sistema; sin impacto en cuenta corriente ni utilidad. Misma resolución que el resto de pendientes.
@@ -500,10 +498,7 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
   const [error, setError] = useState('');
   const [bootstrapError, setBootstrapError] = useState('');
 
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, []);
+  useBodyScrollLock(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -609,7 +604,7 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
 
   return createPortal(
     <div className="modal-backdrop">
-      <div className="modal-panel max-w-md p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+      <div className="modal-panel modal-enter max-w-md p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h3 className="text-lg font-semibold text-fg mb-1">Resolver pendiente</h3>
         <p className="text-sm text-fg-muted mb-4">
           {item.client_name} — {item.currency_code} {formatMoneyAR(item.amount)} ({pendingTypeLabel(item.type)})
@@ -762,10 +757,7 @@ function CancelModal({ item, onClose, onDone }: { item: PendingItem; onClose: ()
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, []);
+  useBodyScrollLock(true);
 
   async function handleCancel() {
     setSubmitting(true);
@@ -782,7 +774,7 @@ function CancelModal({ item, onClose, onDone }: { item: PendingItem; onClose: ()
 
   return createPortal(
     <div className="modal-backdrop">
-      <div className="modal-panel max-w-sm p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+      <div className="modal-panel modal-enter max-w-sm p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h3 className="text-lg font-semibold text-fg mb-2">Anular operación</h3>
         <p className="text-sm text-fg-muted mb-4">
           ¿Estás seguro de anular toda la operación? Se revertirán sus efectos reales/comerciales y se cerrarán sus pendientes.

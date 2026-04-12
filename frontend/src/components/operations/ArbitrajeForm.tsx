@@ -280,7 +280,7 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
   if (success) {
     return (
       <div className="border-t pt-4">
-        <p className="text-success font-medium mb-4">Arbitraje registrado correctamente.</p>
+        <p className="success-message">Arbitraje registrado correctamente.</p>
         <button onClick={onDone} className="px-4 py-2 bg-success text-white text-sm rounded hover:opacity-90 transition">
           Ver movimiento
         </button>

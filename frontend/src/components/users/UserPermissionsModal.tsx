@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
 import FormActionsRow from '../common/FormActionsRow';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import type { UserPermissionMatrixItem, UserPermissionsResponse } from '../../types/userPermissions';
 
 interface Props {
@@ -32,10 +33,10 @@ export default function UserPermissionsModal({ userId, username, onClose }: Prop
     }
   }, [userId]);
 
+  useBodyScrollLock(true);
+
   useEffect(() => {
     void fetchData();
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = 'auto'; };
   }, [fetchData]);
 
   const grouped = useMemo(() => {
@@ -89,7 +90,7 @@ export default function UserPermissionsModal({ userId, username, onClose }: Prop
 
   return createPortal(
     <div className="modal-backdrop">
-      <div className="modal-panel max-w-4xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] max-h-[min(85vh,calc(100dvh-2rem))] overflow-hidden flex flex-col">
+      <div className="modal-panel modal-enter max-w-4xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] max-h-[min(85vh,calc(100dvh-2rem))] overflow-hidden flex flex-col">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold">Permisos de usuario</h2>
@@ -100,6 +101,7 @@ export default function UserPermissionsModal({ userId, username, onClose }: Prop
             onClick={onClose}
             className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md text-fg-muted hover:text-fg hover:bg-surface"
             aria-label="Cerrar"
+            title="Cerrar"
           >
             ✕
           </button>

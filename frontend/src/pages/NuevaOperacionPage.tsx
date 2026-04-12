@@ -15,6 +15,7 @@ import PagoCCCruzadoForm from '../components/operations/PagoCCCruzadoForm';
 import TransferenciaForm from '../components/operations/TransferenciaForm';
 import TraspasoDeudaCCForm from '../components/operations/TraspasoDeudaCCForm';
 import { clearOperationDraftCache } from '../utils/operationDrafts';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { movementTypeLabel as movementTypeLabelFromType } from '../utils/movementTypeLabels';
 
 type Client = ClientSearchComboItem & { active: boolean; cc_enabled: boolean };
@@ -154,6 +155,8 @@ export default function NuevaOperacionPage() {
   const draftStorageKey = `new-operation-draft:${userId || 'anonymous'}`;
   const resetToken = (location.state as { newOperationResetToken?: string } | null)?.newOperationResetToken;
   const resumeMovementId = (location.state as { resumeMovementId?: string } | null)?.resumeMovementId;
+
+  useBodyScrollLock(confirmClearOpen);
 
   const clientRequired = type !== '' && !CLIENT_OPTIONAL_TYPES.includes(type);
   const clientOptional = type !== '' && CLIENT_OPTIONAL_TYPES.includes(type);
@@ -707,7 +710,7 @@ export default function NuevaOperacionPage() {
                     type="button"
                     onClick={() => handleDiscardListedDraft(d.id)}
                     disabled={processingDraftId === d.id}
-                    className="btn-ghost text-error border-error/30 disabled:opacity-50"
+                    className="btn-outline text-error border-error/30 disabled:opacity-50"
                   >
                     {processingDraftId === d.id ? 'Eliminando...' : 'Eliminar'}
                   </button>
@@ -819,15 +822,15 @@ export default function NuevaOperacionPage() {
       </div>
 
       {confirmClearOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center bg-black/40 p-4">
-          <div className="modal-panel max-w-md w-full p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] space-y-4">
+        <div className="modal-backdrop !z-[100]">
+          <div className="modal-panel modal-enter max-w-md w-full p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] space-y-4">
             <p className="text-sm text-fg">
               Hay datos guardados en el borrador. Para cambiar el tipo o el cliente hay que descartarlos. ¿Continuar?
             </p>
             <div className="form-actions sm:justify-end">
               <button
                 type="button"
-                className="btn-ghost"
+                className="btn-outline"
                 onClick={revertHeaderToLastSynced}
               >
                 Volver

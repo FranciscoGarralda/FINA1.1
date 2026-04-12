@@ -96,7 +96,7 @@ export default function PosicionCajaPage() {
               <div className="bg-surface px-4 py-2 border-b border-subtle">
                 <h3 className="text-sm font-semibold text-fg">{acc.account_name}</h3>
               </div>
-              <div className="overflow-x-auto">
+              <div className="table-scroll">
                 <table className="w-full min-w-[280px] text-sm">
                   <thead>
                     <tr className="text-left text-fg-muted border-b bg-surface/50">

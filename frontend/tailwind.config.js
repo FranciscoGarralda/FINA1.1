@@ -22,6 +22,14 @@ export default {
         'success-soft': 'var(--success-soft)',
         'warning-soft': 'var(--warning-soft)',
       },
+      spacing: {
+        'space-1': 'var(--space-1)',
+        'space-2': 'var(--space-2)',
+        'space-3': 'var(--space-3)',
+        'space-4': 'var(--space-4)',
+        'space-5': 'var(--space-5)',
+        'space-6': 'var(--space-6)',
+      },
       borderColor: {
         subtle: 'var(--border-subtle)',
         active: 'var(--border-active)',
@@ -35,13 +43,14 @@ export default {
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       fontSize: {
-        h1: ['24px', { lineHeight: '1.3', fontWeight: '600', letterSpacing: '0.01em' }],
-        h2: ['18px', { lineHeight: '1.35', fontWeight: '600', letterSpacing: '0.01em' }],
+        h1: ['22px', { lineHeight: '1.3', fontWeight: '600', letterSpacing: '0.01em' }],
+        h2: ['17px', { lineHeight: '1.4', fontWeight: '600', letterSpacing: '0.01em' }],
         h3: ['14px', { lineHeight: '1.4', fontWeight: '500' }],
       },
       borderRadius: {
-        card: '10px',
-        control: '6px',
+        xl: 'var(--radius-xl)',
+        card: 'var(--radius-lg)',
+        control: 'var(--radius-md)',
       },
       boxShadow: {
         'focus-brand': 'var(--focus-ring)',

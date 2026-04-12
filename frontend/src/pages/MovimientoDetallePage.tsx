@@ -6,6 +6,7 @@ import { movementTypeLabel } from '../utils/movementTypeLabels';
 import { formatMoneyAR } from '../utils/money';
 import { useAuth } from '../context/AuthContext';
 import FormActionsRow from '../components/common/FormActionsRow';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface MovementLine {
   id: string;
@@ -41,6 +42,8 @@ export default function MovimientoDetallePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [pendingAction, setPendingAction] = useState<DetailActionKind | null>(null);
+
+  useBodyScrollLock(!!pendingAction);
 
   const loadDetail = useCallback(() => {
     if (!id) return;
@@ -101,7 +104,7 @@ export default function MovimientoDetallePage() {
     return (
       <div className="mb-6">
         <h4 className="text-sm font-medium text-fg-muted mb-2">{title}</h4>
-        <div className="bg-elevated border border-subtle rounded-lg overflow-x-auto">
+        <div className="bg-elevated border border-subtle rounded-lg table-scroll">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-surface">
@@ -278,7 +281,7 @@ export default function MovimientoDetallePage() {
       )}
       {pendingAction && (
         <div className="modal-backdrop">
-          <div className="modal-panel max-w-md p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
+          <div className="modal-panel modal-enter max-w-md p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
             <h3 className="mb-2 text-lg font-semibold text-fg">{actionTitle(pendingAction)}</h3>
             <p className="mb-3 text-sm text-fg-muted">{actionDescription(pendingAction)}</p>
             <p className="mb-4 text-sm text-fg-muted">Operación #{detail.operation_number}</p>

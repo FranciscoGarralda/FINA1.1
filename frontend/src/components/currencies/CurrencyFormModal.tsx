@@ -1,4 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
 import FormActionsRow from '../common/FormActionsRow';
@@ -31,12 +32,7 @@ export default function CurrencyFormModal({ currency, onClose, onSaved }: Props)
     }
   }, [currency]);
 
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -74,7 +70,7 @@ export default function CurrencyFormModal({ currency, onClose, onSaved }: Props)
 
   return createPortal(
     <div className="modal-backdrop">
-      <div className="modal-panel max-w-md p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+      <div className="modal-panel modal-enter max-w-md p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h2 className="text-lg font-semibold mb-4">{isEdit ? 'Editar Divisa' : 'Nueva Divisa'}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

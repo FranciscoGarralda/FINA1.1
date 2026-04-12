@@ -448,7 +448,7 @@ export default function PosicionIntegralPage() {
         {!loading && ccFlatRows.length === 0 ? (
           <p className="text-fg-muted text-sm">Sin datos</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-subtle">
+          <div className="table-scroll rounded-lg border border-subtle">
             <table className="w-full min-w-[520px] text-sm">
               <thead>
                 <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
@@ -493,7 +493,7 @@ export default function PosicionIntegralPage() {
             {cashEfectivoRows.length === 0 ? (
               <p className="text-fg-muted text-sm">Sin datos</p>
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-subtle">
+              <div className="table-scroll rounded-lg border border-subtle">
                 <table className="w-full min-w-[480px] text-sm">
                   <thead>
                     <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
@@ -529,7 +529,7 @@ export default function PosicionIntegralPage() {
             {cashDigitalRows.length === 0 ? (
               <p className="text-fg-muted text-sm">Sin datos</p>
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-subtle">
+              <div className="table-scroll rounded-lg border border-subtle">
                 <table className="w-full min-w-[480px] text-sm">
                   <thead>
                     <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
@@ -573,7 +573,7 @@ export default function PosicionIntegralPage() {
         {!loading && physicalByCurrency.length === 0 ? (
           <p className="text-fg-muted text-sm">Sin datos</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-subtle">
+          <div className="table-scroll rounded-lg border border-subtle">
             <table className="w-full min-w-[400px] text-sm">
               <thead>
                 <tr className="text-left text-fg-muted border-b border-subtle bg-surface">

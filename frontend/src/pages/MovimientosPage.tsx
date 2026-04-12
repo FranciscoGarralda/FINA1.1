@@ -8,6 +8,7 @@ import { movementTypeLabel } from '../utils/movementTypeLabels';
 import { formatMoneyAR } from '../utils/money';
 import { MOVEMENTS_REFRESH_EVENT } from '../constants/appEvents';
 import { useAuth } from '../context/AuthContext';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface SummaryItem {
   side: string;
@@ -60,6 +61,8 @@ export default function MovimientosPage() {
   const [clientSearch, setClientSearch] = useState('');
   const [sortBy, setSortBy] = useState('');
   const [sortDir, setSortDir] = useState('desc');
+
+  useBodyScrollLock(!!pendingAction);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -257,7 +260,7 @@ export default function MovimientosPage() {
         <p className="text-fg-muted text-sm">No se encontraron movimientos.</p>
       ) : (
         <>
-          <div className="bg-elevated border border-subtle rounded-lg overflow-x-auto">
+          <div className="bg-elevated border border-subtle rounded-lg table-scroll">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-surface">
@@ -371,7 +374,7 @@ export default function MovimientosPage() {
       )}
       {pendingAction && (
         <div className="modal-backdrop">
-          <div className="modal-panel max-w-md p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
+          <div className="modal-panel modal-enter max-w-md p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
             <h3 className="mb-2 text-lg font-semibold text-fg">{actionTitle(pendingAction.kind)}</h3>
             <p className="mb-3 text-sm text-fg-muted">
               {actionDescription(pendingAction.kind)}

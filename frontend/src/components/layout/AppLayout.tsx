@@ -251,6 +251,7 @@ export default function AppLayout() {
               onClick={() => setSidebarOpen(true)}
               className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-control text-fg-muted hover:text-fg hover:bg-overlay-hover transition-colors duration-interaction ease-out"
               aria-label="Abrir menú"
+              title="Menú"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -292,7 +293,7 @@ export default function AppLayout() {
       )}
 
       <aside
-        className={`fixed top-0 left-0 h-dvh min-h-0 w-[var(--sidebar-width-expanded)] max-w-[min(240px,calc(100vw-1rem))] bg-app border-r border-subtle z-50 transform transition-transform duration-200 ease-out flex flex-col pt-[env(safe-area-inset-top,0px)] ${
+        className={`fixed top-0 left-0 h-dvh min-h-0 w-[var(--sidebar-width-expanded)] max-w-[min(240px,calc(100vw-1rem))] bg-surface border-r border-subtle z-50 transform transition-transform duration-200 ease-out flex flex-col pt-[env(safe-area-inset-top,0px)] ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -302,6 +303,7 @@ export default function AppLayout() {
             onClick={() => setSidebarOpen(false)}
             className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-control text-fg-muted hover:text-fg hover:bg-overlay-hover transition-colors duration-interaction ease-out"
             aria-label="Cerrar menú"
+            title="Cerrar menú"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -367,7 +369,7 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      <main className="max-w-[min(100%,var(--content-max-width))] mx-auto w-full min-w-0 flex-1 px-4 pb-6 pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+0.75rem)]">
+      <main className="max-w-[min(100%,var(--content-max-width))] mx-auto w-full min-w-0 flex-1 p-4 pb-6 sm:p-6 lg:p-8 pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+0.75rem)]">
         <Outlet />
       </main>
     </div>

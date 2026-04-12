@@ -1,10 +1,22 @@
-/* Design tokens: globales + dark/light. Un solo origen de verdad. */
+/* Design tokens: globales + dark/light. Un solo origen de verdad.
+ * Decisiones PR v7: (1) btn-outline + btn-ghost, (2) card-surface-interactive,
+ * (3) spacing Tailwind space-N, (4) modales solo tokens sin triple estructura.
+ */
 :root {
   /* Radios */
-  --radius-sm: 4px; /* badges, chips */
-  --radius-md: 6px; /* botones, inputs, selects */
-  --radius-lg: 10px; /* cards, panels, modales */
-  --radius-full: 9999px; /* pills */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* Espaciado semántico (Tailwind: p-space-3, etc.) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
 
   /* Tipografía */
   --font-ui: 'Inter', system-ui, sans-serif;
@@ -12,8 +24,8 @@
   --font-size-base: 13px;
 
   /* Escala tipográfica */
-  --text-h1: 24px;
-  --text-h2: 18px;
+  --text-h1: 22px;
+  --text-h2: 17px;
   --text-h3: 14px;
   --text-body: 13px;
   --text-caption: 11px;
@@ -34,53 +46,53 @@
 }
 
 [data-theme='dark'] {
-  --bg-app: #0a0b0d;
-  --bg-surface: #0f1117;
-  --bg-elevated: #161b22;
-  --border-subtle: #1e2530;
-  --border-active: #252d3a;
-  --text-primary: #f0f2f5;
-  --text-secondary: #8b95a1;
-  --text-muted: #4e5a68;
-  --brand: #7c5cff;
-  --brand-hover: #6b4dff;
-  --brand-soft: rgba(124, 92, 255, 0.1);
-  --brand-glow: rgba(124, 92, 255, 0.4);
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --info: #3b82f6;
+  --bg-app: #080a0f;
+  --bg-surface: #0d1117;
+  --bg-elevated: #13181f;
+  --border-subtle: #1c2333;
+  --border-active: #243047;
+  --text-primary: #e6edf3;
+  --text-secondary: #7d8590;
+  --text-muted: #404a57;
+  --brand: #6e56cf;
+  --brand-hover: #5c46b8;
+  --brand-soft: rgba(110, 86, 207, 0.12);
+  --brand-glow: rgba(110, 86, 207, 0.35);
+  --success: #2ea043;
+  --warning: #d29922;
+  --error: #f85149;
+  --info: #388bfd;
   --hover-overlay: rgba(255, 255, 255, 0.04);
-  --hover-overlay-strong: rgba(255, 255, 255, 0.07);
-  --overlay-scrim: rgba(0, 0, 0, 0.45);
-  --focus-ring: 0 0 0 2px rgba(124, 92, 255, 0.2);
-  --error-soft: rgba(239, 68, 68, 0.12);
-  --success-soft: rgba(34, 197, 94, 0.12);
-  --warning-soft: rgba(245, 158, 11, 0.14);
+  --hover-overlay-strong: rgba(255, 255, 255, 0.08);
+  --overlay-scrim: rgba(0, 0, 0, 0.6);
+  --focus-ring: 0 0 0 2px rgba(110, 86, 207, 0.35);
+  --error-soft: rgba(248, 81, 73, 0.1);
+  --success-soft: rgba(46, 160, 67, 0.1);
+  --warning-soft: rgba(210, 153, 34, 0.12);
 }
 
 [data-theme='light'] {
-  --bg-app: #ffffff;
-  --bg-surface: #f5f7fa;
+  --bg-app: #f6f8fa;
+  --bg-surface: #ffffff;
   --bg-elevated: #ffffff;
-  --border-subtle: #e5e7eb;
-  --border-active: #d1d5db;
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
-  --brand: #7c5cff;
-  --brand-hover: #6b4dff;
-  --brand-soft: rgba(124, 92, 255, 0.1);
-  --brand-glow: rgba(124, 92, 255, 0.25);
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --info: #3b82f6;
+  --border-subtle: #d0d7de;
+  --border-active: #b6bcc4;
+  --text-primary: #1f2328;
+  --text-secondary: #636c76;
+  --text-muted: #9198a1;
+  --brand: #6e56cf;
+  --brand-hover: #5c46b8;
+  --brand-soft: rgba(110, 86, 207, 0.08);
+  --brand-glow: rgba(110, 86, 207, 0.2);
+  --success: #1a7f37;
+  --warning: #9a6700;
+  --error: #cf222e;
+  --info: #0969da;
   --hover-overlay: rgba(0, 0, 0, 0.04);
-  --hover-overlay-strong: rgba(0, 0, 0, 0.06);
-  --overlay-scrim: rgba(15, 23, 42, 0.35);
-  --focus-ring: 0 0 0 2px rgba(124, 92, 255, 0.25);
-  --error-soft: rgba(239, 68, 68, 0.08);
-  --success-soft: rgba(34, 197, 94, 0.1);
-  --warning-soft: rgba(245, 158, 11, 0.12);
+  --hover-overlay-strong: rgba(0, 0, 0, 0.07);
+  --overlay-scrim: rgba(15, 23, 42, 0.4);
+  --focus-ring: 0 0 0 2px rgba(110, 86, 207, 0.25);
+  --error-soft: rgba(207, 34, 46, 0.08);
+  --success-soft: rgba(26, 127, 55, 0.08);
+  --warning-soft: rgba(154, 103, 0, 0.1);
 }

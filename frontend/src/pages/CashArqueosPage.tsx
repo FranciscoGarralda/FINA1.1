@@ -332,7 +332,7 @@ export default function CashArqueosPage() {
               </p>
             )}
             {accountId && totals.length > 0 && (
-              <div className="border border-subtle rounded-lg overflow-x-auto">
+              <div className="border border-subtle rounded-lg table-scroll">
                 <table className="w-full text-sm min-w-[280px]">
                   <thead>
                     <tr className="bg-surface text-left text-fg-muted border-b">
@@ -440,7 +440,7 @@ export default function CashArqueosPage() {
                   <span className="text-fg-subtle text-xs ml-2">{new Date(aq.created_at).toLocaleString('es-AR')}</span>
                   {aq.note && <p className="text-xs text-fg-muted mt-1">Nota: {aq.note}</p>}
                 </div>
-                <div className="overflow-x-auto">
+                <div className="table-scroll">
                 <table className="w-full text-sm min-w-[380px]">
                   <thead>
                     <tr className="text-left text-fg-muted border-b">

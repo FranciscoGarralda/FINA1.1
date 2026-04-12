@@ -77,7 +77,7 @@ export default function DivisasPage() {
       {loading ? (
         <p className="text-fg-muted">Cargando...</p>
       ) : (
-        <div className="bg-elevated rounded-lg shadow overflow-hidden overflow-x-auto">
+        <div className="bg-elevated rounded-lg shadow overflow-hidden table-scroll">
           <table className="w-full min-w-[440px] text-sm">
             <thead className="bg-surface">
               <tr className="text-left text-fg-muted">

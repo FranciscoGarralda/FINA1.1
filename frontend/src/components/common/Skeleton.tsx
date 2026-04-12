@@ -39,7 +39,7 @@ export function SkeletonCard() {
 
 export function SkeletonTable({ rows = 5, cols = 4 }: { rows?: number; cols?: number }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-subtle bg-elevated">
+    <div className="table-scroll rounded-lg border border-subtle bg-elevated">
       <table className="w-full border-collapse">
         <tbody>
           {Array.from({ length: rows }).map((_, r) => (

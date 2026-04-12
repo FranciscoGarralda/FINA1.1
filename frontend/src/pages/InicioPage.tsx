@@ -164,7 +164,7 @@ export default function InicioPage() {
         {rows.length === 0 ? (
           <p className="text-sm text-fg-muted flex-1">Sin movimientos en esta métrica para este día.</p>
         ) : (
-          <div className="overflow-x-auto overflow-y-auto max-h-44 -mx-1 flex-1 rounded border border-subtle bg-surface/50">
+          <div className="table-scroll overflow-y-auto max-h-44 -mx-1 flex-1 rounded border border-subtle bg-surface/50">
             <table className="w-full min-w-[260px] text-[11px] sm:text-xs">
               <thead>
                 <tr className="text-left text-fg-muted border-b border-subtle/80">
@@ -242,7 +242,7 @@ export default function InicioPage() {
               <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wide mb-2">
                 Día {summary.reference_date} vs {summary.compare_date}
               </h4>
-              <div className="overflow-x-auto rounded-lg border border-subtle">
+              <div className="table-scroll rounded-lg border border-subtle">
                 {rows.length === 0 ? (
                   <p className="text-sm text-fg-subtle px-4 py-6 text-center">Sin datos para este día.</p>
                 ) : (

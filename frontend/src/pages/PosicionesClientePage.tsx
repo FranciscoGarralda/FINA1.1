@@ -159,7 +159,7 @@ export default function PosicionesClientePage() {
           )}
           <div className="mb-6">
             <h3 className="text-sm font-medium text-fg-muted mb-2">Balances</h3>
-            <div className="bg-elevated border border-subtle rounded-lg overflow-x-auto">
+            <div className="bg-elevated border border-subtle rounded-lg table-scroll">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-surface">
@@ -197,7 +197,7 @@ export default function PosicionesClientePage() {
             ) : entriesError ? null : entries.length === 0 ? (
               <p className="text-fg-muted text-sm">Sin movimientos para esta divisa.</p>
             ) : (
-              <div className="bg-elevated border border-subtle rounded-lg overflow-x-auto">
+              <div className="bg-elevated border border-subtle rounded-lg table-scroll">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-surface">

@@ -78,7 +78,7 @@ function EntitySection({ entityKey, title, endpoint, displayFn }: (typeof ENTITY
       ) : filtered.length === 0 ? (
         <p className="text-fg-subtle text-sm">Sin resultados</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="table-scroll">
         <table className="w-full min-w-[320px] text-sm">
           <thead>
             <tr className="border-b text-left text-fg-muted">
