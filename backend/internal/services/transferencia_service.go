@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -39,6 +40,9 @@ var (
 	ErrFeeSumMismatch       = errors.New("FEE_SUM_MISMATCH")
 	ErrAntiFloatingMismatch = errors.New("ANTI_FLOATING_MISMATCH")
 	ErrNoFXFeeRequired      = errors.New("NO_FX_FEE_REQUIRED")
+	ErrTransferQuoteRequired = errors.New("TRANSFER_QUOTE_REQUIRED")
+	ErrTransferQuoteMismatch = errors.New("TRANSFER_QUOTE_MISMATCH")
+	ErrTransferCrossFunctional = errors.New("TRANSFER_CROSS_FUNCTIONAL_REQUIRED")
 )
 
 type TransfDelivery struct {
@@ -81,6 +85,14 @@ type TransfLeg struct {
 	Settlement string `json:"settlement"` // REAL | PENDIENTE
 }
 
+// TransfQuote cotización del cruce mesa (misma forma que CompraQuote / VentaQuote).
+// Opcional en JSON: obligatoria cuando out_leg e in_leg tienen divisas distintas y una es la moneda funcional FX.
+type TransfQuote struct {
+	Rate       string `json:"rate"`
+	CurrencyID string `json:"currency_id"`
+	Mode       string `json:"mode"`
+}
+
 type TransfTransfer struct {
 	AccountID  string  `json:"account_id"`
 	CurrencyID string  `json:"currency_id"`
@@ -93,6 +105,7 @@ type TransfTransfer struct {
 type TransferenciaInput struct {
 	OutLeg      TransfLeg          `json:"out_leg"`
 	InLeg       TransfLeg          `json:"in_leg"`
+	Quote       *TransfQuote       `json:"quote,omitempty"`
 	Transfer    TransfTransfer     `json:"transfer"`
 	Delivery    TransfDelivery     `json:"delivery"`
 	Collections []TransfCollection `json:"collections"`
@@ -127,6 +140,105 @@ func validateFmt(f string) error {
 		return fmt.Errorf("invalid format: %s", f)
 	}
 	return nil
+}
+
+func loadFunctionalCurrencyIDFromPool(ctx context.Context, pool *pgxpool.Pool) (string, error) {
+	var raw string
+	err := pool.QueryRow(ctx,
+		`SELECT value_json::text FROM system_settings WHERE key = 'fx_functional_currency_code'`).Scan(&raw)
+	if err != nil {
+		return "", ErrFXFunctionalCurrencyUnset
+	}
+	var code string
+	if err := json.Unmarshal([]byte(raw), &code); err != nil || code == "" {
+		return "", ErrFXFunctionalCurrencyUnset
+	}
+	var id string
+	err = pool.QueryRow(ctx,
+		`SELECT id::text FROM currencies WHERE UPPER(code) = UPPER($1) AND active = true`, code).Scan(&id)
+	if err != nil {
+		return "", fmt.Errorf("%w: código %q", ErrFXFunctionalCurrencyUnset, code)
+	}
+	return id, nil
+}
+
+// deriveFeeAccountAndFormat asigna cuenta y formato de comisión a la pata cuya divisa coincide (D4).
+func deriveFeeAccountAndFormat(feeCurrencyID string, outL, inL TransfLeg) (accountID, format string, ok bool) {
+	fc := strings.TrimSpace(feeCurrencyID)
+	if fc == "" {
+		return "", "", false
+	}
+	if fc == strings.TrimSpace(outL.CurrencyID) {
+		ac := strings.TrimSpace(outL.AccountID)
+		f := strings.ToUpper(strings.TrimSpace(outL.Format))
+		if ac != "" && (f == "CASH" || f == "DIGITAL") {
+			return ac, f, true
+		}
+	}
+	if fc == strings.TrimSpace(inL.CurrencyID) {
+		ac := strings.TrimSpace(inL.AccountID)
+		f := strings.ToUpper(strings.TrimSpace(inL.Format))
+		if ac != "" && (f == "CASH" || f == "DIGITAL") {
+			return ac, f, true
+		}
+	}
+	return "", "", false
+}
+
+// validateDualLegCrossCurrencyAndQuote valida cotización y cuadre mesa cuando hay dos divisas (una = moneda funcional).
+func validateDualLegCrossCurrencyAndQuote(ctx context.Context, pool *pgxpool.Pool, input TransferenciaInput, outAmt, inAmt *big.Rat) (*TransfQuote, error) {
+	outCID := strings.TrimSpace(input.OutLeg.CurrencyID)
+	inCID := strings.TrimSpace(input.InLeg.CurrencyID)
+	if outCID == inCID {
+		return nil, nil
+	}
+	functionalID, err := loadFunctionalCurrencyIDFromPool(ctx, pool)
+	if err != nil {
+		return nil, err
+	}
+	var q TransfQuote
+	if input.Quote != nil {
+		q = *input.Quote
+	}
+	if strings.TrimSpace(q.Rate) == "" {
+		return nil, ErrTransferQuoteRequired
+	}
+	quoteRate, ok := new(big.Rat).SetString(strings.TrimSpace(q.Rate))
+	if !ok || quoteRate.Sign() <= 0 {
+		return nil, ErrTransferQuoteMismatch
+	}
+	modeNorm := normalizeQuoteMode(q.Mode)
+	if modeNorm == "" {
+		return nil, ErrInvalidQuoteMode
+	}
+	qcid := strings.TrimSpace(q.CurrencyID)
+	if qcid == "" {
+		qcid = functionalID
+	} else if qcid != functionalID {
+		return nil, ErrFXQuoteNotFunctional
+	}
+
+	if outCID != functionalID && inCID == functionalID {
+		expIn, err := computeEquivalentFromQuote(outAmt, quoteRate, modeNorm)
+		if err != nil {
+			return nil, err
+		}
+		if inAmt.Cmp(expIn) != 0 {
+			return nil, ErrTransferQuoteMismatch
+		}
+		return &TransfQuote{Rate: strings.TrimSpace(q.Rate), CurrencyID: qcid, Mode: modeNorm}, nil
+	}
+	if outCID == functionalID && inCID != functionalID {
+		expOut, err := computeEquivalentFromQuote(inAmt, quoteRate, modeNorm)
+		if err != nil {
+			return nil, err
+		}
+		if outAmt.Cmp(expOut) != 0 {
+			return nil, ErrTransferQuoteMismatch
+		}
+		return &TransfQuote{Rate: strings.TrimSpace(q.Rate), CurrencyID: qcid, Mode: modeNorm}, nil
+	}
+	return nil, ErrTransferCrossFunctional
 }
 
 func (s *TransferenciaService) Execute(ctx context.Context, movementID string, input TransferenciaInput, callerID string) error {
@@ -468,6 +580,11 @@ func (s *TransferenciaService) executeDualLegTransfer(ctx context.Context, movem
 		return ErrFeeIncludedPendingNotAllowed
 	}
 
+	resolvedQuote, err := validateDualLegCrossCurrencyAndQuote(ctx, s.pool, input, outAmt, inAmt)
+	if err != nil {
+		return err
+	}
+
 	feeAmt := new(big.Rat)
 	feeCurrencyID := strings.TrimSpace(input.Fee.CurrencyID)
 	feeAccountID := strings.TrimSpace(input.Fee.AccountID)
@@ -475,6 +592,14 @@ func (s *TransferenciaService) executeDualLegTransfer(ctx context.Context, movem
 	if input.Fee.Enabled {
 		if feeCurrencyID == "" {
 			return ErrFeeCurrencyRequired
+		}
+		if feeAccountID == "" {
+			if a, f, ok := deriveFeeAccountAndFormat(feeCurrencyID, input.OutLeg, input.InLeg); ok {
+				feeAccountID = a
+				if feeFormat == "" {
+					feeFormat = f
+				}
+			}
 		}
 		if feeAccountID == "" {
 			return ErrFeeAccountRequired
@@ -600,22 +725,26 @@ func (s *TransferenciaService) executeDualLegTransfer(ctx context.Context, movem
 		}
 	}
 
+	auditAfter := map[string]interface{}{
+		"model":           "DUAL_LEG_TRANSFER",
+		"out_leg":         input.OutLeg,
+		"in_leg":          input.InLeg,
+		"fee_enabled":     input.Fee.Enabled,
+		"fee_mode":        feeMode,
+		"fee_treatment":   feeTreatment,
+		"fee_payer":       feePayer,
+		"fee_settlement":  feeSettlement,
+		"fee_currency_id": feeCurrencyID,
+		"fee_account_id":  feeAccountID,
+		// payload_priority: trazabilidad auditoría — payload dual-leg vs. borradores antiguos.
+		"payload_priority": "out_leg_in_leg_over_legacy",
+	}
+	if resolvedQuote != nil {
+		auditAfter["quote"] = resolvedQuote
+	}
 	if err := s.auditRepo.InsertTx(ctx, tx, "movement", &movementID, "transferencia",
 		nil,
-		map[string]interface{}{
-			"model":           "DUAL_LEG_TRANSFER",
-			"out_leg":         input.OutLeg,
-			"in_leg":          input.InLeg,
-			"fee_enabled":     input.Fee.Enabled,
-			"fee_mode":        feeMode,
-			"fee_treatment":   feeTreatment,
-			"fee_payer":       feePayer,
-			"fee_settlement":  feeSettlement,
-			"fee_currency_id": feeCurrencyID,
-			"fee_account_id":  feeAccountID,
-			// payload_priority: trazabilidad auditoría — payload dual-leg vs. borradores antiguos.
-			"payload_priority": "out_leg_in_leg_over_legacy",
-		},
+		auditAfter,
 		callerID); err != nil {
 		return fmt.Errorf("insert dual leg transferencia audit: %w", err)
 	}

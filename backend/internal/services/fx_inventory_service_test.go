@@ -68,3 +68,18 @@ func TestVentaRealizedMath(t *testing.T) {
 		t.Fatalf("realized=%s", realized.FloatString(4))
 	}
 }
+
+func TestTransferenciaPrincipalLegLines(t *testing.T) {
+	lines := []repositories.MovementLineRow{
+		{Side: "OUT", CurrencyID: "usd", Amount: "100"},
+		{Side: "IN", CurrencyID: "ars", Amount: "140000"},
+		{Side: "IN", CurrencyID: "usd", Amount: "10"},
+	}
+	pr, ok := transferenciaPrincipalLegLines(lines)
+	if !ok || len(pr) != 2 {
+		t.Fatalf("ok=%v len=%d", ok, len(pr))
+	}
+	if pr[0].CurrencyID != "usd" || pr[0].Amount != "100" || pr[1].CurrencyID != "ars" {
+		t.Fatalf("got %+v %+v", pr[0], pr[1])
+	}
+}

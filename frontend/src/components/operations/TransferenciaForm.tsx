@@ -3,7 +3,9 @@ import { api } from '../../api/client';
 import MoneyInput from '../common/MoneyInput';
 import ApiErrorBanner from '../common/ApiErrorBanner';
 import { formatMoneyAR, numberToNormalizedMoney, roundTo } from '../../utils/money';
+import { normalizeQuoteMode, type QuoteMode } from '../../utils/fx';
 import {
+  computeCounterpartFromAnchor,
   computeSuggestedSecondLegAmount,
   secondLegSuggestionHint,
 } from '../../utils/transferenciaSecondLegSuggest';
@@ -39,6 +41,8 @@ interface TransferState {
 interface TransferenciaDraftData {
   out_leg: TransferState;
   in_leg: TransferState;
+  /** Cotización del cruce mesa (opcional; dual divisas + moneda funcional). */
+  quote?: { rate: string; mode: QuoteMode; currency_id?: string };
   feeEnabled: boolean;
   feeMode: 'PERCENT' | 'FIXED';
   feeValue: string;
@@ -107,9 +111,17 @@ function normalizeFormat(value: unknown): '' | 'CASH' | 'DIGITAL' {
 function mapDraft(draft: TransferenciaDraftData | LegacyTransferenciaDraftData): TransferenciaDraftData {
   const anyDraft = draft as any;
   if (anyDraft?.out_leg || anyDraft?.in_leg) {
+    const q = anyDraft.quote;
     return {
       out_leg: { ...emptyLeg(), ...anyDraft.out_leg },
       in_leg: { ...emptyLeg(), ...anyDraft.in_leg },
+      quote: q?.rate
+        ? {
+            rate: String(q.rate),
+            mode: normalizeQuoteMode(q.mode as string | undefined),
+            currency_id: typeof q.currency_id === 'string' ? q.currency_id : undefined,
+          }
+        : undefined,
       feeEnabled: Boolean(anyDraft.feeEnabled),
       feeMode: anyDraft.feeMode || 'PERCENT',
       feeValue: anyDraft.feeValue || '',
@@ -221,6 +233,10 @@ export default function TransferenciaForm({
   const [feeAccountId, setFeeAccountId] = useState('');
   const [feeFormat, setFeeFormat] = useState<'' | 'CASH' | 'DIGITAL'>('');
 
+  const [fxFunctionalCurrencyId, setFxFunctionalCurrencyId] = useState<string | null>(null);
+  const [quoteRate, setQuoteRate] = useState('');
+  const [quoteMode, setQuoteMode] = useState<QuoteMode>('MULTIPLY');
+
   /** Solo UI; no va en borrador ni en API. */
   const [firstLegDirection, setFirstLegDirection] = useState<'SALIDA' | 'INGRESO'>('SALIDA');
   const [p2UserEdited, setP2UserEdited] = useState(false);
@@ -261,6 +277,59 @@ export default function TransferenciaForm({
   }, [feeTreatment, feeSettlement]);
 
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const currencies = await api.get<Array<{ id: string; code: string }>>('/currencies');
+        if (cancelled) return;
+        let code = 'ARS';
+        try {
+          const settings = await api.get<Record<string, unknown>>('/settings');
+          const raw = settings.fx_functional_currency_code;
+          if (typeof raw === 'string') {
+            try {
+              code = JSON.parse(raw) as string;
+            } catch {
+              code = raw.replace(/^"|"$/g, '');
+            }
+          }
+        } catch {
+          // Sin permiso a settings: fallback ARS.
+        }
+        const row = currencies.find((c) => c.code?.toUpperCase() === String(code).toUpperCase());
+        setFxFunctionalCurrencyId(row?.id ?? null);
+      } catch {
+        if (!cancelled) setFxFunctionalCurrencyId(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!feeEnabled || !feeCurrencyId) return;
+    if (feeCurrencyId === outLeg.currency_id && outLeg.account_id && outLeg.format) {
+      setFeeAccountId(outLeg.account_id);
+      setFeeFormat(outLeg.format);
+      return;
+    }
+    if (feeCurrencyId === inLeg.currency_id && inLeg.account_id && inLeg.format) {
+      setFeeAccountId(inLeg.account_id);
+      setFeeFormat(inLeg.format);
+    }
+  }, [
+    feeEnabled,
+    feeCurrencyId,
+    outLeg.account_id,
+    outLeg.currency_id,
+    outLeg.format,
+    inLeg.account_id,
+    inLeg.currency_id,
+    inLeg.format,
+  ]);
+
+  useEffect(() => {
     if (!feeAccountId) return;
     const availableCurrencies = acCache[feeAccountId] || [];
     if (feeCurrencyId && !availableCurrencies.some((c) => c.currency_id === feeCurrencyId)) {
@@ -284,6 +353,13 @@ export default function TransferenciaForm({
       setFeeCurrencyId(mapped.feeCurrencyId);
       setFeeAccountId(mapped.feeAccountId);
       setFeeFormat(mapped.feeFormat);
+      if (mapped.quote?.rate) {
+        setQuoteRate(mapped.quote.rate);
+        setQuoteMode(normalizeQuoteMode(mapped.quote.mode));
+      } else {
+        setQuoteRate('');
+        setQuoteMode('MULTIPLY');
+      }
       setFirstLegDirection('SALIDA');
       const o = mapped.out_leg.amount.trim();
       const i = mapped.in_leg.amount.trim();
@@ -356,10 +432,69 @@ export default function TransferenciaForm({
     return feeCode || inCode || outCode || '';
   }, [feeAC, inAC, outAC, feeCurrencyId]);
 
+  const feeLegCurrencyOptions = useMemo(() => {
+    const m = new Map<string, { currency_id: string; currency_code: string }>();
+    for (const c of outAC) m.set(c.currency_id, c);
+    for (const c of inAC) {
+      if (!m.has(c.currency_id)) m.set(c.currency_id, c);
+    }
+    if (feeAccountId) {
+      for (const c of feeAC) {
+        if (!m.has(c.currency_id)) m.set(c.currency_id, c);
+      }
+    }
+    return [...m.values()];
+  }, [outAC, inAC, feeAC, feeAccountId]);
+
+  const needsFxQuote = useMemo(() => {
+    if (!outLeg.currency_id || !inLeg.currency_id || outLeg.currency_id === inLeg.currency_id) return false;
+    if (!fxFunctionalCurrencyId) return false;
+    return outLeg.currency_id === fxFunctionalCurrencyId || inLeg.currency_id === fxFunctionalCurrencyId;
+  }, [outLeg.currency_id, inLeg.currency_id, fxFunctionalCurrencyId]);
+
+  const feeAccountDerivesFromLeg = useMemo(() => {
+    if (!feeCurrencyId) return false;
+    return feeCurrencyId === outLeg.currency_id || feeCurrencyId === inLeg.currency_id;
+  }, [feeCurrencyId, outLeg.currency_id, inLeg.currency_id]);
+
   const outAmount = useMemo(() => parseFloat(outLeg.amount), [outLeg.amount]);
   const inAmount = useMemo(() => parseFloat(inLeg.amount), [inLeg.amount]);
   const outAbs = useMemo(() => roundTo(Math.abs(outAmount || 0), 2), [outAmount]);
   const inAbs = useMemo(() => roundTo(Math.abs(inAmount || 0), 2), [inAmount]);
+
+  useEffect(() => {
+    if (!needsFxQuote || p2UserEdited || !fxFunctionalCurrencyId) return;
+    const rate = parseFloat(String(quoteRate).trim().replace(',', '.'));
+    if (!Number.isFinite(rate) || rate <= 0) return;
+    const firstNum = firstLegKind === 'out' ? outAmount : inAmount;
+    if (!Number.isFinite(firstNum) || firstNum <= 0) return;
+    const counterpart = computeCounterpartFromAnchor(firstNum, firstLegKind === 'out', {
+      outCurrencyId: outLeg.currency_id,
+      inCurrencyId: inLeg.currency_id,
+      functionalCurrencyId: fxFunctionalCurrencyId,
+      quoteRate: rate,
+      quoteMode: normalizeQuoteMode(quoteMode),
+    });
+    if (counterpart == null || !Number.isFinite(counterpart)) return;
+    const plain = String(roundTo(counterpart, 2));
+    if (secondLegKind === 'out') {
+      setOutLeg((prev) => (prev.amount === plain ? prev : { ...prev, amount: plain }));
+    } else {
+      setInLeg((prev) => (prev.amount === plain ? prev : { ...prev, amount: plain }));
+    }
+  }, [
+    needsFxQuote,
+    p2UserEdited,
+    fxFunctionalCurrencyId,
+    quoteRate,
+    quoteMode,
+    firstLegKind,
+    secondLegKind,
+    outAmount,
+    inAmount,
+    outLeg.currency_id,
+    inLeg.currency_id,
+  ]);
 
   const expectedFee = useMemo(() => {
     const feeNum = parseFloat(feeValue);
@@ -445,7 +580,6 @@ export default function TransferenciaForm({
   const outPendingLabel = outLeg.settlement === 'PENDIENTE' ? 'Sí' : 'No';
   const inPendingLabel = inLeg.settlement === 'PENDIENTE' ? 'Sí' : 'No';
   const feeComisionadoText = useMemo(() => feeComisionadoExplainer(feeTreatment, feePayer), [feeTreatment, feePayer]);
-  const feeCurrencyOptions = feeAccountId ? acCache[feeAccountId] || [] : [];
   const settlementLabel = (settlement: 'REAL' | 'PENDIENTE') => (settlement === 'REAL' ? 'Liquidado ahora' : 'Queda pendiente');
   const feeAmountSigned = expectedFee > 0 ? (feePayer === 'CLIENTE_PAGA' ? -expectedFee : expectedFee) : 0;
   const feeRealSigned = feeEnabled && feeTreatment === 'APARTE' && feeSettlement === 'REAL' ? feeAmountSigned : 0;
@@ -636,12 +770,35 @@ export default function TransferenciaForm({
   function updateFeeCurrency(nextCurrencyId: string) {
     setP2UserEdited(false);
     setFeeCurrencyId(nextCurrencyId);
-    const availableFormats = formatsFor(feeAccountId, nextCurrencyId);
+    let availableFormats: ('' | 'CASH' | 'DIGITAL')[] = [];
+    if (nextCurrencyId === outLeg.currency_id) availableFormats = formatsFor(outLeg.account_id, nextCurrencyId);
+    else if (nextCurrencyId === inLeg.currency_id) availableFormats = formatsFor(inLeg.account_id, nextCurrencyId);
+    else availableFormats = formatsFor(feeAccountId, nextCurrencyId);
     setFeeFormat(availableFormats[0] || '');
   }
 
   function buildDraftData(): TransferenciaDraftData {
-    return { out_leg: outLeg, in_leg: inLeg, feeEnabled, feeMode, feeValue, feeTreatment, feePayer, feeSettlement, feeCurrencyId, feeAccountId, feeFormat };
+    const base: TransferenciaDraftData = {
+      out_leg: outLeg,
+      in_leg: inLeg,
+      feeEnabled,
+      feeMode,
+      feeValue,
+      feeTreatment,
+      feePayer,
+      feeSettlement,
+      feeCurrencyId,
+      feeAccountId,
+      feeFormat,
+    };
+    if (needsFxQuote && quoteRate.trim()) {
+      base.quote = {
+        rate: quoteRate.trim(),
+        mode: normalizeQuoteMode(quoteMode),
+        currency_id: fxFunctionalCurrencyId || undefined,
+      };
+    }
+    return base;
   }
 
   async function handleSaveDraft() {
@@ -702,8 +859,15 @@ export default function TransferenciaForm({
       setError('Con comisión incluida, el neto debe ser mayor a 0.');
       return;
     }
-    if (feeEnabled && !feeAccountId) {
-      setError('Seleccioná la cuenta de comisión.');
+    if (needsFxQuote) {
+      const r = parseFloat(quoteRate.replace(',', '.'));
+      if (!Number.isFinite(r) || r <= 0) {
+        setError('Completá la cotización (tasa > 0) para el cruce de divisas.');
+        return;
+      }
+    }
+    if (feeEnabled && !feeAccountDerivesFromLeg && !feeAccountId.trim()) {
+      setError('Seleccioná la cuenta de comisión (la divisa de comisión no coincide con ninguna pata).');
       return;
     }
     if (feeEnabled && !feeCurrencyId) {
@@ -721,7 +885,7 @@ export default function TransferenciaForm({
 
     setSubmitting(true);
     try {
-      await api.post(`/movements/${movementId}/transferencia`, {
+      const payload: Record<string, unknown> = {
         out_leg: {
           account_id: outLeg.account_id,
           currency_id: outLeg.currency_id,
@@ -749,7 +913,15 @@ export default function TransferenciaForm({
           // Compatibilidad controlada con backend legacy.
           sign: feeTreatment === 'INCLUIDA' ? 'MINUS' : 'PLUS',
         },
-      });
+      };
+      if (needsFxQuote && quoteRate.trim()) {
+        payload.quote = {
+          rate: quoteRate.trim().replace(',', '.'),
+          currency_id: fxFunctionalCurrencyId || '',
+          mode: normalizeQuoteMode(quoteMode),
+        };
+      }
+      await api.post(`/movements/${movementId}/transferencia`, payload);
       try {
         localStorage.removeItem(localDraftKey);
       } catch {
@@ -777,6 +949,8 @@ export default function TransferenciaForm({
     setFeeCurrencyId('');
     setFeeAccountId('');
     setFeeFormat('');
+    setQuoteRate('');
+    setQuoteMode('MULTIPLY');
     setFirstLegDirection('SALIDA');
     setP2UserEdited(false);
     setCalcBruto('');
@@ -916,6 +1090,40 @@ export default function TransferenciaForm({
 
       {renderLegFieldset(firstLegKind, 'first')}
 
+      {needsFxQuote && (
+        <div className="border border-subtle rounded-lg p-3 bg-surface space-y-2 min-w-0">
+          <p className="text-sm font-semibold text-fg">Cotización (cruce de divisas)</p>
+          <p className="text-xs text-fg-muted leading-snug">
+            Una pata está en la moneda funcional del inventario FX; el monto de la otra pata se sugiere desde la primera según tasa y modo. Si editás la segunda pata, se respeta tu valor (validación en servidor).
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <MoneyInput
+              label="Tipo de cambio"
+              value={quoteRate}
+              onValueChange={(v) => {
+                setQuoteRate(v);
+                setP2UserEdited(false);
+              }}
+              fractionDigits={6}
+            />
+            <div>
+              <label className="block text-xs text-fg-muted mb-0.5">Modo</label>
+              <select
+                value={quoteMode}
+                onChange={(e) => {
+                  setQuoteMode(normalizeQuoteMode(e.target.value));
+                  setP2UserEdited(false);
+                }}
+                className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
+              >
+                <option value="MULTIPLY">Multiplicar</option>
+                <option value="DIVIDE">Dividir</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
       <fieldset>
         <legend className="text-sm font-semibold text-fg mb-2">Comisionado</legend>
         <div
@@ -978,22 +1186,33 @@ export default function TransferenciaForm({
                   <option value="NOSOTROS_PAGAMOS">Nosotros pagamos</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs text-fg-muted mb-0.5">Cuenta comisión</label>
-                <select value={feeAccountId} onChange={(e) => updateFeeAccount(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
-                  <option value="">—</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!feeAccountDerivesFromLeg ? (
+                <div>
+                  <label className="block text-xs text-fg-muted mb-0.5">Cuenta comisión</label>
+                  <select value={feeAccountId} onChange={(e) => updateFeeAccount(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm">
+                    <option value="">—</option>
+                    {accounts.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <p className="text-xs text-fg-muted sm:col-span-1 lg:col-span-1 self-end pb-1">
+                  Cuenta y formato de comisión: misma pata que la divisa de comisión.
+                </p>
+              )}
               <div>
                 <label className="block text-xs text-fg-muted mb-0.5">Divisa comisión</label>
-                <select value={feeCurrencyId} onChange={(e) => updateFeeCurrency(e.target.value)} className="w-full border border-subtle rounded px-2 py-1.5 text-sm" disabled={!feeAccountId}>
+                <select
+                  value={feeCurrencyId}
+                  onChange={(e) => updateFeeCurrency(e.target.value)}
+                  className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
+                  disabled={feeLegCurrencyOptions.length === 0}
+                >
                   <option value="">—</option>
-                  {feeCurrencyOptions.map((ac) => (
+                  {feeLegCurrencyOptions.map((ac) => (
                     <option key={ac.currency_id} value={ac.currency_id}>
                       {ac.currency_code}
                     </option>
@@ -1009,16 +1228,21 @@ export default function TransferenciaForm({
                     setP2UserEdited(false);
                   }}
                   className="w-full border border-subtle rounded px-2 py-1.5 text-sm disabled:bg-surface"
-                  disabled={!feeAccountId || !feeCurrencyId}
+                  disabled={(!feeAccountId && !feeAccountDerivesFromLeg) || !feeCurrencyId || feeAccountDerivesFromLeg}
                 >
                   <option value="">—</option>
-                  {formatsFor(feeAccountId, feeCurrencyId).map((f) => (
+                  {(feeAccountDerivesFromLeg
+                    ? feeCurrencyId === outLeg.currency_id
+                      ? formatsFor(outLeg.account_id, feeCurrencyId)
+                      : formatsFor(inLeg.account_id, feeCurrencyId)
+                    : formatsFor(feeAccountId, feeCurrencyId)
+                  ).map((f) => (
                     <option key={f} value={f}>
                       {formatLabel(f)}
                     </option>
                   ))}
                 </select>
-                {feeAccountId && feeCurrencyId && formatsFor(feeAccountId, feeCurrencyId).length === 0 && (
+                {!feeAccountDerivesFromLeg && feeAccountId && feeCurrencyId && formatsFor(feeAccountId, feeCurrencyId).length === 0 && (
                   <p className="mt-1 text-[11px] text-fg-muted">No hay formato habilitado para esta cuenta/divisa.</p>
                 )}
               </div>

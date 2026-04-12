@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { computeSuggestedSecondLegAmount, secondLegSuggestionHint } from './transferenciaSecondLegSuggest';
+import {
+  computeCounterpartFromAnchor,
+  computeSuggestedSecondLegAmount,
+  secondLegSuggestionHint,
+} from './transferenciaSecondLegSuggest';
 
 const base = {
   sameLegCurrency: true,
@@ -119,5 +123,32 @@ describe('secondLegSuggestionHint', () => {
       feePendingSameCurrencyAsLegs: false,
     });
     expect(h).toContain('más comisión');
+  });
+});
+
+describe('computeCounterpartFromAnchor', () => {
+  const usd = 'usd-id';
+  const ars = 'ars-id';
+
+  it('VENTA: OUT USD × tasa → IN ARS', () => {
+    const v = computeCounterpartFromAnchor(1000, true, {
+      outCurrencyId: usd,
+      inCurrencyId: ars,
+      functionalCurrencyId: ars,
+      quoteRate: 1400,
+      quoteMode: 'MULTIPLY',
+    });
+    expect(v).toBe(1400000);
+  });
+
+  it('COMPRA: IN USD × tasa → OUT ARS', () => {
+    const v = computeCounterpartFromAnchor(1000, false, {
+      outCurrencyId: ars,
+      inCurrencyId: usd,
+      functionalCurrencyId: ars,
+      quoteRate: 1400,
+      quoteMode: 'MULTIPLY',
+    });
+    expect(v).toBe(1400000);
   });
 });

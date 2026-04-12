@@ -1,3 +1,4 @@
+import { calculateEquivalent, normalizeQuoteMode, type QuoteMode } from './fx';
 import { roundTo } from './money';
 
 export type FeeTreatment = 'APARTE' | 'INCLUIDA';
@@ -55,6 +56,46 @@ export function computeSuggestedSecondLegAmount(p: SecondLegSuggestParams): numb
   }
 
   return roundTo(firstNum + fee, 2);
+}
+
+export type TransferFxParams = {
+  outCurrencyId: string;
+  inCurrencyId: string;
+  functionalCurrencyId: string;
+  quoteRate: number;
+  quoteMode: QuoteMode;
+};
+
+/**
+ * Con dos divisas (una = moneda funcional), calcula el monto de la otra pata
+ * cuando `anchorAmount` es el monto de la pata OUT (anchorOnOut=true) o IN (false).
+ * VENTA FX: OUT negociada, IN funcional → IN = f(OUT).
+ * COMPRA FX: OUT funcional, IN negociada → OUT = f(IN).
+ */
+export function computeCounterpartFromAnchor(
+  anchorAmount: number,
+  anchorOnOut: boolean,
+  p: TransferFxParams,
+): number | null {
+  const { outCurrencyId, inCurrencyId, functionalCurrencyId, quoteRate, quoteMode } = p;
+  if (!outCurrencyId || !inCurrencyId || outCurrencyId === inCurrencyId) return null;
+  if (!functionalCurrencyId) return null;
+  const outF = outCurrencyId === functionalCurrencyId;
+  const inF = inCurrencyId === functionalCurrencyId;
+  if (!((outF && !inF) || (!outF && inF))) return null;
+  if (!Number.isFinite(anchorAmount) || anchorAmount <= 0 || !Number.isFinite(quoteRate) || quoteRate <= 0) return null;
+
+  const mode = normalizeQuoteMode(quoteMode);
+  const inverse: QuoteMode = mode === 'MULTIPLY' ? 'DIVIDE' : 'MULTIPLY';
+
+  if (!outF && inF) {
+    // VENTA: OUT negociada → IN funcional
+    if (anchorOnOut) return roundTo(calculateEquivalent(anchorAmount, quoteRate, mode), 2);
+    return roundTo(calculateEquivalent(anchorAmount, quoteRate, inverse), 2);
+  }
+  // COMPRA: IN negociada → OUT funcional
+  if (!anchorOnOut) return roundTo(calculateEquivalent(anchorAmount, quoteRate, mode), 2);
+  return roundTo(calculateEquivalent(anchorAmount, quoteRate, inverse), 2);
 }
 
 export function secondLegSuggestionHint(p: {

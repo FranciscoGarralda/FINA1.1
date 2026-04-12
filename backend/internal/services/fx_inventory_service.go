@@ -41,7 +41,7 @@ func (s *FxInventoryService) ApplyOnMovementConfirmed(ctx context.Context, tx pg
 	if err != nil {
 		return err
 	}
-	if meta.Type != "COMPRA" && meta.Type != "VENTA" {
+	if meta.Type != "COMPRA" && meta.Type != "VENTA" && meta.Type != "TRANSFERENCIA" {
 		return nil
 	}
 	if meta.Status != MovementStatusConfirmed {
@@ -63,6 +63,23 @@ func (s *FxInventoryService) ApplyOnMovementConfirmed(ctx context.Context, tx pg
 		return s.applyCompraTx(ctx, tx, movementID, functionalID, lines)
 	case "VENTA":
 		return s.applyVentaTx(ctx, tx, movementID, functionalID, lines)
+	case "TRANSFERENCIA":
+		principal, ok := transferenciaPrincipalLegLines(lines)
+		if !ok {
+			return nil
+		}
+		outCID := strings.TrimSpace(principal[0].CurrencyID)
+		inCID := strings.TrimSpace(principal[1].CurrencyID)
+		if outCID == inCID {
+			return nil
+		}
+		if outCID != functionalID && inCID == functionalID {
+			return s.applyVentaTx(ctx, tx, movementID, functionalID, principal)
+		}
+		if outCID == functionalID && inCID != functionalID {
+			return s.applyCompraTx(ctx, tx, movementID, functionalID, principal)
+		}
+		return nil
 	default:
 		return nil
 	}
@@ -352,6 +369,26 @@ func aggregateVentaLines(lines []repositories.MovementLineRow) (tradedID string,
 		return "", nil, nil, "", ErrFXInvalidMovementLines
 	}
 	return tradedID, tradedSum, quoteSum, quoteCurrencyID, nil
+}
+
+// transferenciaPrincipalLegLines devuelve la primera OUT y la primera IN **posterior** a esa OUT
+// (orden típico: pata salida, pata entrada, comisión), para no mezclar fee en el agregado FX.
+func transferenciaPrincipalLegLines(lines []repositories.MovementLineRow) ([]repositories.MovementLineRow, bool) {
+	outIx, inIx := -1, -1
+	for i := range lines {
+		if lines[i].Side == "OUT" && outIx < 0 {
+			outIx = i
+			continue
+		}
+		if lines[i].Side == "IN" && outIx >= 0 && inIx < 0 {
+			inIx = i
+			break
+		}
+	}
+	if outIx < 0 || inIx < 0 {
+		return nil, false
+	}
+	return []repositories.MovementLineRow{lines[outIx], lines[inIx]}, true
 }
 
 func ratTrimForFX(r *big.Rat) string {

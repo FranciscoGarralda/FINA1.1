@@ -86,6 +86,24 @@ func mapTransferenciaError(w http.ResponseWriter, err error) {
 	case errors.Is(err, services.ErrLegsCannotBeEqual):
 		RespondError(w, http.StatusBadRequest, "LEGS_CANNOT_BE_EQUAL",
 			"La pata de salida y entrada no pueden ser iguales.")
+	case errors.Is(err, services.ErrTransferQuoteRequired):
+		RespondError(w, http.StatusBadRequest, "TRANSFER_QUOTE_REQUIRED",
+			"Con dos divisas distintas (una en moneda funcional) cargá cotización: tipo, modo y tasa.")
+	case errors.Is(err, services.ErrTransferQuoteMismatch):
+		RespondError(w, http.StatusBadRequest, "TRANSFER_QUOTE_MISMATCH",
+			"Los montos de patas no cierran con la cotización y el modo (MULTIPLY/DIVIDE).")
+	case errors.Is(err, services.ErrTransferCrossFunctional):
+		RespondError(w, http.StatusBadRequest, "TRANSFER_CROSS_FUNCTIONAL_REQUIRED",
+			"El cruce FX requiere que una pata sea la moneda funcional del inventario (configuración fx_functional_currency_code).")
+	case errors.Is(err, services.ErrFXQuoteNotFunctional):
+		RespondError(w, http.StatusBadRequest, "FX_QUOTE_NOT_FUNCTIONAL",
+			"La cotización debe estar en la moneda funcional del inventario FX.")
+	case errors.Is(err, services.ErrFXFunctionalCurrencyUnset):
+		RespondError(w, http.StatusBadRequest, "FX_FUNCTIONAL_CURRENCY_UNSET",
+			"Falta configurar fx_functional_currency_code en el sistema.")
+	case errors.Is(err, services.ErrInvalidQuoteMode):
+		RespondError(w, http.StatusBadRequest, "INVALID_QUOTE_MODE",
+			"Modo de cotización inválido; usá MULTIPLY o DIVIDE.")
 	case errors.Is(err, services.ErrFeePercentBaseInvalid):
 		RespondError(w, http.StatusBadRequest, "FEE_PERCENT_BASE_INVALID",
 			"Para comisión porcentual, la divisa de comisión debe coincidir con la divisa de una de las patas.")
