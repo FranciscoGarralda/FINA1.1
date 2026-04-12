@@ -88,7 +88,8 @@ export default function CuentasPage() {
       {loading ? (
         <p className="text-fg-muted">Cargando...</p>
       ) : (
-        <div className="bg-elevated rounded-lg shadow overflow-hidden table-scroll">
+        <div className="bg-elevated rounded-lg shadow overflow-hidden">
+          <div className="table-scroll">
           <table className="w-full min-w-[440px] text-sm">
             <thead className="bg-surface">
               <tr className="text-left text-fg-muted">
@@ -133,6 +134,7 @@ export default function CuentasPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
