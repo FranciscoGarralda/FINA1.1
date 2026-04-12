@@ -1,4 +1,14 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  type ReactNode,
+  type KeyboardEvent,
+  type MouseEvent,
+} from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from '../common/ThemeToggle';
@@ -178,18 +188,104 @@ const NAV_ITEMS: NavItemDef[] = [
 type HistoryIdxState = { idx?: number; usr?: unknown; key?: string };
 
 const navItemBase =
-  'flex w-full min-h-[44px] items-center gap-3 text-left px-3 py-2.5 text-sm font-medium transition-[background-color,border-color,color,box-shadow] duration-interaction ease-out';
+  'flex w-full min-h-[44px] items-center gap-3 text-left px-3 py-2.5 text-sm font-medium transition-[background-color,border-color,color,box-shadow] duration-interaction ease-out outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset';
 
 const navItemActive =
   'bg-brand-soft text-brand border-r-2 border-brand shadow-nav-glow';
 
 const navItemInactive = 'text-fg-muted border-r-2 border-transparent hover:bg-overlay-hover hover:text-fg';
 
+function navItemMatchesPath(item: NavItemDef, pathname: string): boolean {
+  if (item.to === '/nueva-operacion') return pathname.startsWith('/nueva-operacion');
+  return pathname === item.to || pathname.startsWith(`${item.to}/`);
+}
+
+function skipToMainContent(e: MouseEvent<HTMLAnchorElement>) {
+  e.preventDefault();
+  const el = document.getElementById('main-content');
+  el?.focus();
+  el?.scrollIntoView({ block: 'start' });
+}
+
 export default function AppLayout() {
   const { logout, role, can } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  const openMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeSidebarButtonRef = useRef<HTMLButtonElement>(null);
+  const asideRef = useRef<HTMLElement>(null);
+  const navItemRefs = useRef<(HTMLAnchorElement | HTMLButtonElement | null)[]>([]);
+
+  const visibleItems = useMemo(() => NAV_ITEMS.filter((item) => can(item.permission)), [can]);
+
+  const activeNavIndex = useMemo(() => {
+    const idx = visibleItems.findIndex((item) => navItemMatchesPath(item, location.pathname));
+    return idx >= 0 ? idx : 0;
+  }, [visibleItems, location.pathname]);
+
+  const [navRovingIndex, setNavRovingIndex] = useState(0);
+
+  useEffect(() => {
+    setNavRovingIndex(activeNavIndex);
+  }, [activeNavIndex]);
+
+  const focusNavItem = useCallback(
+    (index: number) => {
+      const len = visibleItems.length;
+      if (len === 0) return;
+      const next = ((index % len) + len) % len;
+      setNavRovingIndex(next);
+      requestAnimationFrame(() => navItemRefs.current[next]?.focus());
+    },
+    [visibleItems.length],
+  );
+
+  const handleNavKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLElement>) => {
+      if (!sidebarOpen) return;
+      const len = visibleItems.length;
+      if (len === 0) return;
+      const t = e.target as HTMLElement;
+      if (t.closest('input, textarea, select, [contenteditable="true"]')) return;
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          focusNavItem(navRovingIndex + 1);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          focusNavItem(navRovingIndex - 1);
+          break;
+        case 'Home':
+          e.preventDefault();
+          focusNavItem(0);
+          break;
+        case 'End':
+          e.preventDefault();
+          focusNavItem(len - 1);
+          break;
+        default:
+          break;
+      }
+    },
+    [sidebarOpen, visibleItems.length, navRovingIndex, focusNavItem],
+  );
+
+  const handleAsideKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLElement>) => {
+      if (!sidebarOpen || e.key !== 'Escape') return;
+      const t = e.target as HTMLElement;
+      if (t.closest('input, textarea, select, [contenteditable="true"]')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setSidebarOpen(false);
+      requestAnimationFrame(() => openMenuButtonRef.current?.focus());
+    },
+    [sidebarOpen],
+  );
 
   function handleBack() {
     const idx = (window.history.state as HistoryIdxState | null)?.idx;
@@ -228,17 +324,38 @@ export default function AppLayout() {
     };
   }, [sidebarOpen]);
 
-  const visibleItems = NAV_ITEMS.filter((item) => can(item.permission));
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const id = requestAnimationFrame(() => closeSidebarButtonRef.current?.focus());
+    return () => cancelAnimationFrame(id);
+  }, [sidebarOpen]);
+
+  useLayoutEffect(() => {
+    const el = asideRef.current;
+    if (!el) return;
+    if (sidebarOpen) el.removeAttribute('inert');
+    else el.setAttribute('inert', '');
+  }, [sidebarOpen]);
+
+  const headerIconBtn =
+    'shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-control text-fg-muted hover:text-fg hover:bg-overlay-hover transition-colors duration-interaction ease-out outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-app';
 
   return (
     <div className="min-h-dvh w-full flex flex-col bg-app">
+      <a
+        href="#main-content"
+        onClick={skipToMainContent}
+        className="sr-only whitespace-nowrap rounded-md border border-brand bg-elevated px-4 py-2 text-sm font-medium text-fg shadow-lg outline-none focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:inline-flex focus:min-h-[44px] focus:items-center focus:ring-2 focus:ring-brand focus:ring-offset-2 focus:ring-offset-app"
+      >
+        Ir al contenido principal
+      </a>
       <header className="fixed top-0 left-0 right-0 z-30 border-b border-subtle bg-elevated pt-[env(safe-area-inset-top,0px)] transition-colors duration-interaction ease-out">
         <div className="h-12 min-h-[44px] px-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-0.5 shrink-0">
             <button
               type="button"
               onClick={handleBack}
-              className="shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-control text-fg-muted hover:text-fg hover:bg-overlay-hover transition-colors duration-interaction ease-out"
+              className={headerIconBtn}
               aria-label="Volver"
               title="Volver"
             >
@@ -248,8 +365,9 @@ export default function AppLayout() {
             </button>
             <button
               type="button"
+              ref={openMenuButtonRef}
               onClick={() => setSidebarOpen(true)}
-              className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-control text-fg-muted hover:text-fg hover:bg-overlay-hover transition-colors duration-interaction ease-out"
+              className={headerIconBtn}
               aria-label="Abrir menú"
               title="Menú"
             >
@@ -263,7 +381,7 @@ export default function AppLayout() {
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-control text-fg-muted hover:text-fg hover:bg-overlay-hover transition-colors duration-interaction ease-out"
+              className={headerIconBtn}
               aria-label="Actualizar"
               title="Actualizar"
             >
@@ -293,15 +411,20 @@ export default function AppLayout() {
       )}
 
       <aside
+        ref={asideRef}
+        aria-hidden={!sidebarOpen}
         className={`fixed top-0 left-0 h-dvh min-h-0 w-[var(--sidebar-width-expanded)] max-w-[min(240px,calc(100vw-1rem))] bg-surface border-r border-subtle z-50 transform transition-transform duration-200 ease-out flex flex-col pt-[env(safe-area-inset-top,0px)] ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        onKeyDown={handleAsideKeyDown}
       >
         <div className="px-4 py-4 border-b border-subtle flex items-center justify-between">
           <span className="text-h2 text-fg tracking-wide">Fina</span>
           <button
+            type="button"
+            ref={closeSidebarButtonRef}
             onClick={() => setSidebarOpen(false)}
-            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-control text-fg-muted hover:text-fg hover:bg-overlay-hover transition-colors duration-interaction ease-out"
+            className={headerIconBtn}
             aria-label="Cerrar menú"
             title="Cerrar menú"
           >
@@ -311,10 +434,15 @@ export default function AppLayout() {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-2">
-          {visibleItems.map((item) => {
-            const isActive = location.pathname === item.to;
+        <nav
+          className="flex-1 overflow-y-auto py-2"
+          aria-label="Navegación principal"
+          onKeyDown={handleNavKeyDown}
+        >
+          {visibleItems.map((item, idx) => {
+            const isActive = navItemMatchesPath(item, location.pathname);
             const className = `${navItemBase} ${isActive ? navItemActive : navItemInactive}`;
+            const rovingTab = navRovingIndex === idx ? 0 : -1;
 
             const navInner = (
               <>
@@ -334,7 +462,16 @@ export default function AppLayout() {
 
             if (item.to === '/nueva-operacion') {
               return (
-                <button key={item.to} type="button" onClick={handleNewOperationClick} className={className}>
+                <button
+                  key={item.to}
+                  type="button"
+                  tabIndex={rovingTab}
+                  ref={(el) => {
+                    navItemRefs.current[idx] = el;
+                  }}
+                  onClick={handleNewOperationClick}
+                  className={className}
+                >
                   {navInner}
                 </button>
               );
@@ -344,7 +481,11 @@ export default function AppLayout() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                className={({ isActive: active }) => `${navItemBase} ${active ? navItemActive : navItemInactive}`}
+                tabIndex={rovingTab}
+                ref={(el) => {
+                  navItemRefs.current[idx] = el;
+                }}
+                className={className}
               >
                 {navInner}
               </NavLink>
@@ -360,8 +501,9 @@ export default function AppLayout() {
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs border border-subtle bg-surface text-fg-muted px-2 py-1 rounded-control truncate">{role}</span>
             <button
+              type="button"
               onClick={logout}
-              className="min-h-[44px] px-3 inline-flex items-center text-sm text-error hover:text-error/90 font-medium transition-colors duration-interaction ease-out"
+              className="min-h-[44px] px-3 inline-flex items-center text-sm text-error hover:text-error/90 font-medium transition-colors duration-interaction ease-out rounded-md outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
               Cerrar sesión
             </button>
@@ -369,7 +511,11 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      <main className="max-w-[min(100%,var(--content-max-width))] mx-auto w-full min-w-0 flex-1 px-4 pb-6 pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+0.75rem)] sm:px-6 sm:pb-6 lg:px-8 lg:pb-8">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="max-w-[min(100%,var(--content-max-width))] mx-auto w-full min-w-0 flex-1 scroll-mt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+0.5rem)] px-4 pb-6 pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+0.75rem)] outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 focus:ring-offset-app sm:px-6 sm:pb-6 lg:px-8 lg:pb-8"
+      >
         <Outlet />
       </main>
     </div>
