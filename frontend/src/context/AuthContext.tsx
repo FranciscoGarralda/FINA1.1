@@ -130,6 +130,7 @@ export function useAuth() {
   return ctx;
 }
 
+/** Fallback cuando `permissions` está vacío: alinear con `permissions_service` y migraciones de rol (p. ej. traspaso deuda CC sin COURIER). */
 const fallbackPermissionByRole: Record<string, Set<string>> = {
   SUPERADMIN: new Set([
     'dashboard.view', 'settings.view', 'settings.edit',
@@ -141,7 +142,7 @@ const fallbackPermissionByRole: Record<string, Set<string>> = {
     'cc.view', 'cc.export_csv', 'movements.view', 'movements.detail.view',
     'operations.create_header', 'operations.compra.execute', 'operations.venta.execute', 'operations.arbitraje.execute',
     'operations.transferencia_entre_cuentas.execute', 'operations.transferencia.execute', 'operations.ingreso_capital.execute',
-    'operations.retiro_capital.execute', 'operations.gasto.execute', 'operations.pago_cc_cruzado.execute',
+    'operations.retiro_capital.execute', 'operations.gasto.execute', 'operations.pago_cc_cruzado.execute', 'operations.traspaso_deuda_cc.execute',
     'operations.saldo_inicial_caja.execute',
     'pending.view', 'pending.resolve', 'pending.cancel', 'pending.opening.create',
     'reportes.view',
@@ -157,7 +158,7 @@ const fallbackPermissionByRole: Record<string, Set<string>> = {
     'cc.view', 'cc.export_csv', 'movements.view', 'movements.detail.view',
     'operations.create_header', 'operations.compra.execute', 'operations.venta.execute', 'operations.arbitraje.execute',
     'operations.transferencia_entre_cuentas.execute', 'operations.transferencia.execute', 'operations.ingreso_capital.execute',
-    'operations.retiro_capital.execute', 'operations.gasto.execute', 'operations.pago_cc_cruzado.execute',
+    'operations.retiro_capital.execute', 'operations.gasto.execute', 'operations.pago_cc_cruzado.execute', 'operations.traspaso_deuda_cc.execute',
     'operations.saldo_inicial_caja.execute',
     'pending.view', 'pending.resolve', 'pending.cancel', 'pending.opening.create',
     'reportes.view',
@@ -173,7 +174,7 @@ const fallbackPermissionByRole: Record<string, Set<string>> = {
     'cc.view', 'cc.export_csv', 'movements.view', 'movements.detail.view',
     'operations.create_header', 'operations.compra.execute', 'operations.venta.execute', 'operations.arbitraje.execute',
     'operations.transferencia_entre_cuentas.execute', 'operations.transferencia.execute', 'operations.ingreso_capital.execute',
-    'operations.retiro_capital.execute', 'operations.gasto.execute', 'operations.pago_cc_cruzado.execute',
+    'operations.retiro_capital.execute', 'operations.gasto.execute', 'operations.pago_cc_cruzado.execute', 'operations.traspaso_deuda_cc.execute',
     'operations.saldo_inicial_caja.execute',
     'pending.view', 'pending.resolve', 'pending.cancel', 'pending.opening.create',
     'reportes.view',
@@ -187,7 +188,7 @@ const fallbackPermissionByRole: Record<string, Set<string>> = {
     'cc.view', 'cc.export_csv', 'movements.view', 'movements.detail.view',
     'operations.create_header', 'operations.compra.execute', 'operations.venta.execute', 'operations.arbitraje.execute',
     'operations.transferencia_entre_cuentas.execute', 'operations.transferencia.execute', 'operations.ingreso_capital.execute',
-    'operations.retiro_capital.execute', 'operations.gasto.execute', 'operations.pago_cc_cruzado.execute',
+    'operations.retiro_capital.execute', 'operations.gasto.execute', 'operations.pago_cc_cruzado.execute', 'operations.traspaso_deuda_cc.execute',
     'pending.view', 'pending.resolve', 'pending.cancel',
     'profile.view', 'profile.change_password',
     'cash_position.view', 'cash_arqueo.view', 'cash_arqueo.create',
