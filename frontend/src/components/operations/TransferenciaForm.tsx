@@ -3,6 +3,10 @@ import { api } from '../../api/client';
 import MoneyInput from '../common/MoneyInput';
 import ApiErrorBanner from '../common/ApiErrorBanner';
 import { formatMoneyAR, numberToNormalizedMoney, roundTo } from '../../utils/money';
+import {
+  computeSuggestedSecondLegAmount,
+  secondLegSuggestionHint,
+} from '../../utils/transferenciaSecondLegSuggest';
 import { saveOperationDraft } from '../../utils/operationDrafts';
 import { allowedFormatsFromList, formatLabel } from '../../utils/accountCurrencyFormats';
 import { useActiveAccounts } from '../../hooks/useActiveAccounts';
@@ -496,15 +500,19 @@ export default function TransferenciaForm({
       feeCurrencyId === inLeg.currency_id,
   );
 
-  const secondLegActiveSuggestHint = useMemo(() => {
-    if (!sameLegCurrency) return '';
-    if (!feeEnabled) return 'Monto sugerido igual al de la primera pata (misma divisa).';
-    if (feeTreatment === 'INCLUIDA') return 'Monto sugerido igual al de la primera pata (comisión incluida; cargá patas coherentes con lo pactado).';
-    if (feeTreatment === 'APARTE' && feeSettlement === 'PENDIENTE' && feePendingSameCurrencyAsLegs) {
-      return 'Monto sugerido igual al de la primera pata (comisión aparte pendiente: el importe de la comisión queda en su propia línea).';
-    }
-    return 'Monto sugerido = primera pata + comisión calculada (misma divisa; editable).';
-  }, [sameLegCurrency, feeEnabled, feeTreatment, feeSettlement, feePendingSameCurrencyAsLegs]);
+  const secondLegActiveSuggestHint = useMemo(
+    () =>
+      secondLegSuggestionHint({
+        sameLegCurrency,
+        feeEnabled,
+        feeTreatment,
+        feeSettlement,
+        feePayer,
+        firstLegKind,
+        feePendingSameCurrencyAsLegs,
+      }),
+    [sameLegCurrency, feeEnabled, feeTreatment, feeSettlement, feePayer, firstLegKind, feePendingSameCurrencyAsLegs],
+  );
 
   useEffect(() => {
     if (p2UserEdited) return;
@@ -514,21 +522,32 @@ export default function TransferenciaForm({
     const firstNum = parseFloat(fk.amount);
     if (!Number.isFinite(firstNum) || firstNum <= 0) return;
 
-    let suggestedNum: number;
-    if (!feeEnabled) {
-      suggestedNum = roundTo(firstNum, 2);
-    } else if (feeTreatment === 'INCLUIDA') {
-      suggestedNum = roundTo(firstNum, 2);
-    } else if (
+    const firstLegCur = fk.currency_id;
+    let feeForSuggest = expectedFee;
+    if (
+      feeEnabled &&
       feeTreatment === 'APARTE' &&
-      feeSettlement === 'PENDIENTE' &&
-      feePendingSameCurrencyAsLegs
+      feeMode === 'PERCENT' &&
+      feeCurrencyId &&
+      firstLegCur &&
+      feeCurrencyId === firstLegCur
     ) {
-      // No sumar la comisión al monto de la segunda pata: la comisión pendiente ya genera su propia obligación (evita doble lectura con pendientes).
-      suggestedNum = roundTo(firstNum, 2);
-    } else {
-      suggestedNum = roundTo(firstNum + expectedFee, 2);
+      const pct = parseFloat(feeValue);
+      if (Number.isFinite(pct) && pct > 0) feeForSuggest = roundTo((firstNum * pct) / 100, 2);
     }
+
+    const suggestedNum = computeSuggestedSecondLegAmount({
+      sameLegCurrency,
+      feeEnabled,
+      feeTreatment,
+      feeSettlement,
+      feePayer,
+      firstLegKind,
+      secondLegKind,
+      feePendingSameCurrencyAsLegs,
+      firstNum,
+      feeAmount: feeForSuggest,
+    });
 
     const nextStr = String(suggestedNum);
     if (sk.amount.trim() === nextStr.trim()) return;
@@ -550,6 +569,10 @@ export default function TransferenciaForm({
     feeSettlement,
     feePendingSameCurrencyAsLegs,
     expectedFee,
+    feePayer,
+    feeMode,
+    feeValue,
+    feeCurrencyId,
   ]);
 
   function formatsFor(accountId: string, currencyId: string): Array<'CASH' | 'DIGITAL'> {
