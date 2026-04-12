@@ -161,7 +161,12 @@ function feeComisionadoExplainer(
   feePayer: 'CLIENTE_PAGA' | 'NOSOTROS_PAGAMOS',
 ): string {
   if (feeTreatment === 'INCLUIDA') {
-    return 'Comisión incluida dentro del monto de las patas. No aparece como línea aparte en CC. Cargá los importes coherentes con lo pactado.';
+    const base =
+      'Incluida: el % o el fijo se calcula sobre la pata en la misma divisa que la comisión; sin línea aparte de comisión en CC. El backend no reparte el bruto: se guardan las patas tal cual.';
+    if (feePayer === 'CLIENTE_PAGA') {
+      return `${base} Cliente paga: patas con el total acordado.`;
+    }
+    return `${base} Nosotros pagamos: patas con el neto al cliente; la comisión no se cobra aparte en CC.`;
   }
   if (feePayer === 'CLIENTE_PAGA') {
     return 'La comisión va aparte; aumenta la deuda del cliente en CC (saldo más negativo en la convención actual).';
@@ -180,7 +185,12 @@ function impactoClienteCcCierre(
     return 'Efecto CC: la salida resta y la entrada suma en cuenta corriente por divisa. CC negativo = más deuda del cliente en esa moneda.';
   }
   if (feeTreatment === 'INCLUIDA') {
-    return 'Efecto CC: la comisión incluida no suma una línea extra de comisión en CC; el efecto queda dentro de los montos de patas que cargues. CC negativo = más deuda del cliente en esa moneda.';
+    const base =
+      'Efecto CC: sin línea extra por comisión; todo en patas. CC negativo = más deuda del cliente en esa moneda.';
+    if (feePayer === 'CLIENTE_PAGA') {
+      return `${base} Cliente paga: coherente con bruto en patas.`;
+    }
+    return `${base} Nosotros pagamos: neto al cliente en patas.`;
   }
   if (feePayer === 'CLIENTE_PAGA') {
     return 'Efecto CC: además de salida/entrada, la comisión aparte empeora el saldo del cliente en la divisa de la comisión (más negativo). CC negativo = más deuda del cliente en esa moneda.';
@@ -1057,7 +1067,9 @@ export default function TransferenciaForm({
       <fieldset>
         <legend className="text-sm font-semibold text-fg mb-2">Impacto cliente</legend>
         <div className="bg-surface rounded p-3 text-sm space-y-1.5">
-          <p className="text-xs text-fg-muted">Pendiente no duplica CC; solo indica que la ejecución real queda abierta.</p>
+          <p className="text-xs text-fg-muted">
+            Solo lo <strong className="font-medium text-fg-muted">REAL</strong> impacta caja y CC ahora; lo pendiente es obligación abierta (detalle en &quot;Criterios contables&quot;).
+          </p>
           <div className="grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1 font-mono text-fg text-xs sm:text-sm [&>span]:min-w-0 [&>span]:break-words">
             <span>Salida:</span>
             <span>
@@ -1112,6 +1124,25 @@ export default function TransferenciaForm({
             <p className="text-error text-xs mt-1">Con comisión incluida, el neto debe ser mayor a 0.</p>
           )}
           {impactoCcCierre ? <p className="text-xs text-fg-muted border-t border-subtle pt-2 mt-2">{impactoCcCierre}</p> : null}
+          <details className="border-t border-subtle pt-2 mt-2">
+            <summary className="cursor-pointer text-xs font-medium text-fg-muted list-none hover:text-fg [&::-webkit-details-marker]:hidden">
+              Criterios contables (solo transferencia)
+            </summary>
+            <ul className="mt-2 space-y-1.5 text-[11px] text-fg-muted list-disc pl-4 leading-snug">
+              <li>
+                <strong className="font-medium text-fg-muted">Incluida:</strong> el backend no parte el bruto; se persisten solo las patas. La ayuda desplegable &quot;Ayuda: comisión incluida&quot; solo calcula; no escribe el movimiento.
+              </li>
+              <li>
+                <strong className="font-medium text-fg-muted">Pendiente:</strong> esa pata no suma al CC real hasta resolverla; queda pendiente operativo.
+              </li>
+              <li>
+                <strong className="font-medium text-fg-muted">Utilidad compra-venta</strong> (Inicio / reportes): no viene de transferencias; la mesa se registra en COMPRA o VENTA.
+              </li>
+              <li>
+                <strong className="font-medium text-fg-muted">Dos divisas:</strong> sin cotización automática entre patas; el segundo monto debe ser coherente con el pacto.
+              </li>
+            </ul>
+          </details>
         </div>
       </fieldset>
 
