@@ -31,3 +31,8 @@ Aplicar siempre estas reglas ante cualquier cambio. Si hay conflicto entre rapid
 ## Activacion rapida
 
 Cuando el usuario diga "aplica las reglas de oro", estas reglas son obligatorias para todo el trabajo de esa tarea.
+
+### Docker local y nube
+- Tras cambios en **`backend/`**, migraciones o **`backend/Dockerfile`**, si el entorno local usa el API en contenedor: ejecutar desde la raíz **`bash scripts/docker-local-refresh.sh`** (perfil `stack`; DB + API en **`:8082`** en host, ver `docker-compose.yml`). Build limpio: **`NO_CACHE=1 bash scripts/docker-local-refresh.sh`**.
+- La **nube** se actualiza con **`git push`**: el hosting (p. ej. Railway) reconstruye desde el Dockerfile del repo; no hace falta subir imágenes locales salvo registry explícito del proyecto.
+

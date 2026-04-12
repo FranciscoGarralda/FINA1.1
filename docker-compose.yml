@@ -9,6 +9,32 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fina -d fina"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  # API en contenedor (misma imagen que Railway: backend/Dockerfile, contexto = raíz del repo).
+  # No arranca con `docker compose up` solo: hace falta perfil stack, p. ej.:
+  #   docker compose --profile stack up -d --build api
+  # o: bash scripts/docker-local-refresh.sh
+  api:
+    profiles: ["stack"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    # 8082 evita choque con `go run` del API en :8080. Front: proxy Vite a 8082 o variable de entorno.
+    ports:
+      - "8082:8080"
+    environment:
+      DATABASE_URL: postgres://fina:fina@db:5432/fina?sslmode=disable
+      PORT: "8080"
+      JWT_SECRET: dev-secret-change-me
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   pgdata:

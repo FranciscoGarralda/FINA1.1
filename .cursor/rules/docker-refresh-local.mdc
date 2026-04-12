@@ -1,0 +1,20 @@
+---
+description: Tras cambios en backend o Docker, refrescar stack local y recordar despliegue en la nube
+globs: backend/**,docker-compose.yml,backend/Dockerfile,scripts/docker-local-refresh.sh
+alwaysApply: false
+---
+
+# Docker local y alineación con la nube
+
+## Local
+- Si la tarea modifica **`backend/`**, migraciones o **`backend/Dockerfile`**, al **cerrar** la tarea ejecutar desde la raíz del repo:
+  - `bash scripts/docker-local-refresh.sh`
+  - Para imagen limpia: `NO_CACHE=1 bash scripts/docker-local-refresh.sh`
+- Eso levanta **Postgres** (`db`) y reconstruye/arranca el **API** en el perfil **`stack`** en **`http://127.0.0.1:8082`** (evita choque con `go run` en `:8080`). El front con **Vite** sigue apuntando por defecto a **8080**; si probás solo contra el API en Docker, ajustá el **proxy** de `vite.config.ts` a **8082** o usá `go run` + DB en Docker.
+
+## Nube (Railway / CI)
+- La nube se actualiza con **`git push`** al remoto configurado; el hosting reconstruye desde el **Dockerfile** del repo, no desde imágenes locales.
+- No hace falta “subir” una imagen Docker manual salvo que el proyecto use un registry explícito.
+
+## No hacer
+- No debilitar `JWT_SECRET` ni políticas de seguridad solo para que el contenedor levante en producción.
