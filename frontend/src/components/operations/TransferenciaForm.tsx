@@ -777,6 +777,35 @@ export default function TransferenciaForm({
     setFeeFormat(availableFormats[0] || '');
   }
 
+  /** Divisa de comisión vacía + comisión activa: default = primera pata (no pisar borrador ni valor ya elegido). */
+  useEffect(() => {
+    if (!feeEnabled || feeCurrencyId !== '') return;
+    const cid = firstLegKind === 'out' ? outLeg.currency_id : inLeg.currency_id;
+    if (!cid) return;
+    if (!feeLegCurrencyOptions.some((c) => c.currency_id === cid)) return;
+    setFeeCurrencyId(cid);
+    let availableFormats: Array<'CASH' | 'DIGITAL'> = [];
+    if (cid === outLeg.currency_id && outLeg.account_id) {
+      availableFormats = allowedFormatsFromList(acCache[outLeg.account_id] || [], cid);
+    } else if (cid === inLeg.currency_id && inLeg.account_id) {
+      availableFormats = allowedFormatsFromList(acCache[inLeg.account_id] || [], cid);
+    } else if (feeAccountId) {
+      availableFormats = allowedFormatsFromList(acCache[feeAccountId] || [], cid);
+    }
+    setFeeFormat(availableFormats[0] || '');
+  }, [
+    feeEnabled,
+    feeCurrencyId,
+    firstLegKind,
+    outLeg.currency_id,
+    outLeg.account_id,
+    inLeg.currency_id,
+    inLeg.account_id,
+    feeAccountId,
+    feeLegCurrencyOptions,
+    acCache,
+  ]);
+
   function buildDraftData(): TransferenciaDraftData {
     const base: TransferenciaDraftData = {
       out_leg: outLeg,
@@ -1032,6 +1061,39 @@ export default function TransferenciaForm({
             {amountHint ? <p className="text-xs text-fg-muted mt-1">{amountHint}</p> : null}
           </div>
         </div>
+        {position === 'second' && needsFxQuote ? (
+          <div className="mt-3 pt-3 border-t border-subtle space-y-2 min-w-0">
+            <p className="text-xs font-medium text-fg-muted">Cotización (cruce)</p>
+            <p className="text-[11px] text-fg-muted leading-snug">
+              Moneda funcional FX en una pata; el monto de esta pata se sugiere desde la primera. Si lo editás, se respeta (validación en servidor).
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <MoneyInput
+                label="Tipo de cambio"
+                value={quoteRate}
+                onValueChange={(v) => {
+                  setQuoteRate(v);
+                  setP2UserEdited(false);
+                }}
+                fractionDigits={6}
+              />
+              <div>
+                <label className="block text-[11px] text-fg-muted mb-0.5">Modo</label>
+                <select
+                  value={quoteMode}
+                  onChange={(e) => {
+                    setQuoteMode(normalizeQuoteMode(e.target.value));
+                    setP2UserEdited(false);
+                  }}
+                  className="w-full border border-subtle rounded px-2 py-1.5 text-xs"
+                >
+                  <option value="MULTIPLY">Multiplicar</option>
+                  <option value="DIVIDE">Dividir</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        ) : null}
         <label className="mt-2 flex items-center gap-2 text-sm text-fg cursor-pointer select-none">
           <input
             type="checkbox"
@@ -1089,40 +1151,6 @@ export default function TransferenciaForm({
       </div>
 
       {renderLegFieldset(firstLegKind, 'first')}
-
-      {needsFxQuote && (
-        <div className="border border-subtle rounded-lg p-3 bg-surface space-y-2 min-w-0">
-          <p className="text-sm font-semibold text-fg">Cotización (cruce de divisas)</p>
-          <p className="text-xs text-fg-muted leading-snug">
-            Una pata está en la moneda funcional del inventario FX; el monto de la otra pata se sugiere desde la primera según tasa y modo. Si editás la segunda pata, se respeta tu valor (validación en servidor).
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <MoneyInput
-              label="Tipo de cambio"
-              value={quoteRate}
-              onValueChange={(v) => {
-                setQuoteRate(v);
-                setP2UserEdited(false);
-              }}
-              fractionDigits={6}
-            />
-            <div>
-              <label className="block text-xs text-fg-muted mb-0.5">Modo</label>
-              <select
-                value={quoteMode}
-                onChange={(e) => {
-                  setQuoteMode(normalizeQuoteMode(e.target.value));
-                  setP2UserEdited(false);
-                }}
-                className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
-              >
-                <option value="MULTIPLY">Multiplicar</option>
-                <option value="DIVIDE">Dividir</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
 
       <fieldset>
         <legend className="text-sm font-semibold text-fg mb-2">Comisionado</legend>
