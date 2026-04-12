@@ -122,7 +122,7 @@ func (s *OpeningPendingService) Create(ctx context.Context, input OpeningPending
 		return nil, fmt.Errorf("insert line: %w", err)
 	}
 
-	pendingID, err := s.operationRepo.InsertPendingItem(ctx, tx, lineID, pendingType, clientID, input.CurrencyID, amountStr)
+	pendingID, err := s.operationRepo.InsertPendingItem(ctx, tx, lineID, pendingType, clientID, input.CurrencyID, amountStr, false)
 	if err != nil {
 		return nil, fmt.Errorf("insert pending: %w", err)
 	}

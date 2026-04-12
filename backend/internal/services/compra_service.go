@@ -143,12 +143,12 @@ func (s *CompraService) Execute(ctx context.Context, movementID string, input Co
 
 	if inPending {
 		_, err = s.operationRepo.InsertPendingItem(ctx, tx, inLineID, "PENDIENTE_DE_RETIRO",
-			clientID, input.In.CurrencyID, input.In.Amount)
+			clientID, input.In.CurrencyID, input.In.Amount, true)
 		if err != nil {
 			return fmt.Errorf("insert IN pending: %w", err)
 		}
 	}
-	if ccEnabled {
+	if ccEnabled && !inPending {
 		if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.In.CurrencyID, input.In.Amount, movementID, ccSideIn, "Compra — divisa comprada", callerID); err != nil {
 			return fmt.Errorf("apply cc impact IN: %w", err)
 		}
@@ -165,14 +165,9 @@ func (s *CompraService) Execute(ctx context.Context, movementID string, input Co
 
 		if outPending {
 			_, err = s.operationRepo.InsertPendingItem(ctx, tx, outLineID, "PENDIENTE_DE_PAGO",
-				clientID, input.Quote.CurrencyID, out.Amount)
+				clientID, input.Quote.CurrencyID, out.Amount, true)
 			if err != nil {
 				return fmt.Errorf("insert OUT pending %d: %w", i, err)
-			}
-			if ccEnabled {
-				if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Quote.CurrencyID, out.Amount, movementID, ccSideOut, "Compra — pago pendiente", callerID); err != nil {
-					return fmt.Errorf("apply cc impact OUT pending %d: %w", i, err)
-				}
 			}
 		}
 	}

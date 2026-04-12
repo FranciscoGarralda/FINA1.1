@@ -343,13 +343,13 @@ func (r *OperationRepo) InsertMovementLine(ctx context.Context, tx pgx.Tx, movem
 	return id, err
 }
 
-func (r *OperationRepo) InsertPendingItem(ctx context.Context, tx pgx.Tx, movementLineID, pendingType, clientID, currencyID, amount string) (string, error) {
+func (r *OperationRepo) InsertPendingItem(ctx context.Context, tx pgx.Tx, movementLineID, pendingType, clientID, currencyID, amount string, ccApplyOnResolve bool) (string, error) {
 	var id string
 	err := tx.QueryRow(ctx,
-		`INSERT INTO pending_items (movement_line_id, type, status, client_id, currency_id, amount)
-		 VALUES ($1, $2, 'ABIERTO', $3, $4, $5::numeric)
+		`INSERT INTO pending_items (movement_line_id, type, status, client_id, currency_id, amount, cc_apply_on_resolve)
+		 VALUES ($1, $2, 'ABIERTO', $3, $4, $5::numeric, $6)
 		 RETURNING id::text`,
-		movementLineID, pendingType, clientID, currencyID, amount).Scan(&id)
+		movementLineID, pendingType, clientID, currencyID, amount, ccApplyOnResolve).Scan(&id)
 	return id, err
 }
 

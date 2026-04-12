@@ -121,7 +121,7 @@ func (s *ArbitrajeService) Execute(ctx context.Context, movementID string, input
 	}
 	if costoPending {
 		_, err = s.operationRepo.InsertPendingItem(ctx, tx, costoLineID, "PENDIENTE_DE_PAGO",
-			clientID, input.Costo.CurrencyID, input.Costo.Amount)
+			clientID, input.Costo.CurrencyID, input.Costo.Amount, false)
 		if err != nil {
 			return fmt.Errorf("insert COSTO pending: %w", err)
 		}
@@ -136,12 +136,12 @@ func (s *ArbitrajeService) Execute(ctx context.Context, movementID string, input
 	}
 	if cobradoPending {
 		_, err = s.operationRepo.InsertPendingItem(ctx, tx, cobradoLineID, "PENDIENTE_DE_RETIRO",
-			clientID, input.Cobrado.CurrencyID, input.Cobrado.Amount)
+			clientID, input.Cobrado.CurrencyID, input.Cobrado.Amount, true)
 		if err != nil {
 			return fmt.Errorf("insert COBRADO pending: %w", err)
 		}
 	}
-	if ccEnabled {
+	if ccEnabled && !cobradoPending {
 		if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Cobrado.CurrencyID, input.Cobrado.Amount, movementID, ccSideIn, "Arbitraje — cobrado", callerID); err != nil {
 			return fmt.Errorf("apply cc impact cobrado: %w", err)
 		}

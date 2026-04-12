@@ -447,8 +447,8 @@ export default function TransferenciaForm({
     };
 
     if (clientCcEnabled) {
-      add(outLeg.currency_id, outCurrCode, 'cc', -outAbs);
-      add(inLeg.currency_id, inCurrCode, 'cc', inAbs);
+      add(outLeg.currency_id, outCurrCode, 'cc', outLeg.settlement === 'REAL' ? -outAbs : 0);
+      add(inLeg.currency_id, inCurrCode, 'cc', inLeg.settlement === 'REAL' ? inAbs : 0);
     }
 
     add(outLeg.currency_id, outCurrCode, 'real', outLeg.settlement === 'REAL' ? -outAbs : 0);
@@ -458,7 +458,7 @@ export default function TransferenciaForm({
     add(inLeg.currency_id, inCurrCode, 'pending', inLeg.settlement === 'PENDIENTE' ? inAbs : 0);
 
     if (feeEnabled && expectedFee > 0 && feeCurrCode) {
-      if (clientCcEnabled && feeTreatment === 'APARTE') {
+      if (clientCcEnabled && feeTreatment === 'APARTE' && feeSettlement === 'REAL') {
         add(feeCurrencyId, feeCurrCode, 'cc', feeAmountSigned);
       }
       add(feeCurrencyId, feeCurrCode, 'real', feeRealSigned);
@@ -478,6 +478,7 @@ export default function TransferenciaForm({
     inLeg.settlement,
     feeEnabled,
     feeTreatment,
+    feeSettlement,
     expectedFee,
     feeCurrCode,
     feeCurrencyId,

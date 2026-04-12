@@ -306,19 +306,9 @@ func (s *TransferenciaService) Execute(ctx context.Context, movementID string, i
 			return fmt.Errorf("insert delivery OUT pending: %w", err)
 		}
 		_, err = s.operationRepo.InsertPendingItem(ctx, tx, lineID, "PENDIENTE_DE_RETIRO",
-			*clientID, input.Delivery.CurrencyID, deliveryOutStr)
+			*clientID, input.Delivery.CurrencyID, deliveryOutStr, true)
 		if err != nil {
 			return fmt.Errorf("insert delivery pending item: %w", err)
-		}
-		if ccEnabled {
-			ccNote := "Transferencia — entrega pendiente"
-			if input.Delivery.Note != nil && *input.Delivery.Note != "" {
-				ccNote = *input.Delivery.Note
-			}
-			err = applyCCImpactTx(ctx, s.ccSvc, tx, *clientID, input.Delivery.CurrencyID, deliveryOutStr, movementID, ccSideOut, ccNote, callerID)
-			if err != nil {
-				return fmt.Errorf("insert delivery cc_entry pending: %w", err)
-			}
 		}
 
 	}
@@ -355,19 +345,9 @@ func (s *TransferenciaService) Execute(ctx context.Context, movementID string, i
 				return fmt.Errorf("insert collection IN pending %d: %w", i, err)
 			}
 			_, err = s.operationRepo.InsertPendingItem(ctx, tx, lineID, "PENDIENTE_DE_PAGO",
-				*clientID, c.CurrencyID, cAmtStr)
+				*clientID, c.CurrencyID, cAmtStr, true)
 			if err != nil {
 				return fmt.Errorf("insert collection pending item %d: %w", i, err)
-			}
-			if ccEnabled {
-				ccNote := "Transferencia — cobro pendiente"
-				if c.Note != nil && *c.Note != "" {
-					ccNote = *c.Note
-				}
-				err = applyCCImpactTx(ctx, s.ccSvc, tx, *clientID, c.CurrencyID, cAmtStr, movementID, ccSideIn, ccNote, callerID)
-				if err != nil {
-					return fmt.Errorf("insert collection cc_entry pending %d: %w", i, err)
-				}
 			}
 
 		}
@@ -386,7 +366,8 @@ func (s *TransferenciaService) Execute(ctx context.Context, movementID string, i
 			if err != nil {
 				return fmt.Errorf("insert profit entry %d: %w", i, err)
 			}
-			if ccEnabled {
+			// Solo CC de fee atribuido a cobro REAL; si el cobro es OWED_PENDING el CC del fee se difiere vía pendiente de cobro (riesgo residual si fee queda solo en flujos pending-only).
+			if ccEnabled && c.Settlement == "REAL" {
 				if err := applyCCImpactTx(ctx, s.ccSvc, tx, *clientID, c.CurrencyID, feeStr, movementID, ccSideIn, "Transferencia — comisión", callerID); err != nil {
 					return fmt.Errorf("insert fee cc_entry %d: %w", i, err)
 				}
@@ -549,7 +530,7 @@ func (s *TransferenciaService) executeDualLegTransfer(ctx context.Context, movem
 		return fmt.Errorf("insert out leg line: %w", err)
 	}
 	if outPending {
-		if _, err := s.operationRepo.InsertPendingItem(ctx, tx, outLineID, "PENDIENTE_DE_PAGO", clientID, input.OutLeg.CurrencyID, outAmtStr); err != nil {
+		if _, err := s.operationRepo.InsertPendingItem(ctx, tx, outLineID, "PENDIENTE_DE_PAGO", clientID, input.OutLeg.CurrencyID, outAmtStr, true); err != nil {
 			return fmt.Errorf("insert out leg pending: %w", err)
 		}
 	}
@@ -560,17 +541,21 @@ func (s *TransferenciaService) executeDualLegTransfer(ctx context.Context, movem
 		return fmt.Errorf("insert in leg line: %w", err)
 	}
 	if inPending {
-		if _, err := s.operationRepo.InsertPendingItem(ctx, tx, inLineID, "PENDIENTE_DE_RETIRO", clientID, input.InLeg.CurrencyID, inAmtStr); err != nil {
+		if _, err := s.operationRepo.InsertPendingItem(ctx, tx, inLineID, "PENDIENTE_DE_RETIRO", clientID, input.InLeg.CurrencyID, inAmtStr, true); err != nil {
 			return fmt.Errorf("insert in leg pending: %w", err)
 		}
 	}
 
 	if ccEnabled {
-		if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.OutLeg.CurrencyID, outAmtStr, movementID, ccSideOut, "Transferencia — salida", callerID); err != nil {
-			return fmt.Errorf("apply cc out leg: %w", err)
+		if !outPending {
+			if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.OutLeg.CurrencyID, outAmtStr, movementID, ccSideOut, "Transferencia — salida", callerID); err != nil {
+				return fmt.Errorf("apply cc out leg: %w", err)
+			}
 		}
-		if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.InLeg.CurrencyID, inAmtStr, movementID, ccSideIn, "Transferencia — entrada", callerID); err != nil {
-			return fmt.Errorf("apply cc in leg: %w", err)
+		if !inPending {
+			if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.InLeg.CurrencyID, inAmtStr, movementID, ccSideIn, "Transferencia — entrada", callerID); err != nil {
+				return fmt.Errorf("apply cc in leg: %w", err)
+			}
 		}
 	}
 
@@ -597,14 +582,14 @@ func (s *TransferenciaService) executeDualLegTransfer(ctx context.Context, movem
 				if err != nil {
 					return fmt.Errorf("insert fee pending line: %w", err)
 				}
-				if _, err := s.operationRepo.InsertPendingItem(ctx, tx, feeLineID, feePendingType, clientID, feeCurrencyID, feeStr); err != nil {
+				if _, err := s.operationRepo.InsertPendingItem(ctx, tx, feeLineID, feePendingType, clientID, feeCurrencyID, feeStr, true); err != nil {
 					return fmt.Errorf("insert fee pending item: %w", err)
 				}
 			}
 		}
 
 		// INCLUIDA: la comisión va dentro del monto de pata(s); no duplicar impacto CC sobre el mismo fee (regla no doble impacto).
-		if ccEnabled && feeTreatment == "APARTE" {
+		if ccEnabled && feeTreatment == "APARTE" && feeSettlement == "REAL" {
 			if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, feeCurrencyID, feeStr, movementID, feeCCSide, "Transferencia — comisión", callerID); err != nil {
 				return fmt.Errorf("apply cc fee: %w", err)
 			}
@@ -744,12 +729,12 @@ func (s *TransferenciaService) executeSignedTransfer(ctx context.Context, moveme
 		if side == "OUT" {
 			pType = "PENDIENTE_DE_PAGO"
 		}
-		if _, err := s.operationRepo.InsertPendingItem(ctx, tx, lineID, pType, clientID, input.Transfer.CurrencyID, absTransferStr); err != nil {
+		if _, err := s.operationRepo.InsertPendingItem(ctx, tx, lineID, pType, clientID, input.Transfer.CurrencyID, absTransferStr, true); err != nil {
 			return fmt.Errorf("insert signed transfer pending: %w", err)
 		}
 	}
 
-	if ccEnabled {
+	if ccEnabled && !isPending {
 		ccSide := ccSideIn
 		if side == "OUT" {
 			ccSide = ccSideOut
@@ -790,13 +775,13 @@ func (s *TransferenciaService) executeSignedTransfer(ctx context.Context, moveme
 				if err != nil {
 					return fmt.Errorf("insert signed transfer fee pending line: %w", err)
 				}
-				if _, err := s.operationRepo.InsertPendingItem(ctx, tx, feeLineID, feePendingType, clientID, input.Transfer.CurrencyID, feeStr); err != nil {
+				if _, err := s.operationRepo.InsertPendingItem(ctx, tx, feeLineID, feePendingType, clientID, input.Transfer.CurrencyID, feeStr, true); err != nil {
 					return fmt.Errorf("insert signed transfer fee pending item: %w", err)
 				}
 			}
 		}
 
-		if ccEnabled && feeTreatment == "APARTE" {
+		if ccEnabled && feeTreatment == "APARTE" && feeSettlement == "REAL" {
 			if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Transfer.CurrencyID, feeStr, movementID, feeCCSide, "Transferencia — comisión", callerID); err != nil {
 				return fmt.Errorf("apply signed transfer cc fee impact: %w", err)
 			}

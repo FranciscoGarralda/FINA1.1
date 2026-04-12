@@ -81,6 +81,7 @@ type PendingService struct {
 	operationRepo *repositories.OperationRepo
 	settingsRepo  *repositories.SettingsRepo
 	auditRepo     *repositories.AuditRepo
+	ccSvc         *CCService
 }
 
 func NewPendingService(
@@ -88,6 +89,7 @@ func NewPendingService(
 	pendingRepo *repositories.PendingRepo,
 	settingsRepo *repositories.SettingsRepo,
 	auditRepo *repositories.AuditRepo,
+	ccSvc *CCService,
 ) *PendingService {
 	return &PendingService{
 		pool:          pool,
@@ -95,6 +97,7 @@ func NewPendingService(
 		operationRepo: repositories.NewOperationRepo(pool),
 		settingsRepo:  settingsRepo,
 		auditRepo:     auditRepo,
+		ccSvc:         ccSvc,
 	}
 }
 
@@ -213,6 +216,20 @@ func (s *PendingService) Resolve(ctx context.Context, pendingID string, input Re
 			pending.MovementID, pending.MovementLineID,
 			input.AccountID, input.Format, input.Amount); err != nil {
 			return fmt.Errorf("apply real execution to movement_line: %w", err)
+		}
+	}
+
+	// CC diferida: solo si al confirmar se omitió CC para este pendiente (cc_apply_on_resolve).
+	// Si el cliente deshabilitó CC después del alta, se completa la caja sin asiento CC (sin bloquear resolve).
+	// COMPENSATED no aplica aquí: pendientes con flag true cerrados por compensación quedan sin CC vía resolve (documentar en PR si aplica follow-up).
+	if pending.CcEnabled && pending.CcApplyOnResolve && s.ccSvc != nil {
+		ccSide := strings.TrimSpace(pending.MovementLineSide)
+		if ccSide != ccSideIn && ccSide != ccSideOut {
+			return fmt.Errorf("pending cc resolve: %w", ErrInvalidMovementLineSide)
+		}
+		ccNote := "[CC-PEND-REAL] Liquidación pendiente — ejecución real"
+		if err := applyCCImpactTx(ctx, s.ccSvc, tx, pending.ClientID, pending.CurrencyID, ratTrim(resolveAmt), pending.MovementID, ccSide, ccNote, callerID); err != nil {
+			return fmt.Errorf("apply deferred cc on resolve: %w", err)
 		}
 	}
 

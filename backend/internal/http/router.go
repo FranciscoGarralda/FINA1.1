@@ -34,7 +34,7 @@ func NewRouter(pool *pgxpool.Pool, cfg *config.Config) http.Handler {
 	ccRepo := repositories.NewCCRepo(pool)
 	ccSvc := services.NewCCService(pool, ccRepo, auditRepo)
 	pendingRepo := repositories.NewPendingRepo(pool)
-	pendingSvc := services.NewPendingService(pool, pendingRepo, settingsRepo, auditRepo)
+	pendingSvc := services.NewPendingService(pool, pendingRepo, settingsRepo, auditRepo, ccSvc)
 	movementRepo := repositories.NewMovementRepo(pool)
 	movementSvc := services.NewMovementService(movementRepo)
 	operationRepo := repositories.NewOperationRepo(pool)

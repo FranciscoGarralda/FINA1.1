@@ -54,6 +54,7 @@ type PendingDetail struct {
 	CurrencyID           string
 	Amount               string
 	CcEnabled            bool
+	CcApplyOnResolve     bool
 	ResolutionMode       *string
 	ResolvedByMovementID *string
 	MovementLineSide      string
@@ -116,6 +117,7 @@ func (r *PendingRepo) FindByID(ctx context.Context, id string) (*PendingDetail, 
 		        pi.type, pi.status, pi.client_id::text,
 		        pi.currency_id::text, pi.amount::text,
 		        cl.cc_enabled,
+		        COALESCE(pi.cc_apply_on_resolve, false),
 		        pi.resolution_mode,
 		        pi.resolved_by_movement_id::text,
 		        ml.side,
@@ -126,7 +128,7 @@ func (r *PendingRepo) FindByID(ctx context.Context, id string) (*PendingDetail, 
 		 WHERE pi.id = $1`, id).
 		Scan(&p.ID, &p.MovementLineID, &p.MovementID,
 			&p.Type, &p.Status, &p.ClientID,
-			&p.CurrencyID, &p.Amount, &p.CcEnabled,
+			&p.CurrencyID, &p.Amount, &p.CcEnabled, &p.CcApplyOnResolve,
 			&p.ResolutionMode, &p.ResolvedByMovementID,
 			&p.MovementLineSide, &p.MovementLineAccountID)
 	if err != nil {
