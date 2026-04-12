@@ -369,7 +369,7 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      <main className="max-w-[min(100%,var(--content-max-width))] mx-auto w-full min-w-0 flex-1 p-4 pb-6 sm:p-6 lg:p-8 pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+0.75rem)]">
+      <main className="max-w-[min(100%,var(--content-max-width))] mx-auto w-full min-w-0 flex-1 px-4 pb-6 pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+0.75rem)] sm:px-6 sm:pb-6 lg:px-8 lg:pb-8">
         <Outlet />
       </main>
     </div>
