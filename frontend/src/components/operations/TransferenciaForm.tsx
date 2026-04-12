@@ -490,12 +490,21 @@ export default function TransferenciaForm({
   const sameLegCurrency = Boolean(outLeg.currency_id && outLeg.currency_id === inLeg.currency_id);
   const secondLegSuggestHint = sameLegCurrency ? '' : 'Divisas distintas — cargá cada monto por separado.';
 
+  const feePendingSameCurrencyAsLegs = Boolean(
+    feeCurrencyId &&
+      feeCurrencyId === outLeg.currency_id &&
+      feeCurrencyId === inLeg.currency_id,
+  );
+
   const secondLegActiveSuggestHint = useMemo(() => {
     if (!sameLegCurrency) return '';
     if (!feeEnabled) return 'Monto sugerido igual al de la primera pata (misma divisa).';
     if (feeTreatment === 'INCLUIDA') return 'Monto sugerido igual al de la primera pata (comisión incluida; cargá patas coherentes con lo pactado).';
+    if (feeTreatment === 'APARTE' && feeSettlement === 'PENDIENTE' && feePendingSameCurrencyAsLegs) {
+      return 'Monto sugerido igual al de la primera pata (comisión aparte pendiente: el importe de la comisión queda en su propia línea).';
+    }
     return 'Monto sugerido = primera pata + comisión calculada (misma divisa; editable).';
-  }, [sameLegCurrency, feeEnabled, feeTreatment]);
+  }, [sameLegCurrency, feeEnabled, feeTreatment, feeSettlement, feePendingSameCurrencyAsLegs]);
 
   useEffect(() => {
     if (p2UserEdited) return;
@@ -509,6 +518,13 @@ export default function TransferenciaForm({
     if (!feeEnabled) {
       suggestedNum = roundTo(firstNum, 2);
     } else if (feeTreatment === 'INCLUIDA') {
+      suggestedNum = roundTo(firstNum, 2);
+    } else if (
+      feeTreatment === 'APARTE' &&
+      feeSettlement === 'PENDIENTE' &&
+      feePendingSameCurrencyAsLegs
+    ) {
+      // No sumar la comisión al monto de la segunda pata: la comisión pendiente ya genera su propia obligación (evita doble lectura con pendientes).
       suggestedNum = roundTo(firstNum, 2);
     } else {
       suggestedNum = roundTo(firstNum + expectedFee, 2);
@@ -531,6 +547,8 @@ export default function TransferenciaForm({
     inLeg,
     feeEnabled,
     feeTreatment,
+    feeSettlement,
+    feePendingSameCurrencyAsLegs,
     expectedFee,
   ]);
 
