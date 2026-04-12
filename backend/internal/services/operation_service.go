@@ -27,6 +27,8 @@ var (
 	ErrMovementAlreadyCancelled = errors.New("MOVEMENT_ALREADY_CANCELLED")
 	ErrMovementNotCancelled     = errors.New("MOVEMENT_NOT_CANCELLED")
 	ErrPayloadClearConfirmationRequired = errors.New("PAYLOAD_CLEAR_CONFIRMATION_REQUIRED")
+	// ErrPendienteInicialCorrectionNotAllowed: corregir por borrador genérico podría duplicar obligaciones o desalinear caja/pendientes.
+	ErrPendienteInicialCorrectionNotAllowed = errors.New("PENDIENTE_INICIAL_CORRECTION_NOT_ALLOWED")
 )
 
 const (
@@ -429,6 +431,13 @@ func (s *OperationService) GetMovementDraft(ctx context.Context, movementID stri
 	}, nil
 }
 
+func errIfPendienteInicialBlocksCorrection(movementType string) error {
+	if movementType == MovementTypePendienteInicial {
+		return ErrPendienteInicialCorrectionNotAllowed
+	}
+	return nil
+}
+
 func (s *OperationService) StartModifyFromConfirmed(ctx context.Context, movementID, callerID string) (*CreateMovementResult, error) {
 	return s.startCorrectionDraft(ctx, movementID, callerID, CorrectionModeModify)
 }
@@ -453,6 +462,9 @@ func (s *OperationService) startCorrectionDraft(ctx context.Context, movementID,
 	}
 	if mode == CorrectionModeRecreate && meta.Status != MovementStatusCancelled {
 		return nil, ErrMovementNotCancelled
+	}
+	if err := errIfPendienteInicialBlocksCorrection(meta.Type); err != nil {
+		return nil, err
 	}
 
 	header, err := s.operationRepo.CreateMovementHeader(ctx, tx, meta.Type, meta.Date, meta.DayName, meta.ClientID, callerID)

@@ -186,6 +186,9 @@ func handleOperationError(w http.ResponseWriter, err error) {
 		RespondError(w, http.StatusBadRequest, "MOVEMENT_NOT_CONFIRMED", "Solo se pueden anular movimientos en estado CONFIRMADA.")
 	case errors.Is(err, services.ErrMovementNotModifiable):
 		RespondError(w, http.StatusBadRequest, "MOVEMENT_NOT_MODIFIABLE", "Solo se puede modificar desde una operación CONFIRMADA.")
+	case errors.Is(err, services.ErrPendienteInicialCorrectionNotAllowed):
+		RespondError(w, http.StatusBadRequest, "PENDIENTE_INICIAL_NOT_CORRECTABLE",
+			"Este tipo de operaci?n no admite modificar ni recrear por borrador: podr?a duplicar obligaciones o desalinear caja y pendientes. El alta de pendiente inicial se registra desde Pendientes.")
 	case errors.Is(err, services.ErrMovementNotCancelled):
 		RespondError(w, http.StatusBadRequest, "MOVEMENT_NOT_CANCELLED", "Solo se puede recrear desde una operación ANULADA.")
 	case errors.Is(err, services.ErrMovementAlreadyCancelled):

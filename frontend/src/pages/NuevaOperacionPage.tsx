@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import ClientSearchCombo, { type ClientSearchComboItem } from '../components/common/ClientSearchCombo';
@@ -15,6 +15,7 @@ import PagoCCCruzadoForm from '../components/operations/PagoCCCruzadoForm';
 import TransferenciaForm from '../components/operations/TransferenciaForm';
 import TraspasoDeudaCCForm from '../components/operations/TraspasoDeudaCCForm';
 import { clearOperationDraftCache } from '../utils/operationDrafts';
+import { movementTypeLabel as movementTypeLabelFromType } from '../utils/movementTypeLabels';
 
 type Client = ClientSearchComboItem & { active: boolean; cc_enabled: boolean };
 
@@ -646,6 +647,18 @@ export default function NuevaOperacionPage() {
       }
       case 'TRASPASO_DEUDA_CC':
         return <TraspasoDeudaCCForm key={key} movementId={movementId} clientId={clientId} onDone={handleDone} onCancel={handleCancelDraft} />;
+      case 'PENDIENTE_INICIAL':
+        return (
+          <PendienteInicialDraftBlocked
+            key={key}
+            movementId={movementId}
+            typeLabel={movementTypeLabelFromType('PENDIENTE_INICIAL')}
+            onDiscard={() => {
+              void handleCancelDraft();
+            }}
+            onView={() => navigate(`/movimientos/${movementId}`)}
+          />
+        );
       default:
         return <TypeFormStub key={key} type={type} movementId={movementId} onDone={handleDone} />;
     }
@@ -830,6 +843,53 @@ export default function NuevaOperacionPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function PendienteInicialDraftBlocked({
+  movementId,
+  typeLabel,
+  onDiscard,
+  onView,
+}: {
+  movementId: string;
+  typeLabel: string;
+  onDiscard: () => void;
+  onView: () => void;
+}) {
+  return (
+    <div className="border-t pt-4 space-y-4">
+      <p className="text-sm text-fg">
+        Este borrador es <strong>{typeLabel}</strong>. Por criterio contable no se corrige desde acá con el flujo genérico de
+        modificación: podría duplicar obligaciones o desalinear caja y pendientes.
+      </p>
+      <p className="text-xs text-fg-muted">
+        Para registrar un pendiente inicial nuevo usá <strong>Pendientes</strong> → Registrar pendiente inicial.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Link
+          to="/pendientes"
+          className="inline-flex items-center justify-center min-h-[2.5rem] px-4 text-sm font-medium rounded-md border border-subtle text-fg hover:bg-surface transition"
+        >
+          Ir a Pendientes
+        </Link>
+        <button
+          type="button"
+          onClick={onView}
+          className="btn-touch bg-success text-white rounded-md hover:opacity-90 transition px-4"
+        >
+          Ver movimiento
+        </button>
+        <button
+          type="button"
+          onClick={onDiscard}
+          className="btn-touch border border-subtle text-fg rounded-md hover:bg-surface transition px-4"
+        >
+          Descartar borrador
+        </button>
+      </div>
+      <p className="text-xs text-fg-subtle font-mono break-all">Movement ID: {movementId}</p>
     </div>
   );
 }

@@ -308,7 +308,7 @@ export default function MovimientosPage() {
                     </td>
                     <td className="px-3 py-2 align-top">
                       <FormActionsRow variant="table">
-                        {canStartCorrection && m.status === 'CONFIRMADA' && (
+                        {canStartCorrection && m.status === 'CONFIRMADA' && m.type !== 'PENDIENTE_INICIAL' && (
                           <button
                             type="button"
                             onClick={(e) => openActionConfirmation(e, m, 'modify')}
@@ -326,7 +326,7 @@ export default function MovimientosPage() {
                             Anular
                           </button>
                         )}
-                        {canStartCorrection && m.status === 'CANCELADA' && (
+                        {canStartCorrection && m.status === 'CANCELADA' && m.type !== 'PENDIENTE_INICIAL' && (
                           <button
                             type="button"
                             onClick={(e) => openActionConfirmation(e, m, 'recreate')}

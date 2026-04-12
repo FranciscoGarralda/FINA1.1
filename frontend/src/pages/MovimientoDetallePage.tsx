@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { MOVEMENTS_REFRESH_EVENT, type MovementsRefreshDetail } from '../constants/appEvents';
 import { movementTypeLabel } from '../utils/movementTypeLabels';
@@ -201,7 +201,7 @@ export default function MovimientoDetallePage() {
           </div>
           {(canStartCorrection || canCancelOperation) && detail.status === 'CONFIRMADA' && (
             <FormActionsRow variant="table">
-              {canStartCorrection && (
+              {canStartCorrection && detail.type !== 'PENDIENTE_INICIAL' && (
                 <button
                   type="button"
                   onClick={() => setPendingAction('modify')}
@@ -221,7 +221,7 @@ export default function MovimientoDetallePage() {
               )}
             </FormActionsRow>
           )}
-          {canStartCorrection && detail.status === 'CANCELADA' && (
+          {canStartCorrection && detail.status === 'CANCELADA' && detail.type !== 'PENDIENTE_INICIAL' && (
             <FormActionsRow variant="table">
               <button
                 type="button"
@@ -231,6 +231,12 @@ export default function MovimientoDetallePage() {
                 Recrear desde esta
               </button>
             </FormActionsRow>
+          )}
+          {detail.type === 'PENDIENTE_INICIAL' && (detail.status === 'CONFIRMADA' || detail.status === 'CANCELADA') && (
+            <p className="text-xs text-fg-muted max-w-xl">
+              <strong>Pendiente inicial:</strong> no se puede modificar ni recrear por borrador (criterio contable).
+              Altas nuevas desde <Link className="text-brand underline" to="/pendientes">Pendientes</Link>.
+            </p>
           )}
         </div>
 
