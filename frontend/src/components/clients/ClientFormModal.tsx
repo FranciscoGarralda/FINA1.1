@@ -1,8 +1,9 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
 import FormActionsRow from '../common/FormActionsRow';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { useModalFocusTrap } from '../../hooks/useModalFocusTrap';
 
 interface ClientListItem {
   id: string;
@@ -72,6 +73,13 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  const backdropRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap({
+    containerRef: backdropRef,
+    onClose,
+    refocusToken: loadingDetail ? 'detail-loading' : 'detail-ready',
+  });
 
   useBodyScrollLock(true);
 
@@ -173,7 +181,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
   }
 
   return createPortal(
-    <div className="modal-backdrop">
+    <div ref={backdropRef} className="modal-backdrop">
       <div className="modal-panel modal-enter max-w-lg p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h2 className="text-lg font-semibold mb-4">{isEdit ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
 

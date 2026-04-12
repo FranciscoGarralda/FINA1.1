@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { useModalFocusTrap } from '../hooks/useModalFocusTrap';
 import { createPortal } from 'react-dom';
 import { api } from '../api/client';
 import ClientSearchCombo from '../components/common/ClientSearchCombo';
@@ -283,6 +284,13 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
   const [error, setError] = useState('');
   const [loadErr, setLoadErr] = useState('');
 
+  const openingBackdropRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap({
+    containerRef: openingBackdropRef,
+    onClose,
+    refocusToken: clientsLoading ? 'clients-loading' : 'clients-ready',
+  });
+
   useBodyScrollLock(true);
 
   useEffect(() => {
@@ -348,7 +356,7 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
   }
 
   return createPortal(
-    <div className="modal-backdrop">
+    <div ref={openingBackdropRef} className="modal-backdrop">
       <div className="modal-panel modal-enter max-w-lg w-full p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold text-fg mb-1">Pendiente inicial (apertura)</h3>
         <p className="text-xs text-fg-muted mb-4">
@@ -498,6 +506,13 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
   const [error, setError] = useState('');
   const [bootstrapError, setBootstrapError] = useState('');
 
+  const resolveBackdropRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap({
+    containerRef: resolveBackdropRef,
+    onClose,
+    refocusToken: `${accounts.length}-${bootstrapError}`,
+  });
+
   useBodyScrollLock(true);
 
   useEffect(() => {
@@ -603,7 +618,7 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
   }
 
   return createPortal(
-    <div className="modal-backdrop">
+    <div ref={resolveBackdropRef} className="modal-backdrop">
       <div className="modal-panel modal-enter max-w-md p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h3 className="text-lg font-semibold text-fg mb-1">Resolver pendiente</h3>
         <p className="text-sm text-fg-muted mb-4">
@@ -757,6 +772,9 @@ function CancelModal({ item, onClose, onDone }: { item: PendingItem; onClose: ()
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const cancelBackdropRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap({ containerRef: cancelBackdropRef, onClose });
+
   useBodyScrollLock(true);
 
   async function handleCancel() {
@@ -773,7 +791,7 @@ function CancelModal({ item, onClose, onDone }: { item: PendingItem; onClose: ()
   }
 
   return createPortal(
-    <div className="modal-backdrop">
+    <div ref={cancelBackdropRef} className="modal-backdrop">
       <div className="modal-panel modal-enter max-w-sm p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h3 className="text-lg font-semibold text-fg mb-2">Anular operación</h3>
         <p className="text-sm text-fg-muted mb-4">

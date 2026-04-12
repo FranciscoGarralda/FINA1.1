@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
@@ -9,6 +9,7 @@ import { formatMoneyAR } from '../utils/money';
 import { MOVEMENTS_REFRESH_EVENT } from '../constants/appEvents';
 import { useAuth } from '../context/AuthContext';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { useModalFocusTrap } from '../hooks/useModalFocusTrap';
 
 interface SummaryItem {
   side: string;
@@ -54,6 +55,12 @@ export default function MovimientosPage() {
   const [loadError, setLoadError] = useState('');
   const [actionError, setActionError] = useState('');
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const pendingModalRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap({
+    containerRef: pendingModalRef,
+    onClose: () => setPendingAction(null),
+    active: !!pendingAction,
+  });
   const [page, setPage] = useState(1);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -373,7 +380,7 @@ export default function MovimientosPage() {
         </>
       )}
       {pendingAction && (
-        <div className="modal-backdrop">
+        <div ref={pendingModalRef} className="modal-backdrop">
           <div className="modal-panel modal-enter max-w-md p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
             <h3 className="mb-2 text-lg font-semibold text-fg">{actionTitle(pendingAction.kind)}</h3>
             <p className="mb-3 text-sm text-fg-muted">

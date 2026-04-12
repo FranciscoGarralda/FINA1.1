@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { MOVEMENTS_REFRESH_EVENT, type MovementsRefreshDetail } from '../constants/appEvents';
@@ -7,6 +7,7 @@ import { formatMoneyAR } from '../utils/money';
 import { useAuth } from '../context/AuthContext';
 import FormActionsRow from '../components/common/FormActionsRow';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { useModalFocusTrap } from '../hooks/useModalFocusTrap';
 
 interface MovementLine {
   id: string;
@@ -42,6 +43,12 @@ export default function MovimientoDetallePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [pendingAction, setPendingAction] = useState<DetailActionKind | null>(null);
+  const pendingModalRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap({
+    containerRef: pendingModalRef,
+    onClose: () => setPendingAction(null),
+    active: !!pendingAction,
+  });
 
   useBodyScrollLock(!!pendingAction);
 
@@ -280,7 +287,7 @@ export default function MovimientoDetallePage() {
         <p className="text-fg-muted text-sm">Este movimiento no tiene líneas registradas.</p>
       )}
       {pendingAction && (
-        <div className="modal-backdrop">
+        <div ref={pendingModalRef} className="modal-backdrop">
           <div className="modal-panel modal-enter max-w-md p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
             <h3 className="mb-2 text-lg font-semibold text-fg">{actionTitle(pendingAction)}</h3>
             <p className="mb-3 text-sm text-fg-muted">{actionDescription(pendingAction)}</p>

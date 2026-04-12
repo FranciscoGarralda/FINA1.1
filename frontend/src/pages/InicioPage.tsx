@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import type { CurrencyAmount, DailySummary, ReportData, ReportMetricKey } from '../types/reportes';
 import { SkeletonCard } from '../components/common/Skeleton';
 import { formatMoneyAR } from '../utils/money';
+import { useModalFocusTrap } from '../hooks/useModalFocusTrap';
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -134,14 +135,13 @@ export default function InicioPage() {
     setRangeError('');
   }, []);
 
-  useEffect(() => {
-    if (!detailKey) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeDetail();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [detailKey, closeDetail]);
+  const detailDialogRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap({
+    containerRef: detailDialogRef,
+    onClose: closeDetail,
+    active: Boolean(detailKey && summary),
+    refocusToken: `${detailKey ?? ''}-${rangeLoading}-${rangeData ? '1' : '0'}-${rangeError}`,
+  });
 
   function renderMetricCard(key: ReportMetricKey) {
     if (!summary) return null;
@@ -209,6 +209,7 @@ export default function InicioPage() {
 
     return (
       <div
+        ref={detailDialogRef}
         className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40"
         role="dialog"
         aria-modal="true"

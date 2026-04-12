@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
 import FormActionsRow from '../common/FormActionsRow';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { useModalFocusTrap } from '../../hooks/useModalFocusTrap';
 import type { UserPermissionMatrixItem, UserPermissionsResponse } from '../../types/userPermissions';
 
 interface Props {
@@ -17,6 +18,13 @@ export default function UserPermissionsModal({ userId, username, onClose }: Prop
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState<'ok' | 'err'>('ok');
+
+  const backdropRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap({
+    containerRef: backdropRef,
+    onClose,
+    refocusToken: loading ? 'loading' : `ready-${items.length}`,
+  });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -89,7 +97,7 @@ export default function UserPermissionsModal({ userId, username, onClose }: Prop
   };
 
   return createPortal(
-    <div className="modal-backdrop">
+    <div ref={backdropRef} className="modal-backdrop">
       <div className="modal-panel modal-enter max-w-4xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] max-h-[min(85vh,calc(100dvh-2rem))] overflow-hidden flex flex-col">
         <div className="flex items-start justify-between mb-4">
           <div>

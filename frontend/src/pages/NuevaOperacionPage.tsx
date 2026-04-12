@@ -16,6 +16,7 @@ import TransferenciaForm from '../components/operations/TransferenciaForm';
 import TraspasoDeudaCCForm from '../components/operations/TraspasoDeudaCCForm';
 import { clearOperationDraftCache } from '../utils/operationDrafts';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { useModalFocusTrap } from '../hooks/useModalFocusTrap';
 import { movementTypeLabel as movementTypeLabelFromType } from '../utils/movementTypeLabels';
 
 type Client = ClientSearchComboItem & { active: boolean; cc_enabled: boolean };
@@ -330,6 +331,13 @@ export default function NuevaOperacionPage() {
     setClientId(last.clientId);
     setConfirmClearOpen(false);
   }, []);
+
+  const confirmClearBackdropRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap({
+    containerRef: confirmClearBackdropRef,
+    onClose: revertHeaderToLastSynced,
+    active: confirmClearOpen,
+  });
 
   useEffect(() => {
     // Legacy safety: never auto-resume from sessionStorage.
@@ -822,7 +830,7 @@ export default function NuevaOperacionPage() {
       </div>
 
       {confirmClearOpen && (
-        <div className="modal-backdrop !z-[100]">
+        <div ref={confirmClearBackdropRef} className="modal-backdrop !z-[100]">
           <div className="modal-panel modal-enter max-w-md w-full p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] space-y-4">
             <p className="text-sm text-fg">
               Hay datos guardados en el borrador. Para cambiar el tipo o el cliente hay que descartarlos. ¿Continuar?

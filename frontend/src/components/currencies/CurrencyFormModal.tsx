@@ -1,5 +1,6 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { useModalFocusTrap } from '../../hooks/useModalFocusTrap';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
 import FormActionsRow from '../common/FormActionsRow';
@@ -24,6 +25,9 @@ export default function CurrencyFormModal({ currency, onClose, onSaved }: Props)
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const backdropRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap({ containerRef: backdropRef, onClose });
 
   useEffect(() => {
     if (currency) {
@@ -69,7 +73,7 @@ export default function CurrencyFormModal({ currency, onClose, onSaved }: Props)
   };
 
   return createPortal(
-    <div className="modal-backdrop">
+    <div ref={backdropRef} className="modal-backdrop">
       <div className="modal-panel modal-enter max-w-md p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h2 className="text-lg font-semibold mb-4">{isEdit ? 'Editar Divisa' : 'Nueva Divisa'}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">

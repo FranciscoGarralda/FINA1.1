@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { useModalFocusTrap } from '../../hooks/useModalFocusTrap';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
@@ -43,6 +44,9 @@ export default function CashOpeningBalanceModal({ onClose }: { onClose: () => vo
   const [currenciesByLine, setCurrenciesByLine] = useState<Record<string, AccountCurrency[]>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const backdropRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap({ containerRef: backdropRef, onClose });
 
   useBodyScrollLock(true);
 
@@ -134,7 +138,7 @@ export default function CashOpeningBalanceModal({ onClose }: { onClose: () => vo
   }
 
   return createPortal(
-    <div className="modal-backdrop">
+    <div ref={backdropRef} className="modal-backdrop">
       <div className="modal-panel modal-enter max-w-2xl w-full p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold text-fg mb-1">Saldo inicial de caja</h3>
         <p className="text-xs text-fg-muted mb-4">

@@ -1,8 +1,9 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../api/client';
 import FormActionsRow from '../common/FormActionsRow';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { useModalFocusTrap } from '../../hooks/useModalFocusTrap';
 
 interface Account {
   id: string;
@@ -48,6 +49,13 @@ export default function AccountFormModal({ account, onClose, onSaved }: Props) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [loadingCurrencies, setLoadingCurrencies] = useState(true);
+
+  const backdropRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap({
+    containerRef: backdropRef,
+    onClose,
+    refocusToken: loadingCurrencies ? 'currencies-loading' : 'currencies-ready',
+  });
 
   useEffect(() => {
     if (account) setName(account.name);
@@ -157,7 +165,7 @@ export default function AccountFormModal({ account, onClose, onSaved }: Props) {
   };
 
   return createPortal(
-    <div className="modal-backdrop">
+    <div ref={backdropRef} className="modal-backdrop">
       <div className="modal-panel modal-enter max-w-lg p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h2 className="text-lg font-semibold mb-4">{isEdit ? 'Editar Cuenta' : 'Nueva Cuenta'}</h2>
         <form onSubmit={handleSubmit} className="space-y-5">
