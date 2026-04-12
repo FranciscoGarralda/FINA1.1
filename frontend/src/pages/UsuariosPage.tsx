@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import UserFormModal from '../components/users/UserFormModal';
+import UserPermissionsModal from '../components/users/UserPermissionsModal';
 
 interface User {
   id: string;
@@ -15,11 +16,13 @@ export default function UsuariosPage() {
   const canEdit = can('users.edit');
   const canCreate = can('users.create');
   const canToggle = can('users.toggle_active');
+  const canViewPermissions = can('permissions.view_user');
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [modalUser, setModalUser] = useState<User | null | 'new'>(null);
+  const [permissionsUser, setPermissionsUser] = useState<User | null>(null);
 
   const fetchUsers = async () => {
     const data = await api.get<User[]>('/users');
@@ -116,6 +119,14 @@ export default function UsuariosPage() {
                         Editar
                       </button>
                     )}
+                    {canViewPermissions && u.role !== 'SUPERADMIN' && (
+                      <button
+                        onClick={() => setPermissionsUser(u)}
+                        className="text-brand hover:opacity-80 text-xs font-medium"
+                      >
+                        Permisos
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -134,6 +145,14 @@ export default function UsuariosPage() {
           user={modalUser === 'new' ? null : modalUser}
           onClose={() => setModalUser(null)}
           onSaved={() => { setModalUser(null); fetchUsers(); }}
+        />
+      )}
+
+      {permissionsUser && (
+        <UserPermissionsModal
+          userId={permissionsUser.id}
+          username={permissionsUser.username}
+          onClose={() => setPermissionsUser(null)}
         />
       )}
     </div>

@@ -141,10 +141,6 @@ Ver `frontend/.env.example` y `frontend/src/api/client.ts`.
 - Respuesta de login (u otro endpoint): **`Content-Type: application/json`**, no `text/html` del `index.html`.
 - Tras un deploy correcto, `index.html` referencia un **`index-*.js` con hash nuevo**.
 
-### 6.4 Prompt para el asistente / soporte Railway
-
-Texto listo para copiar: **`docs/railway-frontend-prompt.md`**.
-
 ## 7. CORS
 
 El middleware en `backend/internal/http/cors.go` refleja `Access-Control-Allow-Origin` con el header `Origin` de la petición y permite credenciales. Si el navegador bloquea peticiones, comprobar origen, HTTPS y que el front apunte al API correcto (`VITE_API_BASE`).
