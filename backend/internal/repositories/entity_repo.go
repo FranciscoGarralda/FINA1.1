@@ -129,6 +129,7 @@ func (r *EntityRepo) ToggleCurrencyActive(ctx context.Context, id string, active
 func (r *EntityRepo) ListClients(ctx context.Context) ([]models.ClientListItem, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT id::text, client_code, first_name, last_name, phone, dni,
+		        COALESCE(address_street, ''), COALESCE(address_number, ''), COALESCE(address_floor, ''),
 		        COALESCE(department, ''), active, cc_enabled
 		 FROM clients ORDER BY last_name, first_name`)
 	if err != nil {
@@ -139,7 +140,9 @@ func (r *EntityRepo) ListClients(ctx context.Context) ([]models.ClientListItem, 
 	var items []models.ClientListItem
 	for rows.Next() {
 		var item models.ClientListItem
-		if err := rows.Scan(&item.ID, &item.ClientCode, &item.FirstName, &item.LastName, &item.Phone, &item.DNI, &item.Department, &item.Active, &item.CcEnabled); err != nil {
+		if err := rows.Scan(&item.ID, &item.ClientCode, &item.FirstName, &item.LastName, &item.Phone, &item.DNI,
+			&item.AddressStreet, &item.AddressNumber, &item.AddressFloor,
+			&item.Department, &item.Active, &item.CcEnabled); err != nil {
 			return nil, err
 		}
 		items = append(items, item)

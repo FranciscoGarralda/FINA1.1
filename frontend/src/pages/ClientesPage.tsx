@@ -10,6 +10,9 @@ interface Client {
   last_name: string;
   phone: string;
   dni: string;
+  address_street: string;
+  address_number: string;
+  address_floor: string;
   department?: string;
   active: boolean;
   cc_enabled: boolean;
@@ -31,8 +34,8 @@ export default function ClientesPage() {
   const [filterCC, setFilterCC] = useState<CcFilter>('all');
   const [modalClient, setModalClient] = useState<Client | null | 'new'>(null);
 
-  /** Columnas visibles: código, nombre, tel, depto, estado, CC, [acciones si canEdit]. */
-  const tableColCount = 6 + (canEdit ? 1 : 0);
+  /** Columnas visibles: código, nombre, tel, calle, número, piso, departamento, estado, CC, [acciones]. */
+  const tableColCount = 9 + (canEdit ? 1 : 0);
 
   const fetchClients = async () => {
     try {
@@ -70,11 +73,17 @@ export default function ClientesPage() {
 
       const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();
       const dept = (c.department || '').toLowerCase();
+      const street = (c.address_street || '').toLowerCase();
+      const num = (c.address_number || '').toLowerCase();
+      const floor = (c.address_floor || '').toLowerCase();
       return (
         fullName.includes(q) ||
         c.phone.toLowerCase().includes(q) ||
         String(c.client_code).includes(q) ||
-        dept.includes(q)
+        dept.includes(q) ||
+        street.includes(q) ||
+        num.includes(q) ||
+        floor.includes(q)
       );
     });
   }, [clients, search, filterActive, filterCC]);
@@ -90,7 +99,7 @@ export default function ClientesPage() {
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto min-w-0 sm:items-center">
             <input
               type="text"
-              placeholder="Buscar por nombre, teléfono, código…"
+              placeholder="Buscar por nombre, teléfono, domicilio, código…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="border border-subtle rounded-md px-3 py-2 text-sm w-full sm:min-w-[12rem] sm:max-w-xs min-w-0 focus:outline-none focus:border-brand shadow-focus-brand"
@@ -145,12 +154,15 @@ export default function ClientesPage() {
       ) : (
         <div className="bg-elevated rounded-lg shadow overflow-hidden">
           <div className="table-scroll">
-          <table className="w-full min-w-[560px] text-sm">
+          <table className="w-full min-w-[960px] text-sm">
             <thead className="bg-surface">
               <tr className="text-left text-fg-muted">
                 <th className="px-4 py-3 font-medium">Nº cliente</th>
                 <th className="px-4 py-3 font-medium">Nombre</th>
                 <th className="px-4 py-3 font-medium">Teléfono</th>
+                <th className="px-4 py-3 font-medium min-w-[7rem]">Calle</th>
+                <th className="px-4 py-3 font-medium w-24">Número</th>
+                <th className="px-4 py-3 font-medium w-24">Piso</th>
                 <th className="px-4 py-3 font-medium">Departamento</th>
                 <th className="px-4 py-3 font-medium text-center">Estado</th>
                 <th className="px-4 py-3 font-medium text-center">CC</th>
@@ -165,7 +177,12 @@ export default function ClientesPage() {
                     {c.first_name} {c.last_name}
                   </td>
                   <td className="px-4 py-3 text-fg-muted">{c.phone}</td>
-                  <td className="px-4 py-3 text-fg-muted max-w-[12rem] break-words" title={c.department || undefined}>
+                  <td className="px-4 py-3 text-fg max-w-[14rem] break-words" title={c.address_street?.trim() || undefined}>
+                    {c.address_street?.trim() ? c.address_street.trim() : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-fg-muted whitespace-nowrap">{c.address_number?.trim() ? c.address_number.trim() : '—'}</td>
+                  <td className="px-4 py-3 text-fg-muted whitespace-nowrap">{c.address_floor?.trim() ? c.address_floor.trim() : '—'}</td>
+                  <td className="px-4 py-3 text-fg-muted max-w-[10rem] break-words" title={c.department || undefined}>
                     {c.department?.trim() ? c.department.trim() : '—'}
                   </td>
                   <td className="px-4 py-3 text-center">

@@ -29,15 +29,18 @@ type AccountCurrencyItem struct {
 }
 
 type ClientListItem struct {
-	ID         string `json:"id"`
-	ClientCode int64  `json:"client_code"`
-	FirstName  string `json:"first_name"`
-	LastName   string `json:"last_name"`
-	Phone      string `json:"phone"`
-	DNI        string `json:"dni"`
-	Department string `json:"department"`
-	Active     bool   `json:"active"`
-	CcEnabled  bool   `json:"cc_enabled"`
+	ID            string `json:"id"`
+	ClientCode    int64  `json:"client_code"`
+	FirstName     string `json:"first_name"`
+	LastName      string `json:"last_name"`
+	Phone         string `json:"phone"`
+	DNI           string `json:"dni"`
+	AddressStreet string `json:"address_street"`
+	AddressNumber string `json:"address_number"`
+	AddressFloor  string `json:"address_floor"`
+	Department    string `json:"department"`
+	Active        bool   `json:"active"`
+	CcEnabled     bool   `json:"cc_enabled"`
 }
 
 type ClientDetail struct {
