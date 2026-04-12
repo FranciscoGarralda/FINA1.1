@@ -9,6 +9,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// ErrMovementLineNotPending indica que la línea no existe, no pertenece al movimiento o ya no está en is_pending.
+var ErrMovementLineNotPending = errors.New("MOVEMENT_LINE_NOT_PENDING_OR_NOT_FOUND")
+
 type PendingRepo struct {
 	pool *pgxpool.Pool
 }
@@ -170,4 +173,39 @@ func (r *PendingRepo) InsertMovementLine(ctx context.Context, tx pgx.Tx, movemen
 		 RETURNING id::text`,
 		movementID, side, accountID, currencyID, format, amount).Scan(&id)
 	return id, err
+}
+
+// ApplyRealExecutionToMovementLine marca la línea origen del pendiente como ejecución real
+// (misma fila) para que SUM(movement_lines) no duplique el monto. Solo resolución REAL_EXECUTION total.
+func (r *PendingRepo) ApplyRealExecutionToMovementLine(ctx context.Context, tx pgx.Tx, movementID, movementLineID, accountID, format, amount string) error {
+	tag, err := tx.Exec(ctx,
+		`UPDATE movement_lines
+		 SET account_id = $3::uuid, format = $4, amount = $5::numeric, is_pending = false
+		 WHERE id = $2::uuid AND movement_id = $1::uuid AND is_pending = true`,
+		movementID, movementLineID, accountID, format, amount)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrMovementLineNotPending
+	}
+	return nil
+}
+
+// SubtractResolvedAmountFromPendingMovementLine resta el monto ejecutado en un resolve parcial
+// de la línea origen aún pendiente (misma fila, is_pending sigue true). Así SUM(lines) no duplica el tramo.
+func (r *PendingRepo) SubtractResolvedAmountFromPendingMovementLine(ctx context.Context, tx pgx.Tx, movementID, movementLineID, subtractAmount string) error {
+	tag, err := tx.Exec(ctx,
+		`UPDATE movement_lines
+		 SET amount = amount - $3::numeric
+		 WHERE id = $2::uuid AND movement_id = $1::uuid AND is_pending = true
+		   AND amount >= $3::numeric`,
+		movementID, movementLineID, subtractAmount)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrMovementLineNotPending
+	}
+	return nil
 }

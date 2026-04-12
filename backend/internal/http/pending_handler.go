@@ -137,6 +137,8 @@ func handlePendingError(w http.ResponseWriter, err error) {
 		RespondError(w, http.StatusBadRequest, "RESOLVE_ACCOUNT_MISMATCH", "La cuenta debe ser la misma que la línea del movimiento original.")
 	case errors.Is(err, services.ErrInvalidMovementLineSide):
 		RespondError(w, http.StatusInternalServerError, "INVALID_MOVEMENT_LINE_SIDE", "Línea de movimiento inválida para resolver.")
+	case errors.Is(err, repositories.ErrMovementLineNotPending):
+		RespondError(w, http.StatusConflict, "MOVEMENT_LINE_NOT_PENDING", "La línea del movimiento ya no está pendiente o no coincide con el pendiente.")
 	default:
 		RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Error interno del servidor.")
 	}

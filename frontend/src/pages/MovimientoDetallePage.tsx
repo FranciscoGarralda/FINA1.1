@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { MOVEMENTS_REFRESH_EVENT, type MovementsRefreshDetail } from '../constants/appEvents';
 import { movementTypeLabel } from '../utils/movementTypeLabels';
 import { formatMoneyAR } from '../utils/money';
 import { useAuth } from '../context/AuthContext';
@@ -55,6 +56,18 @@ export default function MovimientoDetallePage() {
   useEffect(() => {
     loadDetail();
   }, [loadDetail]);
+
+  useEffect(() => {
+    const onMovementsRefresh = (ev: Event) => {
+      const mid = (ev as CustomEvent<MovementsRefreshDetail>).detail?.movementId;
+      if (!id) return;
+      if (mid == null || mid === id) {
+        loadDetail();
+      }
+    };
+    window.addEventListener(MOVEMENTS_REFRESH_EVENT, onMovementsRefresh);
+    return () => window.removeEventListener(MOVEMENTS_REFRESH_EVENT, onMovementsRefresh);
+  }, [id, loadDetail]);
 
   if (loading) return <p className="text-fg-muted text-sm p-4">Cargando...</p>;
   if (error || !detail) return <p className="text-error text-sm p-4">{error || 'No encontrado.'}</p>;

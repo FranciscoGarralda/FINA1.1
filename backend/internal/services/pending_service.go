@@ -194,12 +194,26 @@ func (s *PendingService) Resolve(ctx context.Context, pendingID string, input Re
 		}
 		return tx.Commit(ctx)
 	}
-	// 1) Línea real: mismo side que la línea origen del pendiente (todas las operaciones).
-	_, err = s.pendingRepo.InsertMovementLine(ctx, tx,
-		pending.MovementID, side, input.AccountID,
-		pending.CurrencyID, input.Format, input.Amount)
-	if err != nil {
-		return fmt.Errorf("insert movement_line: %w", err)
+	// 1) REAL_EXECUTION — líneas del movimiento:
+	//    Total: actualizar la misma movement_line (sin segunda fila que duplique SUM).
+	//    Parcial: restar el monto ejecutado de la línea pendiente + insertar solo la parte ejecutada (SUM estable).
+	if isPartial {
+		if err := s.pendingRepo.SubtractResolvedAmountFromPendingMovementLine(ctx, tx,
+			pending.MovementID, pending.MovementLineID, input.Amount); err != nil {
+			return fmt.Errorf("subtract from pending movement_line: %w", err)
+		}
+		_, err = s.pendingRepo.InsertMovementLine(ctx, tx,
+			pending.MovementID, side, input.AccountID,
+			pending.CurrencyID, input.Format, input.Amount)
+		if err != nil {
+			return fmt.Errorf("insert movement_line: %w", err)
+		}
+	} else {
+		if err := s.pendingRepo.ApplyRealExecutionToMovementLine(ctx, tx,
+			pending.MovementID, pending.MovementLineID,
+			input.AccountID, input.Format, input.Amount); err != nil {
+			return fmt.Errorf("apply real execution to movement_line: %w", err)
+		}
 	}
 
 	beforeJSON := map[string]interface{}{

@@ -8,6 +8,7 @@ import FormActionsRow from '../components/common/FormActionsRow';
 import MoneyInput from '../components/common/MoneyInput';
 import { useAuth } from '../context/AuthContext';
 import { useActiveAccounts } from '../hooks/useActiveAccounts';
+import { MOVEMENTS_REFRESH_EVENT } from '../constants/appEvents';
 import { allowedFormatsFromList, formatLabel, resolveFormat } from '../utils/accountCurrencyFormats';
 import { formatMoneyAR } from '../utils/money';
 import { pendingTypeLabel } from '../utils/pendingTypeLabels';
@@ -239,7 +240,10 @@ export default function PendientesPage() {
           item={resolveTarget}
           initialMode={resolveMode}
           onClose={() => setResolveTarget(null)}
-          onDone={() => { setResolveTarget(null); fetchItems(); }}
+          onDone={() => {
+            setResolveTarget(null);
+            fetchItems();
+          }}
         />
       )}
 
@@ -592,6 +596,9 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
         resolved_by_movement_id: mode === 'COMPENSATED' ? resolvedByMovementId.trim() : '',
         resolution_note: mode === 'COMPENSATED' ? resolutionNote.trim() : '',
       });
+      window.dispatchEvent(
+        new CustomEvent(MOVEMENTS_REFRESH_EVENT, { detail: { movementId: item.movement_id } }),
+      );
       onDone();
     } catch (err: any) {
       setError(err?.message || 'Error al resolver pendiente.');

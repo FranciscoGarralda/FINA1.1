@@ -6,6 +6,7 @@ import { SkeletonTable } from '../components/common/Skeleton';
 import FormActionsRow from '../components/common/FormActionsRow';
 import { movementTypeLabel } from '../utils/movementTypeLabels';
 import { formatMoneyAR } from '../utils/money';
+import { MOVEMENTS_REFRESH_EVENT } from '../constants/appEvents';
 import { useAuth } from '../context/AuthContext';
 
 interface SummaryItem {
@@ -84,6 +85,14 @@ export default function MovimientosPage() {
 
   useEffect(() => {
     fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    const onMovementsRefresh = () => {
+      fetchData();
+    };
+    window.addEventListener(MOVEMENTS_REFRESH_EVENT, onMovementsRefresh);
+    return () => window.removeEventListener(MOVEMENTS_REFRESH_EVENT, onMovementsRefresh);
   }, [fetchData]);
 
   function handleFilterApply() {
