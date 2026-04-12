@@ -43,7 +43,6 @@ export default function TraspasoDeudaCCForm({ movementId, clientId, onDone, onCa
   const [draftLoading, setDraftLoading] = useState(true);
   const [error, setError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     api.get<Client[]>('/clients')
@@ -97,12 +96,13 @@ export default function TraspasoDeudaCCForm({ movementId, clientId, onDone, onCa
         amount,
         note: note.trim() || undefined,
       });
-      setSuccess(true);
     } catch (err: any) {
       setError(err?.message || 'Error al guardar el traspaso de deuda CC.');
+      return;
     } finally {
       setSubmitting(false);
     }
+    onDone();
   }
 
   function buildDraftData(): TraspasoDeudaCCDraftData {
@@ -129,17 +129,6 @@ export default function TraspasoDeudaCCForm({ movementId, clientId, onDone, onCa
     setCurrencyId('');
     setAmount('');
     setNote('');
-  }
-
-  if (success) {
-    return (
-      <div className="border-t pt-4">
-        <p className="success-message">Traspaso de deuda CC registrado correctamente.</p>
-        <button onClick={onDone} className="px-4 py-2 bg-success text-white text-sm rounded hover:opacity-90 transition">
-          Ver movimiento
-        </button>
-      </div>
-    );
   }
 
   return (

@@ -41,7 +41,6 @@ export default function TransferenciaEntreCuentasForm({ movementId, onDone, onCa
   const [draftLoading, setDraftLoading] = useState(true);
   const [error, setError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     if (!fromAccountId) { setFromAC([]); return; }
@@ -118,12 +117,13 @@ export default function TransferenciaEntreCuentasForm({ movementId, onDone, onCa
           format: toFormat,
         },
       });
-      setSuccess(true);
     } catch (err: any) {
       setError(err?.message || 'Error al guardar la transferencia.');
+      return;
     } finally {
       setSubmitting(false);
     }
+    onDone();
   }
 
   function buildDraftData(): TransferenciaEntreCuentasDraftData {
@@ -161,17 +161,6 @@ export default function TransferenciaEntreCuentasForm({ movementId, onDone, onCa
     setToAccountId('');
     setToFormat('CASH');
     setToAC([]);
-  }
-
-  if (success) {
-    return (
-      <div className="border-t pt-4">
-        <p className="success-message">Transferencia entre cuentas registrada correctamente.</p>
-        <button onClick={onDone} className="px-4 py-2 bg-success text-white text-sm rounded hover:opacity-90 transition">
-          Ver movimiento
-        </button>
-      </div>
-    );
   }
 
   return (

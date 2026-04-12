@@ -33,7 +33,6 @@ export default function IngresoCapitalForm({ movementId, onDone, onCancel }: { m
   const [draftLoading, setDraftLoading] = useState(true);
   const [error, setError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     if (!accountId) { setAccountCurrencies([]); return; }
@@ -84,12 +83,13 @@ export default function IngresoCapitalForm({ movementId, onDone, onCancel }: { m
         amount,
         ...(note.trim() ? { note: note.trim() } : {}),
       });
-      setSuccess(true);
     } catch (err: any) {
       setError(err?.message || 'Error al guardar el ingreso de capital.');
+      return;
     } finally {
       setSubmitting(false);
     }
+    onDone();
   }
 
   function buildDraftData(): IngresoCapitalDraftData {
@@ -118,17 +118,6 @@ export default function IngresoCapitalForm({ movementId, onDone, onCancel }: { m
     setAmount('');
     setNote('');
     setAccountCurrencies([]);
-  }
-
-  if (success) {
-    return (
-      <div className="border-t pt-4">
-        <p className="success-message">Ingreso de capital registrado correctamente.</p>
-        <button onClick={onDone} className="px-4 py-2 bg-success text-white text-sm rounded hover:opacity-90 transition">
-          Ver movimiento
-        </button>
-      </div>
-    );
   }
 
   return (

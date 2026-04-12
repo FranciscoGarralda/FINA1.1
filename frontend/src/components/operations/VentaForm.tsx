@@ -81,7 +81,6 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
   const [draftLoading, setDraftLoading] = useState(true);
   const [error, setError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     if (!outAccountId) { setOutAccountCurrencies([]); return; }
@@ -304,12 +303,13 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
           pending_cash: i.pendingCash && i.format === 'CASH',
         })),
       });
-      setSuccess(true);
     } catch (err: any) {
       setError(err?.message || 'Error al guardar la venta.');
+      return;
     } finally {
       setSubmitting(false);
     }
+    onDone();
   }
 
   function buildDraftData(): VentaDraftData {
@@ -360,17 +360,6 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
     setIns([{ key: lineKeyCounter++, accountId: '', format: 'CASH', amount: '', pendingCash: false }]);
     setInAccountCurrencies({});
     setFirstInAmountMode('AUTO');
-  }
-
-  if (success) {
-    return (
-      <div className="border-t pt-4">
-        <p className="success-message">Venta registrada correctamente.</p>
-        <button type="button" onClick={onDone} className="btn-touch bg-success text-white rounded-md hover:opacity-90 transition">
-          Ver movimiento
-        </button>
-      </div>
-    );
   }
 
   return (

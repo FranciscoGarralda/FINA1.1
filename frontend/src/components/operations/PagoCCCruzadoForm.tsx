@@ -53,7 +53,6 @@ export default function PagoCCCruzadoForm({ movementId, clientId, onDone, onCanc
   const [draftLoading, setDraftLoading] = useState(true);
   const [error, setError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     if (clientId) {
@@ -141,12 +140,13 @@ export default function PagoCCCruzadoForm({ movementId, clientId, onDone, onCanc
         },
         mode,
       });
-      setSuccess(true);
     } catch (err: any) {
       setError(err?.message || 'Error al guardar el pago CC cruzado.');
+      return;
     } finally {
       setSubmitting(false);
     }
+    onDone();
   }
 
   function buildDraftData(): PagoCCCruzadoDraftData {
@@ -185,17 +185,6 @@ export default function PagoCCCruzadoForm({ movementId, clientId, onDone, onCanc
     setDebtCurrencyId('');
     setCancelAmount('');
     setMode('ENTRA');
-  }
-
-  if (success) {
-    return (
-      <div className="border-t pt-4">
-        <p className="success-message">Pago CC cruzado registrado correctamente.</p>
-        <button onClick={onDone} className="px-4 py-2 bg-success text-white text-sm rounded hover:opacity-90 transition">
-          Ver movimiento
-        </button>
-      </div>
-    );
   }
 
   return (

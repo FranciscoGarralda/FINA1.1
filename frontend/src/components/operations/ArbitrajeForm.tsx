@@ -70,7 +70,6 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
   const [draftLoading, setDraftLoading] = useState(true);
   const [error, setError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     if (!costoAccountId) { setCostoAC([]); return; }
@@ -213,12 +212,13 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
           manual_override: profitOverride || requiresManualProfit,
         },
       });
-      setSuccess(true);
     } catch (err: any) {
       setError(err?.message || 'Error al guardar el arbitraje.');
+      return;
     } finally {
       setSubmitting(false);
     }
+    onDone();
   }
 
   function buildDraftData(): ArbitrajeDraftData {
@@ -275,17 +275,6 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
     setProfitManual('');
     setProfitOverride(false);
     setProfitAC([]);
-  }
-
-  if (success) {
-    return (
-      <div className="border-t pt-4">
-        <p className="success-message">Arbitraje registrado correctamente.</p>
-        <button onClick={onDone} className="px-4 py-2 bg-success text-white text-sm rounded hover:opacity-90 transition">
-          Ver movimiento
-        </button>
-      </div>
-    );
   }
 
   return (

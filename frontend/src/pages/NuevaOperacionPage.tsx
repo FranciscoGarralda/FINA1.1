@@ -163,10 +163,10 @@ export default function NuevaOperacionPage() {
   const clientMustHaveCC = type !== '' && CLIENT_CC_REQUIRED_TYPES.includes(type);
   const dayName = date ? getDayName(date) : '';
 
-  const fetchDrafts = useCallback(() => {
+  const fetchDrafts = useCallback((options?: { force?: boolean }) => {
     const now = Date.now();
     if (isFetchingDraftsRef.current) return;
-    if (now - lastDraftFetchAtRef.current < 300) return;
+    if (!options?.force && now - lastDraftFetchAtRef.current < 300) return;
 
     isFetchingDraftsRef.current = true;
     lastDraftFetchAtRef.current = now;
@@ -541,13 +541,13 @@ export default function NuevaOperacionPage() {
   }, [date, type, clientId, movementId, confirmClearOpen, patchMovementHeader]);
 
   /**
-   * Éxito del flujo final (formularios hijos: botón "Ver movimiento" tras confirmar).
+   * Éxito del flujo final (formularios hijos llaman onDone tras confirmar en API).
    * No invocar desde "Guardar borrador" — esos flujos solo persisten borrador y no llaman onDone.
    */
   function handleDone() {
     const id = movementId;
     clearDraftSession();
-    fetchDrafts();
+    fetchDrafts({ force: true });
     if (id) emitDraftSync('draft_deleted', id);
     resetWizard();
     if (id) {

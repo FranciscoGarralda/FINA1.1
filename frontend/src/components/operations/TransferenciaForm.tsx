@@ -221,7 +221,6 @@ export default function TransferenciaForm({
   const [error, setError] = useState('');
   const [currenciesLoadError, setCurrenciesLoadError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
-  const [success, setSuccess] = useState(false);
 
   const [calcBruto, setCalcBruto] = useState('');
   const [calcFeeMode, setCalcFeeMode] = useState<'PERCENT' | 'FIXED'>('PERCENT');
@@ -746,12 +745,13 @@ export default function TransferenciaForm({
       } catch {
         // noop
       }
-      setSuccess(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al guardar la transferencia.');
+      return;
     } finally {
       setSubmitting(false);
     }
+    onDone();
   }
 
   function handleClear() {
@@ -861,17 +861,6 @@ export default function TransferenciaForm({
   }
 
   const impactoCcCierre = impactoClienteCcCierre(clientCcEnabled, feeEnabled, feeTreatment, feePayer);
-
-  if (success) {
-    return (
-      <div className="border-t pt-4">
-        <p className="success-message">Transferencia registrada correctamente.</p>
-        <button type="button" onClick={onDone} className="btn-touch bg-success text-white rounded-md hover:opacity-90 transition">
-          Ver movimiento
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="border-t pt-4 space-y-6">
