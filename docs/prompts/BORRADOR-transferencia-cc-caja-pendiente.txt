@@ -1,0 +1,100 @@
+================================================================================
+BORRADOR DE PROMPT — CC vs caja pendiente en transferencia (y alineación global)
+================================================================================
+Estado: solo análisis / reproducción lógica. NO implementar hasta decisión explícita.
+
+--------------------------------------------------------------------------------
+1) Síntoma que reporta el usuario
+--------------------------------------------------------------------------------
+Al confirmar una transferencia con cliente con CC habilitada, en "Movimientos CC — USD"
+aparecen de inmediato tres líneas para el mismo Nº Op., por ejemplo:
+  - Transferencia — comisión   (ej. monto negativo en CC)
+  - Transferencia — entrada    (ej. +25.562,50)
+  - Transferencia — salida     (ej. -25.000,00)
+
+El usuario espera que, si todavía falta resolver un pendiente de caja (una o ambas
+patas en PENDIENTE), la CC no "cierre" o no refleje automáticamente entrada+salida
+como si la posición comercial ya estuviera registrada de forma definitiva; quiere
+poder usar la CC para ir registrando la deuda según cómo resuelva después.
+
+--------------------------------------------------------------------------------
+2) Simulación del proceso ACTUAL (código — transferencia bilateral dos patas)
+--------------------------------------------------------------------------------
+Archivo: backend/internal/services/transferencia_service.go (confirmación dentro
+de la transacción, función que inserta OUT/IN y luego CC).
+
+Orden actual aproximado:
+  A) Insert movement_line OUT (is_pending = true si outSettle == "PENDIENTE")
+  B) Si OUT pendiente → Insert pending_items PENDIENTE_DE_PAGO
+  C) Insert movement_line IN (is_pending = true si inSettle == "PENDIENTE")
+  D) Si IN pendiente → Insert pending_items PENDIENTE_DE_RETIRO
+  E) Si ccEnabled (cliente con CC):
+       applyCCImpactTx(..., "Transferencia — salida")   // SIEMPRE, sin mirar pending
+       applyCCImpactTx(..., "Transferencia — entrada") // SIEMPRE
+  F) Si hay comisión (según feeTreatment/feeSettlement): más líneas + más CC
+  G) Audit + confirmMovementDraftTx + commit
+
+Referencias de código (líneas aproximadas, revisar en git):
+  - CC ambas patas sin condicionar a outPending/inPending: ~568–574
+  - applyCCImpactTx firma y signo IN/OUT: backend/internal/services/cc_impact.go
+
+Conclusión técnica: el comportamiento no es un fallo de render en el front; es la
+regla implementada hoy: "CC refleja al confirmar ambas patas comerciales", mientras
+que "pendiente" solo amarra la obligación de caja en movement_lines/pending_items.
+
+--------------------------------------------------------------------------------
+3) Contraste con otras operaciones (para el prompt de implementación)
+--------------------------------------------------------------------------------
+- Compra con pago OUT pendiente: compra_service.go aplica CC en IN y también CC en
+  "Compra — pago pendiente" para el OUT pendiente (patrón similar: CC al confirmar
+  aunque caja pendiente).
+- Transferencia avanzada (delivery/collections OWED_PENDING): también llama
+  applyCCImpactTx en ramas "pendiente" con notas "entrega pendiente" / "cobro pendiente".
+
+Cualquier cambio debe revisar TODOS los flujos que combinan pending + CC para no
+introducir doble impacto al resolver pendiente (regla de oro: sin doble impacto CC).
+
+--------------------------------------------------------------------------------
+4) Pregunta de negocio que hay que cerrar ANTES de implementar
+--------------------------------------------------------------------------------
+Elegir UNA política explícita (ejemplos; el producto debe fijar texto final):
+
+  P0) Mantener comportamiento actual (solo documentar en UI / ayuda).
+
+  P1) Si una pata es PENDIENTE (caja): NO aplicar applyCCImpactTx para esa pata al
+      confirmar; aplicar CC solo al resolver REAL_EXECUTION (o solo patas REAL).
+      → Requiere definir signos, moneda, y que resolve no vuelva a duplicar.
+
+  P2) CC solo para comisión al confirmar; principal solo al resolver.
+      → Definir qué pasa con comisión INCLUIDA / cruce multi-moneda.
+
+  P3) Otra regla contable escrita con invariantes (SUM CC, sum movement_lines, etc.)
+
+--------------------------------------------------------------------------------
+5) Riesgos si se cambia sin diseño
+--------------------------------------------------------------------------------
+- Resolver pendiente hoy puede asumir que CC ya reflejó el tramo; si se difiere CC,
+  el resolve debe compensar sin segundo asiento duplicado.
+- Reportes / export CC vs arqueo de caja deben seguir cuadrando.
+- Movimientos ya confirmados en producción: migración o solo comportamiento nuevo.
+
+--------------------------------------------------------------------------------
+6) Evidencia de cierre sugerida (cuando se implemente)
+--------------------------------------------------------------------------------
+- go test ./...
+- Caso manual: transferencia con una pata PENDIENTE + CC; ver listado CC antes y
+  después de resolver; sin duplicar montos.
+- Revisar transferencia bilateral, transferencia firmada, y flujo delivery/collections.
+
+--------------------------------------------------------------------------------
+7) Archivos probables en implementación futura
+--------------------------------------------------------------------------------
+- backend/internal/services/transferencia_service.go
+- backend/internal/services/cc_impact.go (si se factoriza guard)
+- backend/internal/services/pending_service.go (si CC se mueve al resolve)
+- compra_service.go / venta_service.go si la política es global
+- Tests nuevos bajo backend/internal/services/
+
+================================================================================
+FIN BORRADOR
+================================================================================
