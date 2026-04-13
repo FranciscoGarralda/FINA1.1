@@ -19,3 +19,8 @@ export function pendingTypeLabel(type: string, movementType?: string): string {
 export function isPendingUserFacingRetiro(type: string, movementType?: string): boolean {
   return pendingTypeLabel(type, movementType) === 'Retiro';
 }
+
+/** Pendientes cuya etiqueta de pantalla es exactamente «Entrega» (p. ej. VENTA: entrega de divisa). No incluye «Entrega (apertura)». */
+export function isPendingUserFacingEntrega(type: string, movementType?: string): boolean {
+  return pendingTypeLabel(type, movementType) === 'Entrega';
+}

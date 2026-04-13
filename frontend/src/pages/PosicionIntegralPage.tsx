@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import { formatMoneyAR } from '../utils/money';
-import { isPendingUserFacingRetiro } from '../utils/pendingTypeLabels';
+import { isPendingUserFacingRetiro, isPendingUserFacingEntrega } from '../utils/pendingTypeLabels';
+import type { ReportData, ReportMetricKey } from '../types/reportes';
 
 const LS_COTIZ_USD = 'fina-cotizacion-usd';
 
@@ -64,13 +66,16 @@ interface MovementListResult {
   limit: number;
 }
 
-/** Campos mínimos de `/pendientes` para sumar retiros en USD. */
+/** Campos de `/pendientes` (mismo contrato que PendientesPage: `id` obligatorio). */
 interface PendingListRow {
+  id: string;
   type: string;
   movement_type?: string;
   currency_code: string;
   amount: string;
   status: string;
+  client_name?: string;
+  operation_number?: number;
 }
 
 function todayStr() {
@@ -117,7 +122,7 @@ async function aggregateSystemCashPhysical(asOf: string): Promise<SystemTotal[]>
   for (const acc of (accounts || []).filter((a) => a.active)) {
     try {
       const res = await api.get<{ totals: unknown[] }>(
-        `/cash-arqueos/system-totals?account_id=${encodeURIComponent(acc.id)}&as_of=${encodeURIComponent(asOf)}`
+        `/cash-arqueos/system-totals?account_id=${encodeURIComponent(acc.id)}&as_of=${encodeURIComponent(asOf)}`,
       );
       const rows = normalizeTotalsFromSystemAPI(res.totals || []).filter(
         (t) => String(t.format).trim().toUpperCase() === 'CASH',
@@ -179,17 +184,119 @@ function movementOutflowUsd(m: MovementListItem, arsPerUsd: number): number {
   return sum;
 }
 
+type Periodo = 'dia' | 'semana' | 'mes';
+
+function periodoRange(asOfDate: string, periodo: Periodo): { from: string; to: string } {
+  if (periodo === 'dia') return { from: asOfDate, to: asOfDate };
+  if (periodo === 'mes') {
+    const from = `${asOfDate.slice(0, 8)}01`;
+    return { from, to: asOfDate };
+  }
+  const d = new Date(`${asOfDate}T12:00:00`);
+  const dow = d.getDay();
+  const diffToMonday = dow === 0 ? -6 : 1 - dow;
+  d.setDate(d.getDate() + diffToMonday);
+  const from = d.toISOString().slice(0, 10);
+  return { from, to: asOfDate };
+}
+
+function currencySummary(rows: Array<{ currencyCode: string; balance: number }>): string {
+  const m = new Map<string, number>();
+  for (const r of rows) {
+    const code = (r.currencyCode || '').trim() || '?';
+    m.set(code, (m.get(code) ?? 0) + r.balance);
+  }
+  const parts = Array.from(m.entries())
+    .filter(([, v]) => Math.abs(v) > 0.0005)
+    .map(([code, amt]) => `${code} ${formatMoneyAR(amt)}`);
+  return parts.length ? parts.join(' · ') : '—';
+}
+
+function sumMetricUsd(
+  section: { by_currency?: Array<{ currency_code: string; amount: string }> } | undefined,
+  arsPer: number,
+): number {
+  let s = 0;
+  for (const row of section?.by_currency ?? []) {
+    const code = row.currency_code || '';
+    const n = parseAmt(row.amount);
+    s += amountToUsd(code, n, arsPer);
+  }
+  return s;
+}
+
+function Disclosure({
+  id,
+  title,
+  subtitle,
+  totalLabel,
+  totalValue,
+  children,
+  defaultOpen = false,
+  totalValueClassName,
+}: {
+  id: string;
+  title: string;
+  subtitle?: string;
+  totalLabel: string;
+  totalValue: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  /** Opcional: énfasis en el total (p. ej. gastos / resultado). */
+  totalValueClassName?: string;
+}) {
+  return (
+    <details
+      id={id}
+      className="rounded-lg border border-subtle bg-elevated overflow-hidden group"
+      open={defaultOpen}
+    >
+      <summary className="cursor-pointer list-none px-4 py-3 flex flex-wrap items-center justify-between gap-2 hover:bg-surface/80 [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0 flex-1">
+          <span className="font-semibold text-fg block">{title}</span>
+          {subtitle ? <span className="text-xs text-fg-muted block mt-0.5">{subtitle}</span> : null}
+        </span>
+        <span className="text-right shrink-0">
+          <span className="text-xs text-fg-muted block">{totalLabel}</span>
+          <span className={`text-lg font-mono font-semibold ${totalValueClassName ?? 'text-fg'}`}>{totalValue}</span>
+        </span>
+        <span className="text-fg-muted text-sm w-full sm:w-auto sm:ml-2 group-open:hidden">Desplegar detalle</span>
+        <span className="text-fg-muted text-sm w-full sm:w-auto sm:ml-2 hidden group-open:inline">Ocultar</span>
+      </summary>
+      <div className="border-t border-subtle px-4 py-3 bg-surface/40">{children}</div>
+    </details>
+  );
+}
+
+const REPORT_METRIC_LABELS: Record<ReportMetricKey, string> = {
+  utilidad: 'Utilidad (compra-venta)',
+  profit: 'Comisiones / Profit',
+  gastos: 'Gastos',
+  resultado: 'Resultado neto',
+};
+
+const REPORT_METRIC_ORDER: ReportMetricKey[] = ['utilidad', 'profit', 'gastos', 'resultado'];
+
 export default function PosicionIntegralPage() {
+  const { can } = useAuth();
+  const canReportes = can('reportes.view', ['SUPERADMIN', 'ADMIN', 'SUBADMIN']);
+
   const [asOfDate, setAsOfDate] = useState(todayStr);
   const [cotizInput, setCotizInput] = useState(() => readCotizFromStorage());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [periodo, setPeriodo] = useState<Periodo>('dia');
 
   const [ccRows, setCcRows] = useState<CCBalanceSummary[]>([]);
   const [cashPos, setCashPos] = useState<CashPositionAccount[]>([]);
   const [physicalTotals, setPhysicalTotals] = useState<SystemTotal[]>([]);
   const [pendRetiroRows, setPendRetiroRows] = useState<PendingListRow[]>([]);
+  const [pendEntregaRows, setPendEntregaRows] = useState<PendingListRow[]>([]);
   const [movGastos, setMovGastos] = useState<MovementListItem[]>([]);
+
+  const [reporteDia, setReporteDia] = useState<ReportData | null>(null);
+  const [reporteSemana, setReporteSemana] = useState<ReportData | null>(null);
+  const [reporteMes, setReporteMes] = useState<ReportData | null>(null);
 
   const arsPerUsd = useMemo(() => parseAmt(cotizInput), [cotizInput]);
 
@@ -207,12 +314,37 @@ export default function PosicionIntegralPage() {
     setError('');
     const d = asOfDate;
     try {
-      const [cc, pos, phys, pendAll, gastosAll] = await Promise.all([
+      const rangeDia = periodoRange(d, 'dia');
+      const rangeSemana = periodoRange(d, 'semana');
+      const rangeMes = periodoRange(d, 'mes');
+
+      const [cc, pos, phys, pendAll, gastosAll, rDia, rSemana, rMes] = await Promise.all([
         api.get<CCBalanceSummary[]>('/cc-balances').catch(() => [] as CCBalanceSummary[]),
         api.get<CashPositionAccount[]>(`/cash-position?as_of=${encodeURIComponent(d)}`).catch(() => []),
         aggregateSystemCashPhysical(d),
         api.get<PendingListRow[]>('/pendientes').catch(() => [] as PendingListRow[]),
         fetchAllMovementsForRange(d, d, 'GASTO').catch(() => [] as MovementListItem[]),
+        canReportes
+          ? api
+              .get<ReportData>(
+                `/reportes?from=${encodeURIComponent(rangeDia.from)}&to=${encodeURIComponent(rangeDia.to)}`,
+              )
+              .catch(() => null)
+          : Promise.resolve(null),
+        canReportes
+          ? api
+              .get<ReportData>(
+                `/reportes?from=${encodeURIComponent(rangeSemana.from)}&to=${encodeURIComponent(rangeSemana.to)}`,
+              )
+              .catch(() => null)
+          : Promise.resolve(null),
+        canReportes
+          ? api
+              .get<ReportData>(
+                `/reportes?from=${encodeURIComponent(rangeMes.from)}&to=${encodeURIComponent(rangeMes.to)}`,
+              )
+              .catch(() => null)
+          : Promise.resolve(null),
       ]);
 
       setCcRows(Array.isArray(cc) ? cc : []);
@@ -220,17 +352,21 @@ export default function PosicionIntegralPage() {
       setPhysicalTotals(phys);
       const pend = Array.isArray(pendAll) ? pendAll : [];
       setPendRetiroRows(
-        pend.filter(
-          (p) => p.status === 'ABIERTO' && isPendingUserFacingRetiro(p.type, p.movement_type),
-        ),
+        pend.filter((p) => p.status === 'ABIERTO' && isPendingUserFacingRetiro(p.type, p.movement_type)),
       );
-      setMovGastos(gastosAll);
+      setPendEntregaRows(
+        pend.filter((p) => p.status === 'ABIERTO' && isPendingUserFacingEntrega(p.type, p.movement_type)),
+      );
+      setMovGastos(Array.isArray(gastosAll) ? gastosAll : []);
+      setReporteDia(rDia);
+      setReporteSemana(rSemana);
+      setReporteMes(rMes);
     } catch (e: unknown) {
       setError((e as { message?: string })?.message || 'Error al cargar datos.');
     } finally {
       setLoading(false);
     }
-  }, [asOfDate]);
+  }, [asOfDate, canReportes]);
 
   useEffect(() => {
     void loadData();
@@ -245,6 +381,15 @@ export default function PosicionIntegralPage() {
         0,
       ),
     [pendRetiroRows, arsPerUsd],
+  );
+
+  const entregasPendUsd = useMemo(
+    () =>
+      pendEntregaRows.reduce(
+        (acc, p) => acc + amountToUsd(p.currency_code, Math.abs(parseAmt(p.amount)), arsPerUsd),
+        0,
+      ),
+    [pendEntregaRows, arsPerUsd],
   );
 
   const gastosPeriodoUsd = useMemo(
@@ -309,25 +454,37 @@ export default function PosicionIntegralPage() {
 
   const ccTotalUsd = ccFlatRows.reduce((a, r) => a + r.usd, 0);
 
-  const cashDigitalRows: typeof ccFlatRows = [];
-  const cashEfectivoRows: typeof ccFlatRows = [];
-  for (const acc of cashPos) {
-    for (const b of acc.balances || []) {
-      const fmt = String(b.format).toUpperCase();
-      const bal = parseAmt(b.balance);
-      const row = {
-        key: `${acc.account_id}-${b.currency_id}-${b.format}`,
-        clientLabel: acc.account_name,
-        currencyCode: b.currency_code,
-        balance: bal,
-        usd: amountToUsd(b.currency_code, bal, arsPerUsd),
-      };
-      if (fmt === 'DIGITAL') cashDigitalRows.push(row);
-      else if (fmt === 'CASH') cashEfectivoRows.push(row);
+  const { cashDigitalRows, cashEfectivoRows } = useMemo(() => {
+    type FlatRow = {
+      key: string;
+      clientLabel: string;
+      currencyCode: string;
+      balance: number;
+      usd: number;
+    };
+    const digital: FlatRow[] = [];
+    const efectivo: FlatRow[] = [];
+    for (const acc of cashPos) {
+      for (const b of acc.balances || []) {
+        const fmt = String(b.format).toUpperCase();
+        const bal = parseAmt(b.balance);
+        const row: FlatRow = {
+          key: `${acc.account_id}-${b.currency_id}-${b.format}`,
+          clientLabel: acc.account_name,
+          currencyCode: b.currency_code,
+          balance: bal,
+          usd: amountToUsd(b.currency_code, bal, arsPerUsd),
+        };
+        if (fmt === 'DIGITAL') digital.push(row);
+        else if (fmt === 'CASH') efectivo.push(row);
+      }
     }
-  }
+    return { cashDigitalRows: digital, cashEfectivoRows: efectivo };
+  }, [cashPos, arsPerUsd]);
 
-  function subtotalUsd(rows: typeof ccFlatRows) {
+  function subtotalUsd(
+    rows: Array<{ currencyCode: string; balance: number; usd: number }>,
+  ) {
     return rows.reduce((a, r) => a + r.usd, 0);
   }
 
@@ -346,12 +503,81 @@ export default function PosicionIntegralPage() {
 
   const physicalGrandUsd = physicalByCurrency.reduce((a, x) => a + x.usd, 0);
 
+  const pendRetiroFlatRows = useMemo(
+    () =>
+      pendRetiroRows.map((p) => ({
+        id: p.id,
+        clientLabel: p.client_name?.trim() || (p.operation_number != null ? `#${p.operation_number}` : '—'),
+        currency: p.currency_code,
+        amount: Math.abs(parseAmt(p.amount)),
+        usd: amountToUsd(p.currency_code, Math.abs(parseAmt(p.amount)), arsPerUsd),
+      })),
+    [pendRetiroRows, arsPerUsd],
+  );
+
+  const pendEntregaFlatRows = useMemo(
+    () =>
+      pendEntregaRows.map((p) => ({
+        id: p.id,
+        clientLabel: p.client_name?.trim() || (p.operation_number != null ? `#${p.operation_number}` : '—'),
+        currency: p.currency_code,
+        amount: Math.abs(parseAmt(p.amount)),
+        usd: amountToUsd(p.currency_code, Math.abs(parseAmt(p.amount)), arsPerUsd),
+      })),
+    [pendEntregaRows, arsPerUsd],
+  );
+
+  const reporteActivo = useMemo(() => {
+    if (periodo === 'dia') return reporteDia;
+    if (periodo === 'semana') return reporteSemana;
+    return reporteMes;
+  }, [periodo, reporteDia, reporteSemana, reporteMes]);
+
   function usdCell(code: string, usd: number) {
     return code.toUpperCase() === 'EUR' ? '—' : formatMoneyAR(usd);
   }
 
+  function renderMetricTable(section: { by_currency?: Array<{ currency_code: string; amount: string }> }) {
+    const rows = section?.by_currency ?? [];
+    if (rows.length === 0) {
+      return <p className="text-sm text-fg-muted">Sin movimientos en esta métrica para el período.</p>;
+    }
+    return (
+      <div className="table-scroll rounded border border-subtle">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
+              <th className="px-3 py-2">Divisa</th>
+              <th className="px-3 py-2 text-right">Importe (nativo)</th>
+              <th className="px-3 py-2 text-right">En USD</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => {
+              const code = row.currency_code || '';
+              const nat = parseAmt(row.amount);
+              const usd = amountToUsd(code, nat, arsPerUsd);
+              return (
+                <tr key={`${code}-${index}`} className="border-b border-subtle/60 last:border-0">
+                  <td className="px-3 py-2 font-medium">{code}</td>
+                  <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(nat)}</td>
+                  <td className="px-3 py-2 text-right font-mono">{usdCell(code, usd)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  const activeRangeLabel = (() => {
+    const r = periodoRange(asOfDate, periodo);
+    return r.from === r.to ? `Período: ${r.from}` : `Período: ${r.from} – ${r.to}`;
+  })();
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-4xl">
       <div className="card-surface space-y-4">
         <h2 className="text-xl font-semibold text-fg">Posición integral</h2>
         <div className="flex flex-wrap items-end gap-3">
@@ -379,230 +605,410 @@ export default function PosicionIntegralPage() {
             Actualizar
           </button>
         </div>
-        <div className="text-xs text-fg-muted space-y-1.5 max-w-3xl">
-          <p>
-            <strong className="text-fg-muted">Retiros pendientes (USD):</strong> suma de pendientes{' '}
-            <strong>abiertos</strong> (mismo origen que la pantalla Pendientes) cuya etiqueta allí es «Retiro».
-            EUR en USD: — hasta definir tipo cruzado.
-          </p>
-          <p className="font-medium text-fg-muted">Avisos:</p>
-          <ul className="list-disc pl-4 space-y-0.5">
-            <li>No incluye filas etiquetadas como «Entrega» (p. ej. en VENTA, entrega de divisa vendida).</li>
-            <li>
-              Incluye todos los pendientes abiertos vigentes; la fecha de arriba no filtra esta tarjeta (sí caja/CC,
-              físico y gastos del día).
-            </li>
-            <li>
-              Capital propio resta este total; al usar el criterio «Retiro» de Pendientes el monto puede ser mayor
-              que el que había con solo RETIRO_CAPITAL.
-            </li>
-          </ul>
-        </div>
+        <p className="text-xs text-fg-muted max-w-3xl leading-relaxed">
+          <strong className="text-fg-muted">Capital propio</strong> = Bruto caja + CC neta − Retiros pend. (USD equiv.
+          con cotización manual). Las entregas pendientes se listan aparte y <strong>no restan</strong> del capital.
+          EUR en USD: — hasta definir tipo cruzado.
+        </p>
       </div>
 
       {error ? <p className="text-error text-sm">{error}</p> : null}
       {loading ? <p className="text-fg-muted text-sm">Cargando…</p> : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="card-surface">
-          <h3 className="text-sm font-semibold text-fg-muted mb-1">Total físico (USD)</h3>
-          <p className="text-lg font-semibold text-fg">{formatMoneyAR(physicalUsd)}</p>
+      <section className="space-y-2">
+        <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wide">Caja — dinero real</h3>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="card-surface">
+            <h4 className="text-sm font-semibold text-fg-muted mb-1">Físico (arqueo sistema)</h4>
+            <p className="text-lg font-semibold text-fg">{formatMoneyAR(physicalUsd)}</p>
+            <p className="text-xs text-fg-muted mt-0.5">Equiv. USD</p>
+          </div>
+          <div className="card-surface">
+            <h4 className="text-sm font-semibold text-fg-muted mb-1">Digital</h4>
+            <p className="text-lg font-semibold text-fg">{formatMoneyAR(digitalUsd)}</p>
+            <p className="text-xs text-fg-muted mt-0.5">Equiv. USD</p>
+          </div>
+          <div className="card-surface border-2 border-brand/20">
+            <h4 className="text-sm font-semibold text-fg-muted mb-1">Total bruto</h4>
+            <p className="text-lg font-bold text-fg">{formatMoneyAR(totalBrutoUsd)}</p>
+            <p className="text-xs text-fg-muted mt-0.5">Equiv. USD</p>
+          </div>
         </div>
-        <div className="card-surface">
-          <h3 className="text-sm font-semibold text-fg-muted mb-1">Total digital (USD)</h3>
-          <p className="text-lg font-semibold text-fg">{formatMoneyAR(digitalUsd)}</p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wide">Obligaciones</h3>
+        <p className="text-xs text-fg-muted -mt-1">
+          CC: saldo comercial con clientes (no es caja propia). Positivo = nos deben; negativo = les debemos.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="card-surface">
+            <h4 className="text-sm font-semibold text-fg-muted mb-1">CC neta (USD)</h4>
+            <p className={`text-lg font-semibold ${deudaCcNetaUsd >= 0 ? 'text-success' : 'text-error'}`}>
+              {formatMoneyAR(deudaCcNetaUsd)}
+            </p>
+          </div>
+          <div className="card-surface">
+            <h4 className="text-sm font-semibold text-fg-muted mb-1">Retiros pendientes (USD)</h4>
+            <p className="text-lg font-semibold text-fg">{formatMoneyAR(retirosPendUsd)}</p>
+          </div>
+          <div className="card-surface">
+            <h4 className="text-sm font-semibold text-fg-muted mb-1">Entregas pendientes (USD)</h4>
+            <p className="text-lg font-semibold text-fg">{formatMoneyAR(entregasPendUsd)}</p>
+            <p className="text-[11px] text-fg-muted mt-1">No resta del capital</p>
+          </div>
+          <div className="card-surface">
+            <h4 className="text-sm font-semibold text-fg-muted mb-1">Gastos del día (movimientos)</h4>
+            <p className="text-lg font-semibold text-fg">{formatMoneyAR(gastosPeriodoUsd)}</p>
+            <p className="text-[11px] text-fg-muted mt-1">
+              Solo tipo GASTO con fecha = corte; conversión vía summary_items. No es la fila «Gastos» del reporte por
+              rango.
+            </p>
+          </div>
         </div>
-        <div className="card-surface">
-          <h3 className="text-sm font-semibold text-fg-muted mb-1">Total bruto</h3>
-          <p className="text-lg font-semibold text-fg">{formatMoneyAR(totalBrutoUsd)}</p>
-        </div>
-        <div className="card-surface">
-          <h3 className="text-sm font-semibold text-fg-muted mb-1">Deuda CC neta (USD)</h3>
-          <p className={`text-lg font-semibold ${deudaCcNetaUsd >= 0 ? 'text-success' : 'text-error'}`}>
-            {formatMoneyAR(deudaCcNetaUsd)}
-          </p>
-        </div>
-        <div className="card-surface">
-          <h3 className="text-sm font-semibold text-fg-muted mb-1">Retiros pendientes (USD)</h3>
-          <p className="text-lg font-semibold text-fg">{formatMoneyAR(retirosPendUsd)}</p>
-        </div>
-        <div className="card-surface">
-          <h3 className="text-sm font-semibold text-fg-muted mb-1">Gastos del período (USD)</h3>
-          <p className="text-lg font-semibold text-fg">{formatMoneyAR(gastosPeriodoUsd)}</p>
-        </div>
-        <div
-          className={`card-surface sm:col-span-2 xl:col-span-2 border-2 ${
-            capitalPropioUsd >= 0 ? 'border-success/40' : 'border-error/40'
-          }`}
-        >
+      </section>
+
+      <section>
+        <div className="card-surface border-2 border-brand/30">
           <h3 className="text-sm font-semibold text-fg-muted mb-1">Capital propio (USD)</h3>
-          <p className="text-xl font-bold text-fg mb-2">{formatMoneyAR(capitalPropioUsd)}</p>
-          <span className={capitalPropioUsd >= 0 ? 'badge-success' : 'badge-error'}>
+          <p className="text-2xl font-bold text-fg">{formatMoneyAR(capitalPropioUsd)}</p>
+          <p className="text-xs text-fg-muted mt-1">
+            = Bruto {formatMoneyAR(totalBrutoUsd)} + CC {formatMoneyAR(deudaCcNetaUsd)} − Retiros{' '}
+            {formatMoneyAR(retirosPendUsd)}
+          </p>
+          <span className={`mt-2 inline-block ${capitalPropioUsd >= 0 ? 'badge-success' : 'badge-error'}`}>
             {capitalPropioUsd >= 0 ? 'Positivo' : 'Negativo'}
           </span>
         </div>
-      </div>
+      </section>
 
-      <div className="card-surface space-y-3">
-        <h3 className="text-h3 text-fg">Cuentas corrientes</h3>
-        {!loading && ccFlatRows.length === 0 ? (
-          <p className="text-fg-muted text-sm">Sin datos</p>
-        ) : (
-          <div className="table-scroll rounded-lg border border-subtle">
-            <table className="w-full min-w-[520px] text-sm">
-              <thead>
-                <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
-                  <th className="px-3 py-2">Cliente</th>
-                  <th className="px-3 py-2">Moneda</th>
-                  <th className="px-3 py-2 text-right">Saldo</th>
-                  <th className="px-3 py-2 text-right">En USD</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ccFlatRows.map((r) => (
-                  <tr key={r.key} className="border-b border-subtle/80 last:border-0">
-                    <td className="px-3 py-2 text-fg">{r.clientLabel}</td>
-                    <td className="px-3 py-2 font-medium text-fg">{r.currencyCode}</td>
-                    <td className={`px-3 py-2 text-right font-mono ${r.balance >= 0 ? 'text-success' : 'text-error'}`}>
-                      {formatMoneyAR(r.balance)}
-                    </td>
-                    <td className="px-3 py-2 text-right font-mono text-fg">{usdCell(r.currencyCode, r.usd)}</td>
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wide">Detalle stock al corte</h2>
+
+        <Disclosure
+          id="efectivo"
+          title="Efectivo en caja"
+          subtitle="Filas CASH por cuenta — arqueo de libro"
+          totalLabel="Por divisa"
+          totalValue={currencySummary(cashEfectivoRows)}
+        >
+          {cashEfectivoRows.length === 0 ? (
+            <p className="text-sm text-fg-muted">Sin datos</p>
+          ) : (
+            <div className="table-scroll rounded border border-subtle">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
+                    <th className="px-3 py-2">Cuenta</th>
+                    <th className="px-3 py-2">Divisa</th>
+                    <th className="px-3 py-2 text-right">Saldo</th>
+                    <th className="px-3 py-2 text-right">En USD</th>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="font-semibold border-t border-subtle bg-surface">
-                  <td className="px-3 py-2 text-fg" colSpan={3}>
-                    Total
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono text-fg">{formatMoneyAR(ccTotalUsd)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {cashEfectivoRows.map((r) => (
+                    <tr key={r.key} className="border-b border-subtle/60 last:border-0">
+                      <td className="px-3 py-2 text-fg">{r.clientLabel}</td>
+                      <td className="px-3 py-2 font-medium">{r.currencyCode}</td>
+                      <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(r.balance)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{usdCell(r.currencyCode, r.usd)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="font-semibold border-t border-subtle bg-surface">
+                    <td className="px-3 py-2" colSpan={3}>
+                      Subtotal efectivo (USD)
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(subtotalUsd(cashEfectivoRows))}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </Disclosure>
 
-      <div className="card-surface space-y-4">
-        <h3 className="text-h3 text-fg">Posición de caja</h3>
-        {!loading && cashPos.length === 0 ? (
-          <p className="text-fg-muted text-sm">Sin datos</p>
+        <Disclosure
+          id="digital"
+          title="Digital"
+          subtitle="Filas DIGITAL por cuenta"
+          totalLabel="Por divisa"
+          totalValue={currencySummary(cashDigitalRows)}
+        >
+          {cashDigitalRows.length === 0 ? (
+            <p className="text-sm text-fg-muted">Sin datos</p>
+          ) : (
+            <div className="table-scroll rounded border border-subtle">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
+                    <th className="px-3 py-2">Cuenta</th>
+                    <th className="px-3 py-2">Divisa</th>
+                    <th className="px-3 py-2 text-right">Saldo</th>
+                    <th className="px-3 py-2 text-right">En USD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cashDigitalRows.map((r) => (
+                    <tr key={r.key} className="border-b border-subtle/60 last:border-0">
+                      <td className="px-3 py-2 text-fg">{r.clientLabel}</td>
+                      <td className="px-3 py-2 font-medium">{r.currencyCode}</td>
+                      <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(r.balance)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{usdCell(r.currencyCode, r.usd)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="font-semibold border-t border-subtle bg-surface">
+                    <td className="px-3 py-2" colSpan={3}>
+                      Subtotal digital (USD)
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(subtotalUsd(cashDigitalRows))}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </Disclosure>
+
+        <Disclosure
+          id="arqueo"
+          title="Arqueo físico (sistema CASH consolidado)"
+          subtitle={`Suma system-totals por cuenta al ${asOfDate}; solo filas CASH`}
+          totalLabel="Por divisa"
+          totalValue={currencySummary(physicalByCurrency.map((r) => ({ currencyCode: r.code, balance: r.amount })))}
+        >
+          {!loading && physicalByCurrency.length === 0 ? (
+            <p className="text-sm text-fg-muted">Sin datos</p>
+          ) : (
+            <div className="table-scroll rounded border border-subtle">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
+                    <th className="px-3 py-2">Divisa</th>
+                    <th className="px-3 py-2 text-right">Total (nativo)</th>
+                    <th className="px-3 py-2 text-right">En USD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {physicalByCurrency.map((r) => (
+                    <tr key={r.code} className="border-b border-subtle/60 last:border-0">
+                      <td className="px-3 py-2 font-medium">{r.code}</td>
+                      <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(r.amount)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{usdCell(r.code, r.usd)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="font-semibold border-t border-subtle bg-surface">
+                    <td className="px-3 py-2">Total USD</td>
+                    <td className="px-3 py-2 text-right font-mono" colSpan={2}>
+                      {formatMoneyAR(physicalGrandUsd)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </Disclosure>
+
+        <Disclosure
+          id="pend-retiro"
+          title="Pendientes — Retiro"
+          subtitle="Obligaciones que en Pendientes se muestran como «Retiro» (restan del capital)"
+          totalLabel="En USD"
+          totalValue={formatMoneyAR(retirosPendUsd)}
+        >
+          {pendRetiroFlatRows.length === 0 ? (
+            <p className="text-sm text-fg-muted">Sin pendientes de retiro</p>
+          ) : (
+            <div className="table-scroll rounded border border-subtle">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
+                    <th className="px-3 py-2">Cliente / ref.</th>
+                    <th className="px-3 py-2">Divisa</th>
+                    <th className="px-3 py-2 text-right">Importe</th>
+                    <th className="px-3 py-2 text-right">En USD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendRetiroFlatRows.map((r) => (
+                    <tr key={r.id} className="border-b border-subtle/60 last:border-0">
+                      <td className="px-3 py-2 text-fg">{r.clientLabel}</td>
+                      <td className="px-3 py-2 font-medium">{r.currency}</td>
+                      <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(r.amount)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{usdCell(r.currency, r.usd)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="font-semibold border-t border-subtle bg-surface">
+                    <td className="px-3 py-2" colSpan={3}>
+                      Total
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(retirosPendUsd)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </Disclosure>
+
+        <Disclosure
+          id="pend-entrega"
+          title="Pendientes — Entrega"
+          subtitle="Compromisos de entrega de divisa (referencia — no resta del capital)"
+          totalLabel="En USD"
+          totalValue={formatMoneyAR(entregasPendUsd)}
+        >
+          {pendEntregaFlatRows.length === 0 ? (
+            <p className="text-sm text-fg-muted">Sin pendientes de entrega</p>
+          ) : (
+            <div className="table-scroll rounded border border-subtle">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
+                    <th className="px-3 py-2">Cliente / ref.</th>
+                    <th className="px-3 py-2">Divisa</th>
+                    <th className="px-3 py-2 text-right">Importe</th>
+                    <th className="px-3 py-2 text-right">En USD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendEntregaFlatRows.map((r) => (
+                    <tr key={r.id} className="border-b border-subtle/60 last:border-0">
+                      <td className="px-3 py-2 text-fg">{r.clientLabel}</td>
+                      <td className="px-3 py-2 font-medium">{r.currency}</td>
+                      <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(r.amount)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{usdCell(r.currency, r.usd)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="font-semibold border-t border-subtle bg-surface">
+                    <td className="px-3 py-2" colSpan={3}>
+                      Total
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(entregasPendUsd)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </Disclosure>
+
+        <Disclosure
+          id="cc"
+          title="Cuentas corrientes (saldo comercial)"
+          subtitle="Positivo = clientes nos deben; negativo = les debemos. No es dinero en caja."
+          totalLabel="Neto en USD"
+          totalValue={formatMoneyAR(deudaCcNetaUsd)}
+          defaultOpen
+        >
+          {!loading && ccFlatRows.length === 0 ? (
+            <p className="text-sm text-fg-muted">Sin datos</p>
+          ) : (
+            <div className="table-scroll rounded border border-subtle">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
+                    <th className="px-3 py-2">Cliente</th>
+                    <th className="px-3 py-2">Divisa</th>
+                    <th className="px-3 py-2 text-right">Saldo</th>
+                    <th className="px-3 py-2 text-right">En USD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ccFlatRows.map((r) => (
+                    <tr key={r.key} className="border-b border-subtle/60 last:border-0">
+                      <td className="px-3 py-2 text-fg">{r.clientLabel}</td>
+                      <td className="px-3 py-2 font-medium">{r.currencyCode}</td>
+                      <td
+                        className={`px-3 py-2 text-right font-mono ${
+                          r.balance >= 0 ? 'text-success' : 'text-error'
+                        }`}
+                      >
+                        {formatMoneyAR(r.balance)}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono">{usdCell(r.currencyCode, r.usd)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="font-semibold border-t border-subtle bg-surface">
+                    <td className="px-3 py-2" colSpan={3}>
+                      Total
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(ccTotalUsd)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </Disclosure>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wide">Generado en el período</h2>
+
+        {!canReportes ? (
+          <p className="text-sm text-fg-muted border border-subtle rounded-md px-3 py-4 text-center">
+            No tenés permiso para ver reportes.
+            <br />
+            Pedile acceso a un administrador.
+          </p>
         ) : (
           <>
-            <h4 className="text-sm font-semibold text-fg-muted">Efectivo</h4>
-            {cashEfectivoRows.length === 0 ? (
-              <p className="text-fg-muted text-sm">Sin datos</p>
-            ) : (
-              <div className="table-scroll rounded-lg border border-subtle">
-                <table className="w-full min-w-[480px] text-sm">
-                  <thead>
-                    <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
-                      <th className="px-3 py-2">Cuenta</th>
-                      <th className="px-3 py-2">Moneda</th>
-                      <th className="px-3 py-2 text-right">Saldo</th>
-                      <th className="px-3 py-2 text-right">En USD</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cashEfectivoRows.map((r) => (
-                      <tr key={r.key} className="border-b border-subtle/80 last:border-0">
-                        <td className="px-3 py-2 text-fg">{r.clientLabel}</td>
-                        <td className="px-3 py-2 font-medium text-fg">{r.currencyCode}</td>
-                        <td className="px-3 py-2 text-right font-mono text-fg">{formatMoneyAR(r.balance)}</td>
-                        <td className="px-3 py-2 text-right font-mono text-fg">{usdCell(r.currencyCode, r.usd)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="font-semibold border-t border-subtle bg-surface">
-                      <td className="px-3 py-2" colSpan={3}>
-                        Subtotal efectivo (USD)
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(subtotalUsd(cashEfectivoRows))}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {(['dia', 'semana', 'mes'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPeriodo(p)}
+                  className={`px-3 py-1.5 text-sm rounded-md border transition ${
+                    periodo === p
+                      ? 'bg-brand text-white border-brand'
+                      : 'border-subtle text-fg-muted hover:bg-surface'
+                  }`}
+                >
+                  {p === 'dia' ? 'Día' : p === 'semana' ? 'Semana' : 'Mes'}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-fg-muted">{activeRangeLabel}</p>
 
-            <h4 className="text-sm font-semibold text-fg-muted">Digital</h4>
-            {cashDigitalRows.length === 0 ? (
-              <p className="text-fg-muted text-sm">Sin datos</p>
+            {!reporteActivo ? (
+              <p className="text-sm text-fg-muted">Sin datos de reportes para este período.</p>
             ) : (
-              <div className="table-scroll rounded-lg border border-subtle">
-                <table className="w-full min-w-[480px] text-sm">
-                  <thead>
-                    <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
-                      <th className="px-3 py-2">Cuenta</th>
-                      <th className="px-3 py-2">Moneda</th>
-                      <th className="px-3 py-2 text-right">Saldo</th>
-                      <th className="px-3 py-2 text-right">En USD</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cashDigitalRows.map((r) => (
-                      <tr key={r.key} className="border-b border-subtle/80 last:border-0">
-                        <td className="px-3 py-2 text-fg">{r.clientLabel}</td>
-                        <td className="px-3 py-2 font-medium text-fg">{r.currencyCode}</td>
-                        <td className="px-3 py-2 text-right font-mono text-fg">{formatMoneyAR(r.balance)}</td>
-                        <td className="px-3 py-2 text-right font-mono text-fg">{usdCell(r.currencyCode, r.usd)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="font-semibold border-t border-subtle bg-surface">
-                      <td className="px-3 py-2" colSpan={3}>
-                        Subtotal digital (USD)
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(subtotalUsd(cashDigitalRows))}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+              <>
+                {REPORT_METRIC_ORDER.map((key) => {
+                  const section = reporteActivo[key];
+                  const totalUsd = sumMetricUsd(section, arsPerUsd);
+                  const isGastos = key === 'gastos';
+                  const isResultado = key === 'resultado';
+                  return (
+                    <Disclosure
+                      key={key}
+                      id={`reporte-${key}`}
+                      title={REPORT_METRIC_LABELS[key]}
+                      subtitle="Por divisa; total en USD según cotización manual (ARS/USD)."
+                      totalLabel="Total (equiv. USD)"
+                      totalValue={formatMoneyAR(totalUsd)}
+                      defaultOpen={isResultado}
+                      totalValueClassName={
+                        isGastos ? 'text-error' : isResultado ? (totalUsd >= 0 ? 'text-success' : 'text-error') : 'text-fg'
+                      }
+                    >
+                      {renderMetricTable(section)}
+                    </Disclosure>
+                  );
+                })}
+              </>
             )}
           </>
         )}
-      </div>
-
-      <div className="card-surface space-y-3">
-        <h3 className="text-h3 text-fg">Arqueo físico (saldos sistema CASH)</h3>
-        <p className="text-xs text-fg-muted">
-          Consolidado al <strong>{asOfDate}</strong> sumando <code className="text-fg-muted">system-totals</code> por
-          cuenta (solo filas CASH).
-        </p>
-        {!loading && physicalByCurrency.length === 0 ? (
-          <p className="text-fg-muted text-sm">Sin datos</p>
-        ) : (
-          <div className="table-scroll rounded-lg border border-subtle">
-            <table className="w-full min-w-[400px] text-sm">
-              <thead>
-                <tr className="text-left text-fg-muted border-b border-subtle bg-surface">
-                  <th className="px-3 py-2">Moneda</th>
-                  <th className="px-3 py-2 text-right">Total (original)</th>
-                  <th className="px-3 py-2 text-right">En USD</th>
-                </tr>
-              </thead>
-              <tbody>
-                {physicalByCurrency.map((r) => (
-                  <tr key={r.code} className="border-b border-subtle/80 last:border-0">
-                    <td className="px-3 py-2 font-medium text-fg">{r.code}</td>
-                    <td className="px-3 py-2 text-right font-mono text-fg">{formatMoneyAR(r.amount)}</td>
-                    <td className="px-3 py-2 text-right font-mono text-fg">{usdCell(r.code, r.usd)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="font-semibold border-t border-subtle bg-surface">
-                  <td className="px-3 py-2">Total USD</td>
-                  <td className="px-3 py-2 text-right font-mono" colSpan={2}>
-                    {formatMoneyAR(physicalGrandUsd)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
-      </div>
+      </section>
     </div>
   );
 }
