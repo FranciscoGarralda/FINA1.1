@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -15,6 +15,62 @@ import PagoCCCruzadoForm from '../components/operations/PagoCCCruzadoForm';
 import TransferenciaForm from '../components/operations/TransferenciaForm';
 import TraspasoDeudaCCForm from '../components/operations/TraspasoDeudaCCForm';
 import { clearOperationDraftCache } from '../utils/operationDrafts';
+
+/**
+ * Sesión del asistente "Nueva operación" en sessionStorage (reingreso SPA y F5).
+ * - No sustituye el reset explícito del menú (newOperationResetToken + resetWizard).
+ * - Multi-pestaña: última escritura define el puntero (mismo userId); el servidor sigue siendo la fuente del payload vía GET draft / caché por movimiento.
+ */
+const WIZARD_SESSION_SCHEMA = 1;
+
+function wizardSessionStorageKey(userIdVal: string | null): string {
+  return `fina:nueva-operacion-wizard:v${WIZARD_SESSION_SCHEMA}:${userIdVal || 'anonymous'}`;
+}
+
+interface WizardPersistedPayload {
+  schema: number;
+  movementId: string;
+  operationNumber: number | null;
+  date: string;
+  type: string;
+  clientId: string;
+}
+
+function readWizardPersisted(userIdVal: string | null): Omit<WizardPersistedPayload, 'schema'> | null {
+  try {
+    const raw = sessionStorage.getItem(wizardSessionStorageKey(userIdVal));
+    if (!raw) return null;
+    const o = JSON.parse(raw) as WizardPersistedPayload;
+    if (o.schema !== WIZARD_SESSION_SCHEMA || typeof o.movementId !== 'string' || !o.movementId) return null;
+    if (typeof o.type !== 'string' || !o.type || typeof o.date !== 'string' || !o.date) return null;
+    return {
+      movementId: o.movementId,
+      operationNumber: typeof o.operationNumber === 'number' ? o.operationNumber : null,
+      date: o.date,
+      type: o.type,
+      clientId: typeof o.clientId === 'string' ? o.clientId : '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeWizardPersisted(userIdVal: string | null, p: Omit<WizardPersistedPayload, 'schema'>): void {
+  try {
+    const payload: WizardPersistedPayload = { schema: WIZARD_SESSION_SCHEMA, ...p, clientId: p.clientId || '' };
+    sessionStorage.setItem(wizardSessionStorageKey(userIdVal), JSON.stringify(payload));
+  } catch {
+    // sessionStorage puede fallar en modo privado / cuota.
+  }
+}
+
+function clearWizardPersisted(userIdVal: string | null): void {
+  try {
+    sessionStorage.removeItem(wizardSessionStorageKey(userIdVal));
+  } catch {
+    // ignore
+  }
+}
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { useModalFocusTrap } from '../hooks/useModalFocusTrap';
 import { movementTypeLabel as movementTypeLabelFromType } from '../utils/movementTypeLabels';
@@ -156,6 +212,36 @@ export default function NuevaOperacionPage() {
   const draftStorageKey = `new-operation-draft:${userId || 'anonymous'}`;
   const resetToken = (location.state as { newOperationResetToken?: string } | null)?.newOperationResetToken;
   const resumeMovementId = (location.state as { resumeMovementId?: string } | null)?.resumeMovementId;
+
+  /** Restaura cabecera + movementId tras SPA/F5 sin pasar por reset del menú ni reanudar desde lista. */
+  useLayoutEffect(() => {
+    if (resumeMovementId) return;
+    if (resetToken) return;
+    if (movementId) return;
+    const stored = readWizardPersisted(userId);
+    if (!stored) return;
+    setMovementId(stored.movementId);
+    setOperationNumber(stored.operationNumber);
+    setDate(stored.date);
+    setType(stored.type);
+    setClientId(stored.clientId);
+    lastSyncedHeaderRef.current = {
+      date: stored.date,
+      type: stored.type,
+      clientId: stored.clientId,
+    };
+  }, [userId, resetToken, resumeMovementId, movementId]);
+
+  useEffect(() => {
+    if (!movementId || !type || !date) return;
+    writeWizardPersisted(userId, {
+      movementId,
+      operationNumber,
+      date,
+      type,
+      clientId: clientId || '',
+    });
+  }, [movementId, operationNumber, date, type, clientId, userId]);
 
   useBodyScrollLock(confirmClearOpen);
 
@@ -393,6 +479,7 @@ export default function NuevaOperacionPage() {
   }
 
   function resetWizard() {
+    clearWizardPersisted(userId);
     if (movementId) clearOperationDraftCache(movementId);
     lastSyncedHeaderRef.current = null;
     setMovementId(null);

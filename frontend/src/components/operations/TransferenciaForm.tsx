@@ -9,7 +9,7 @@ import {
   computeSuggestedSecondLegAmount,
   secondLegSuggestionHint,
 } from '../../utils/transferenciaSecondLegSuggest';
-import { saveOperationDraft } from '../../utils/operationDrafts';
+import { loadOperationDraft, saveOperationDraft } from '../../utils/operationDrafts';
 import { allowedFormatsFromList, formatLabel } from '../../utils/accountCurrencyFormats';
 import { useActiveAccounts } from '../../hooks/useActiveAccounts';
 import OperationFormActions from './OperationFormActions';
@@ -81,18 +81,6 @@ interface LegacyTransferenciaDraftData {
     amount?: string;
     pending?: boolean;
   };
-}
-
-interface DraftPayloadEnvelope<TData> {
-  schema_version: number;
-  operation_type: string;
-  data: TData;
-}
-
-interface DraftApiResponse<TData> {
-  movement_id: string;
-  payload?: DraftPayloadEnvelope<TData>;
-  updated_at?: string;
 }
 
 const emptyLeg = (): TransferState => ({
@@ -380,30 +368,23 @@ export default function TransferenciaForm({
       }
     };
 
-    api
-      .get<DraftApiResponse<TransferenciaDraftData | LegacyTransferenciaDraftData>>(`/movements/${movementId}/draft`)
-      .then((res) => {
+    loadOperationDraft<TransferenciaDraftData | LegacyTransferenciaDraftData>(movementId, 'TRANSFERENCIA')
+      .then((draft) => {
         if (cancelled) return;
-        const payload = res?.payload;
-        if (!payload || payload.operation_type !== 'TRANSFERENCIA') {
-          applyLocalFallback();
-          return;
-        }
-        const draft = payload.data;
-        if (!draft || (typeof draft === 'object' && Object.keys(draft as Record<string, unknown>).length === 0)) {
-          if (!applyLocalFallback()) {
-            setDraftMessage('El borrador existe pero no tenía datos del formulario guardados. Completá y guardá borrador.');
+        if (draft) {
+          const mapped = mapDraft(draft);
+          applyMappedDraft(mapped);
+          try {
+            localStorage.setItem(localDraftKey, JSON.stringify(mapped));
+          } catch {
+            // non-blocking
           }
+          setDraftMessage('Borrador reanudado.');
           return;
         }
-        const mapped = mapDraft(draft);
-        applyMappedDraft(mapped);
-        try {
-          localStorage.setItem(localDraftKey, JSON.stringify(mapped));
-        } catch {
-          // non-blocking
+        if (!applyLocalFallback()) {
+          setDraftMessage('');
         }
-        setDraftMessage('Borrador reanudado.');
       })
       .catch(() => {
         if (!cancelled) applyLocalFallback();
