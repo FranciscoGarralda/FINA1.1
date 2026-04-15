@@ -98,38 +98,6 @@ export function computeCounterpartFromAnchor(
   return roundTo(calculateEquivalent(anchorAmount, quoteRate, inverse), 2);
 }
 
-/**
- * Inverso de {@link computeCounterpartFromAnchor}: dado el monto de la pata contraparte
- * (la que no es ancla en el UI), obtiene el monto ancla con la misma convención de tasa/modo.
- */
-export function computeAnchorFromCounterpart(
-  counterpartAmount: number,
-  anchorOnOut: boolean,
-  p: TransferFxParams,
-): number | null {
-  const { outCurrencyId, inCurrencyId, functionalCurrencyId, quoteRate, quoteMode } = p;
-  if (!outCurrencyId || !inCurrencyId || outCurrencyId === inCurrencyId) return null;
-  if (!functionalCurrencyId) return null;
-  const outF = outCurrencyId === functionalCurrencyId;
-  const inF = inCurrencyId === functionalCurrencyId;
-  if (!((outF && !inF) || (!outF && inF))) return null;
-  if (!Number.isFinite(counterpartAmount) || counterpartAmount <= 0 || !Number.isFinite(quoteRate) || quoteRate <= 0)
-    return null;
-
-  const mode = normalizeQuoteMode(quoteMode);
-  const inverse: QuoteMode = mode === 'MULTIPLY' ? 'DIVIDE' : 'MULTIPLY';
-
-  if (!outF && inF) {
-    // VENTA: mismo mapa que computeCounterpartFromAnchor pero despejando OUT desde IN o IN desde OUT
-    if (anchorOnOut)
-      return roundTo(calculateEquivalent(counterpartAmount, quoteRate, inverse), 2);
-    return roundTo(calculateEquivalent(counterpartAmount, quoteRate, mode), 2);
-  }
-  // COMPRA
-  if (!anchorOnOut) return roundTo(calculateEquivalent(counterpartAmount, quoteRate, inverse), 2);
-  return roundTo(calculateEquivalent(counterpartAmount, quoteRate, mode), 2);
-}
-
 export function secondLegSuggestionHint(p: {
   sameLegCurrency: boolean;
   feeEnabled: boolean;

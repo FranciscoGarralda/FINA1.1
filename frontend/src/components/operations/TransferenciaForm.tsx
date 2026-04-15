@@ -5,7 +5,6 @@ import ApiErrorBanner from '../common/ApiErrorBanner';
 import { formatMoneyAR, numberToNormalizedMoney, roundTo } from '../../utils/money';
 import { normalizeQuoteMode, type QuoteMode } from '../../utils/fx';
 import {
-  computeAnchorFromCounterpart,
   computeCounterpartFromAnchor,
   computeSuggestedSecondLegAmount,
   secondLegSuggestionHint,
@@ -228,10 +227,7 @@ export default function TransferenciaForm({
 
   /** Solo UI; no va en borrador ni en API. */
   const [firstLegDirection, setFirstLegDirection] = useState<'SALIDA' | 'INGRESO'>('SALIDA');
-  /** Si el usuario editó la segunda pata (UI), no pisar con sugerencia FX desde la primera. */
   const [p2UserEdited, setP2UserEdited] = useState(false);
-  /** Si el usuario editó la primera pata (monto), no pisar con FX inverso desde la segunda. */
-  const [p1UserEdited, setP1UserEdited] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -355,25 +351,7 @@ export default function TransferenciaForm({
       setFirstLegDirection('SALIDA');
       const o = mapped.out_leg.amount.trim();
       const i = mapped.in_leg.amount.trim();
-      const parseAmt = (s: string) => {
-        const n = parseFloat(s.replace(',', '.'));
-        return s !== '' && Number.isFinite(n) && n > 0;
-      };
-      const oOk = parseAmt(o);
-      const iOk = parseAmt(i);
-      if (oOk && iOk && o !== i) {
-        setP2UserEdited(true);
-        setP1UserEdited(false);
-      } else if (!oOk && iOk) {
-        setP2UserEdited(true);
-        setP1UserEdited(false);
-      } else if (oOk && !iOk) {
-        setP2UserEdited(false);
-        setP1UserEdited(true);
-      } else {
-        setP2UserEdited(false);
-        setP1UserEdited(false);
-      }
+      setP2UserEdited(o !== '' && i !== '' && o !== i);
     };
 
     const applyLocalFallback = () => {
@@ -499,45 +477,19 @@ export default function TransferenciaForm({
     inLeg.currency_id,
   ]);
 
-  /** FX inverso: completa la primera pata desde la segunda + tasa (misma lógica que computeCounterpartFromAnchor). */
-  useEffect(() => {
-    if (!needsFxQuote || p1UserEdited || !fxFunctionalCurrencyId) return;
+  /**
+   * Ayuda visual (solo texto): monto segunda pata × tasa o ÷ tasa según quoteMode. No modifica inputs.
+   */
+  const firstLegVisualSuggestion = useMemo(() => {
+    if (!needsFxQuote) return null;
     const rate = parseFloat(String(quoteRate).trim().replace(',', '.'));
-    if (!Number.isFinite(rate) || rate <= 0) return;
-    const firstNum = firstLegKind === 'out' ? outAmount : inAmount;
+    if (!Number.isFinite(rate) || rate <= 0) return null;
     const secondNum = secondLegKind === 'out' ? outAmount : inAmount;
-    const firstValid = Number.isFinite(firstNum) && firstNum > 0;
-    const secondValid = Number.isFinite(secondNum) && secondNum > 0;
-    if (!secondValid) return;
-    if (firstValid && !p2UserEdited) return;
-    const anchor = computeAnchorFromCounterpart(secondNum, firstLegKind === 'out', {
-      outCurrencyId: outLeg.currency_id,
-      inCurrencyId: inLeg.currency_id,
-      functionalCurrencyId: fxFunctionalCurrencyId,
-      quoteRate: rate,
-      quoteMode: normalizeQuoteMode(quoteMode),
-    });
-    if (anchor == null || !Number.isFinite(anchor)) return;
-    const plain = String(roundTo(anchor, 2));
-    if (firstLegKind === 'out') {
-      setOutLeg((prev) => (prev.amount === plain ? prev : { ...prev, amount: plain }));
-    } else {
-      setInLeg((prev) => (prev.amount === plain ? prev : { ...prev, amount: plain }));
-    }
-  }, [
-    needsFxQuote,
-    p1UserEdited,
-    p2UserEdited,
-    fxFunctionalCurrencyId,
-    quoteRate,
-    quoteMode,
-    firstLegKind,
-    secondLegKind,
-    outAmount,
-    inAmount,
-    outLeg.currency_id,
-    inLeg.currency_id,
-  ]);
+    if (!Number.isFinite(secondNum) || secondNum <= 0) return null;
+    const mode = normalizeQuoteMode(quoteMode);
+    const raw = mode === 'MULTIPLY' ? secondNum * rate : secondNum / rate;
+    return roundTo(raw, 2);
+  }, [needsFxQuote, quoteRate, quoteMode, secondLegKind, outAmount, inAmount]);
 
   const expectedFee = useMemo(() => {
     const feeNum = parseFloat(feeValue);
@@ -767,10 +719,6 @@ export default function TransferenciaForm({
   }
 
   function updateLeg(kind: 'out' | 'in', field: keyof TransferState, value: string) {
-    if (field === 'account_id' || field === 'currency_id') {
-      setP2UserEdited(false);
-      setP1UserEdited(false);
-    }
     const setter = kind === 'out' ? setOutLeg : setInLeg;
     setter((prev) => {
       const next = { ...prev, [field]: value } as TransferState;
@@ -786,13 +734,8 @@ export default function TransferenciaForm({
     });
   }
 
-  /** Monto válido alineado a validación del submit: parseable y estrictamente > 0. */
   function onFirstLegAmountChange(value: string) {
     setP2UserEdited(false);
-    const trimmed = value.trim();
-    const n = parseFloat(trimmed.replace(',', '.'));
-    if (trimmed === '' || !Number.isFinite(n) || n <= 0) setP1UserEdited(false);
-    else setP1UserEdited(true);
     if (firstLegKind === 'out') {
       setOutLeg((prev) => ({ ...prev, amount: value }));
     } else {
@@ -801,11 +744,7 @@ export default function TransferenciaForm({
   }
 
   function onSecondLegAmountChange(value: string) {
-    setP1UserEdited(false);
-    const trimmed = value.trim();
-    const n = parseFloat(trimmed.replace(',', '.'));
-    if (trimmed === '' || !Number.isFinite(n) || n <= 0) setP2UserEdited(false);
-    else setP2UserEdited(true);
+    setP2UserEdited(true);
     if (secondLegKind === 'out') {
       setOutLeg((prev) => ({ ...prev, amount: value }));
     } else {
@@ -815,7 +754,6 @@ export default function TransferenciaForm({
 
   function updateFeeAccount(nextAccountId: string) {
     setP2UserEdited(false);
-    setP1UserEdited(false);
     setFeeAccountId(nextAccountId);
     const availableCurrencies = acCache[nextAccountId] || [];
     if (!availableCurrencies.some((c) => c.currency_id === feeCurrencyId)) {
@@ -826,7 +764,6 @@ export default function TransferenciaForm({
 
   function updateFeeCurrency(nextCurrencyId: string) {
     setP2UserEdited(false);
-    setP1UserEdited(false);
     setFeeCurrencyId(nextCurrencyId);
     let availableFormats: ('' | 'CASH' | 'DIGITAL')[] = [];
     if (nextCurrencyId === outLeg.currency_id) availableFormats = formatsFor(outLeg.account_id, nextCurrencyId);
@@ -1040,7 +977,6 @@ export default function TransferenciaForm({
     setQuoteMode('MULTIPLY');
     setFirstLegDirection('SALIDA');
     setP2UserEdited(false);
-    setP1UserEdited(false);
     setCalcBruto('');
     setCalcFeeMode('PERCENT');
     setCalcFeeValue('');
@@ -1117,6 +1053,14 @@ export default function TransferenciaForm({
           </div>
           <div className="sm:col-span-2 lg:col-span-1">
             <MoneyInput label={amountLabel} value={leg.amount} onValueChange={onAmount} placeholder={kind === 'out' ? 'Ej: 10000' : 'Ej: 10200'} />
+            {position === 'first' && needsFxQuote && firstLegVisualSuggestion != null ? (
+              <p className="text-xs text-fg-muted mt-1 leading-snug">
+                Ayuda (no completa el campo): con monto de la segunda pata y la tasa abajo, sugerencia ≈{' '}
+                <span className="font-mono font-medium text-fg">{formatMoneyAR(firstLegVisualSuggestion)}</span>
+                {' '}
+                ({normalizeQuoteMode(quoteMode) === 'MULTIPLY' ? 'segunda × tasa' : 'segunda ÷ tasa'}). Cargá el monto a mano.
+              </p>
+            ) : null}
             {amountHint ? <p className="text-xs text-fg-muted mt-1">{amountHint}</p> : null}
           </div>
         </div>
@@ -1124,7 +1068,7 @@ export default function TransferenciaForm({
           <div className="mt-3 pt-3 border-t border-subtle space-y-2 min-w-0">
             <p className="text-xs font-medium text-fg-muted">Cotización (cruce)</p>
             <p className="text-[11px] text-fg-muted leading-snug">
-              Moneda funcional FX en una pata; con tasa y modo cargados, el monto de esta pata se sugiere desde la primera o, si cargás esta primero, la primera desde acá (misma regla FX). Si editás el monto sugerido, se respeta (validación en servidor).
+              Moneda funcional FX en una pata; el monto de esta pata se sugiere desde la primera. Si lo editás, se respeta (validación en servidor).
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <MoneyInput
@@ -1133,7 +1077,6 @@ export default function TransferenciaForm({
                 onValueChange={(v) => {
                   setQuoteRate(v);
                   setP2UserEdited(false);
-                  setP1UserEdited(false);
                 }}
                 fractionDigits={6}
               />
@@ -1144,7 +1087,6 @@ export default function TransferenciaForm({
                   onChange={(e) => {
                     setQuoteMode(normalizeQuoteMode(e.target.value));
                     setP2UserEdited(false);
-                    setP1UserEdited(false);
                   }}
                   className="w-full border border-subtle rounded px-2 py-1.5 text-xs"
                 >
@@ -1192,7 +1134,6 @@ export default function TransferenciaForm({
               onChange={() => {
                 setFirstLegDirection('SALIDA');
                 setP2UserEdited(false);
-                setP1UserEdited(false);
               }}
             />
             Salida
@@ -1205,7 +1146,6 @@ export default function TransferenciaForm({
               onChange={() => {
                 setFirstLegDirection('INGRESO');
                 setP2UserEdited(false);
-                setP1UserEdited(false);
               }}
             />
             Ingreso
@@ -1222,7 +1162,6 @@ export default function TransferenciaForm({
           onClick={() => {
             setFeeEnabled((p) => !p);
             setP2UserEdited(false);
-            setP1UserEdited(false);
           }}
         >
           <input
@@ -1231,7 +1170,6 @@ export default function TransferenciaForm({
             onChange={(e) => {
               setFeeEnabled(e.target.checked);
               setP2UserEdited(false);
-              setP1UserEdited(false);
             }}
             onClick={(e) => e.stopPropagation()}
           />
@@ -1247,7 +1185,6 @@ export default function TransferenciaForm({
                   onChange={(e) => {
                     setFeeMode(e.target.value as 'PERCENT' | 'FIXED');
                     setP2UserEdited(false);
-                    setP1UserEdited(false);
                   }}
                   className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
                 >
@@ -1262,7 +1199,6 @@ export default function TransferenciaForm({
                   onChange={(e) => {
                     setFeeTreatment(e.target.value as 'APARTE' | 'INCLUIDA');
                     setP2UserEdited(false);
-                    setP1UserEdited(false);
                   }}
                   className="w-full border border-subtle rounded px-2 py-1.5 text-sm"
                 >
@@ -1321,7 +1257,6 @@ export default function TransferenciaForm({
                   onChange={(e) => {
                     setFeeFormat(e.target.value as '' | 'CASH' | 'DIGITAL');
                     setP2UserEdited(false);
-                    setP1UserEdited(false);
                   }}
                   className="w-full border border-subtle rounded px-2 py-1.5 text-sm disabled:bg-surface"
                   disabled={(!feeAccountId && !feeAccountDerivesFromLeg) || !feeCurrencyId || feeAccountDerivesFromLeg}
@@ -1349,7 +1284,6 @@ export default function TransferenciaForm({
                   onChange={(e) => {
                     setFeeSettlement(e.target.checked ? 'PENDIENTE' : 'REAL');
                     setP2UserEdited(false);
-                    setP1UserEdited(false);
                   }}
                   disabled={feeTreatment === 'INCLUIDA'}
                 />
@@ -1364,7 +1298,6 @@ export default function TransferenciaForm({
                 onValueChange={(v) => {
                   setFeeValue(v);
                   setP2UserEdited(false);
-                  setP1UserEdited(false);
                 }}
                 fractionDigits={feeMode === 'PERCENT' ? 4 : 2}
               />
