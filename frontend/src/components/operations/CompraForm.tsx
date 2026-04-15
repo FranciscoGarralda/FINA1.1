@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '../../api/client';
 import MoneyInput from '../common/MoneyInput';
-import { formatMoneyAR, numberToNormalizedMoney, roundTo } from '../../utils/money';
+import { cuadreMatches2dp, formatMoneyAR, roundHalfAwayFromZero, roundTo } from '../../utils/money';
 import { calculateEquivalent, normalizeQuoteMode, type QuoteMode } from '../../utils/fx';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useActiveAccounts } from '../../hooks/useActiveAccounts';
@@ -121,7 +121,9 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
     return roundTo(raw, 2);
   }, [quoteRate, quoteMode, outSum]);
 
-  const diff = equivalent - outSum;
+  const equivalentRounded = roundHalfAwayFromZero(equivalent, 2);
+  const outSumRounded = roundHalfAwayFromZero(outSum, 2);
+  const diff = equivalentRounded - outSumRounded;
   const inCurrencyCode = currencies.find((c) => c.id === inCurrencyId)?.code || '';
   const quoteCurrencyCode = currencies.find((c) => c.id === quoteCurrencyId)?.code || '';
   const quoteRateLabel = useMemo(() => {
@@ -142,10 +144,9 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
 
   const cuadreMsg = useMemo(() => {
     if (equivalent === 0) return '';
-    const rounded = Math.round(diff * 100) / 100;
-    if (rounded === 0) return '';
-    if (rounded > 0) return `Te falta ${formatMoneyAR(Math.abs(rounded))} ${quoteCurrencyCode}`;
-    return `Te sobra ${formatMoneyAR(Math.abs(rounded))} ${quoteCurrencyCode}`;
+    if (diff === 0) return '';
+    if (diff > 0) return `Te falta ${formatMoneyAR(Math.abs(diff))} ${quoteCurrencyCode}`;
+    return `Te sobra ${formatMoneyAR(Math.abs(diff))} ${quoteCurrencyCode}`;
   }, [diff, equivalent, quoteCurrencyCode]);
 
   useEffect(() => {
@@ -204,7 +205,7 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
     if (outs.length !== 1) return;
     if (firstOutAmountMode !== 'AUTO') return;
     if (!firstOutKey) return;
-    const targetAmount = debouncedEquivalent > 0 ? numberToNormalizedMoney(debouncedEquivalent, 2) : '';
+    const targetAmount = debouncedEquivalent > 0 ? String(roundHalfAwayFromZero(debouncedEquivalent, 2)) : '';
     setOuts((prev) => {
       const current = prev.find((o) => o.key === firstOutKey);
       if (!current || current.amount === targetAmount) return prev;
@@ -288,7 +289,7 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
       if (parseFloat(out.amount) <= 0) { setError('Los montos de salida deben ser mayores a 0.'); return; }
     }
 
-    if (Math.round(diff * 100) / 100 !== 0) {
+    if (!cuadreMatches2dp(equivalent, outSum)) {
       setError(cuadreMsg || 'El cuadre no coincide.');
       return;
     }

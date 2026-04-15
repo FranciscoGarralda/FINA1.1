@@ -17,6 +17,22 @@ export function roundTo(value: number, fractionDigits: number): number {
   return Math.round((value + Number.EPSILON) * factor) / factor;
 }
 
+/** Redondeo half away from zero; alineado al cuadre VENTA/COMPRA en backend (2 decimales). */
+export function roundHalfAwayFromZero(value: number, fractionDigits: number): number {
+  if (!Number.isFinite(value)) return 0;
+  const m = 10 ** fractionDigits;
+  const scaled = value * m;
+  const sign = scaled < 0 ? -1 : 1;
+  const abs = Math.abs(scaled);
+  const roundedInt = Math.floor(abs + 0.5);
+  return (sign * roundedInt) / m;
+}
+
+/** Comparación estable del cuadre a 2 decimales (evita ruido float en ===). */
+export function cuadreMatches2dp(a: number, b: number): boolean {
+  return Math.round(roundHalfAwayFromZero(a, 2) * 100) === Math.round(roundHalfAwayFromZero(b, 2) * 100);
+}
+
 export function numberToNormalizedMoney(value: number, fractionDigits: number): string {
   return String(roundTo(value, fractionDigits));
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '../../api/client';
 import MoneyInput from '../common/MoneyInput';
-import { formatMoneyAR, numberToNormalizedMoney, roundTo } from '../../utils/money';
+import { cuadreMatches2dp, formatMoneyAR, roundHalfAwayFromZero, roundTo } from '../../utils/money';
 import { calculateEquivalent, normalizeQuoteMode, type QuoteMode } from '../../utils/fx';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useActiveAccounts } from '../../hooks/useActiveAccounts';
@@ -120,7 +120,9 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
     return roundTo(raw, 2);
   }, [quoteRate, quoteMode, inSum]);
 
-  const diff = equivalent - inSum;
+  const equivalentRounded = roundHalfAwayFromZero(equivalent, 2);
+  const inSumRounded = roundHalfAwayFromZero(inSum, 2);
+  const diff = equivalentRounded - inSumRounded;
   const outCurrencyCode = currencies.find((c) => c.id === outCurrencyId)?.code || '';
   const quoteCurrencyCode = currencies.find((c) => c.id === quoteCurrencyId)?.code || '';
   const quoteRateLabel = useMemo(() => {
@@ -141,10 +143,9 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
 
   const cuadreMsg = useMemo(() => {
     if (equivalent === 0) return '';
-    const rounded = Math.round(diff * 100) / 100;
-    if (rounded === 0) return '';
-    if (rounded > 0) return `Te falta ${formatMoneyAR(Math.abs(rounded))} ${quoteCurrencyCode}`;
-    return `Te sobra ${formatMoneyAR(Math.abs(rounded))} ${quoteCurrencyCode}`;
+    if (diff === 0) return '';
+    if (diff > 0) return `Te falta ${formatMoneyAR(Math.abs(diff))} ${quoteCurrencyCode}`;
+    return `Te sobra ${formatMoneyAR(Math.abs(diff))} ${quoteCurrencyCode}`;
   }, [diff, equivalent, quoteCurrencyCode]);
 
   useEffect(() => {
@@ -202,7 +203,7 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
     if (ins.length !== 1) return;
     if (firstInAmountMode !== 'AUTO') return;
     if (!firstInKey) return;
-    const targetAmount = debouncedEquivalent > 0 ? numberToNormalizedMoney(debouncedEquivalent, 2) : '';
+    const targetAmount = debouncedEquivalent > 0 ? String(roundHalfAwayFromZero(debouncedEquivalent, 2)) : '';
     setIns((prev) => {
       const current = prev.find((i) => i.key === firstInKey);
       if (!current || current.amount === targetAmount) return prev;
@@ -286,7 +287,7 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
       if (parseFloat(inLine.amount) <= 0) { setError('Los montos de entrada deben ser mayores a 0.'); return; }
     }
 
-    if (Math.round(diff * 100) / 100 !== 0) {
+    if (!cuadreMatches2dp(equivalent, inSum)) {
       setError(cuadreMsg || 'El cuadre no coincide.');
       return;
     }
