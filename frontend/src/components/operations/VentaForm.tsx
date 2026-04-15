@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '../../api/client';
 import MoneyInput from '../common/MoneyInput';
-import { formatMoneyAR, numberToNormalizedMoney } from '../../utils/money';
+import { formatMoneyAR, numberToNormalizedMoney, roundTo } from '../../utils/money';
 import { calculateEquivalent, normalizeQuoteMode, type QuoteMode } from '../../utils/fx';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useActiveAccounts } from '../../hooks/useActiveAccounts';
@@ -109,6 +109,16 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
   const inSum = useMemo(() => {
     return ins.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
   }, [ins]);
+
+  /** Ayuda visual (solo texto): total entrada ×/÷ tasa → sugerencia monto vendido. No modifica inputs. */
+  const saleAmountVisualHint = useMemo(() => {
+    const rate = parseFloat(String(quoteRate).trim().replace(',', '.'));
+    if (!Number.isFinite(rate) || rate <= 0) return null;
+    if (!Number.isFinite(inSum) || inSum <= 0) return null;
+    const mode = normalizeQuoteMode(quoteMode);
+    const raw = mode === 'MULTIPLY' ? inSum * rate : inSum / rate;
+    return roundTo(raw, 2);
+  }, [quoteRate, quoteMode, inSum]);
 
   const diff = equivalent - inSum;
   const outCurrencyCode = currencies.find((c) => c.id === outCurrencyId)?.code || '';
@@ -408,6 +418,13 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
           </div>
           <div>
             <MoneyInput label="Monto vendido" value={outAmount} onValueChange={setOutAmount} />
+            {saleAmountVisualHint != null ? (
+              <p className="text-xs text-fg-muted mt-1 leading-snug">
+                Ayuda (no completa el campo): con total líneas de entrada y la cotización, sugerencia monto vendido ≈{' '}
+                <span className="font-mono font-medium text-fg">{formatMoneyAR(saleAmountVisualHint)}</span>{' '}
+                ({normalizeQuoteMode(quoteMode) === 'MULTIPLY' ? 'entrada × tasa' : 'entrada ÷ tasa'}). Cargá el monto a mano.
+              </p>
+            ) : null}
           </div>
         </div>
         <label className="flex items-center gap-2 mt-2 text-sm">

@@ -477,20 +477,6 @@ export default function TransferenciaForm({
     inLeg.currency_id,
   ]);
 
-  /**
-   * Ayuda visual (solo texto): monto segunda pata × tasa o ÷ tasa según quoteMode. No modifica inputs.
-   */
-  const firstLegVisualSuggestion = useMemo(() => {
-    if (!needsFxQuote) return null;
-    const rate = parseFloat(String(quoteRate).trim().replace(',', '.'));
-    if (!Number.isFinite(rate) || rate <= 0) return null;
-    const secondNum = secondLegKind === 'out' ? outAmount : inAmount;
-    if (!Number.isFinite(secondNum) || secondNum <= 0) return null;
-    const mode = normalizeQuoteMode(quoteMode);
-    const raw = mode === 'MULTIPLY' ? secondNum * rate : secondNum / rate;
-    return roundTo(raw, 2);
-  }, [needsFxQuote, quoteRate, quoteMode, secondLegKind, outAmount, inAmount]);
-
   const expectedFee = useMemo(() => {
     const feeNum = parseFloat(feeValue);
     if (!feeEnabled || !Number.isFinite(feeNum) || feeNum <= 0) return 0;
@@ -1053,14 +1039,6 @@ export default function TransferenciaForm({
           </div>
           <div className="sm:col-span-2 lg:col-span-1">
             <MoneyInput label={amountLabel} value={leg.amount} onValueChange={onAmount} placeholder={kind === 'out' ? 'Ej: 10000' : 'Ej: 10200'} />
-            {position === 'first' && needsFxQuote && firstLegVisualSuggestion != null ? (
-              <p className="text-xs text-fg-muted mt-1 leading-snug">
-                Ayuda (no completa el campo): con monto de la segunda pata y la tasa abajo, sugerencia ≈{' '}
-                <span className="font-mono font-medium text-fg">{formatMoneyAR(firstLegVisualSuggestion)}</span>
-                {' '}
-                ({normalizeQuoteMode(quoteMode) === 'MULTIPLY' ? 'segunda × tasa' : 'segunda ÷ tasa'}). Cargá el monto a mano.
-              </p>
-            ) : null}
             {amountHint ? <p className="text-xs text-fg-muted mt-1">{amountHint}</p> : null}
           </div>
         </div>

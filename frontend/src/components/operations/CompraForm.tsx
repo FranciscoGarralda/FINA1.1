@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '../../api/client';
 import MoneyInput from '../common/MoneyInput';
-import { formatMoneyAR, numberToNormalizedMoney } from '../../utils/money';
+import { formatMoneyAR, numberToNormalizedMoney, roundTo } from '../../utils/money';
 import { calculateEquivalent, normalizeQuoteMode, type QuoteMode } from '../../utils/fx';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useActiveAccounts } from '../../hooks/useActiveAccounts';
@@ -110,6 +110,16 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
   const outSum = useMemo(() => {
     return outs.reduce((sum, o) => sum + (parseFloat(o.amount) || 0), 0);
   }, [outs]);
+
+  /** Ayuda visual (solo texto): total salida ×/÷ tasa → sugerencia monto comprado. No modifica inputs. */
+  const compraAmountVisualHint = useMemo(() => {
+    const rate = parseFloat(String(quoteRate).trim().replace(',', '.'));
+    if (!Number.isFinite(rate) || rate <= 0) return null;
+    if (!Number.isFinite(outSum) || outSum <= 0) return null;
+    const mode = normalizeQuoteMode(quoteMode);
+    const raw = mode === 'MULTIPLY' ? outSum * rate : outSum / rate;
+    return roundTo(raw, 2);
+  }, [quoteRate, quoteMode, outSum]);
 
   const diff = equivalent - outSum;
   const inCurrencyCode = currencies.find((c) => c.id === inCurrencyId)?.code || '';
@@ -409,6 +419,13 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
             )}
           </div>
           <MoneyInput label="Monto comprado" value={inAmount} onValueChange={setInAmount} />
+          {compraAmountVisualHint != null ? (
+            <p className="text-xs text-fg-muted mt-1 leading-snug col-span-full">
+              Ayuda (no completa el campo): con total líneas de salida y la cotización, sugerencia monto comprado ≈{' '}
+              <span className="font-mono font-medium text-fg">{formatMoneyAR(compraAmountVisualHint)}</span>{' '}
+              ({normalizeQuoteMode(quoteMode) === 'MULTIPLY' ? 'salida × tasa' : 'salida ÷ tasa'}). Cargá el monto a mano.
+            </p>
+          ) : null}
         </div>
         <label className="flex items-center gap-2 mt-2 text-sm">
           <input type="checkbox" checked={inPending} onChange={(e) => setInPending(e.target.checked)} disabled={!canInPending()} />
