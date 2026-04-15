@@ -85,9 +85,7 @@ func (s *CompraService) Execute(ctx context.Context, movementID string, input Co
 		outSum.Add(outSum, amt)
 	}
 
-	eqR := RoundRatToDecimalPlaces(equivalent, 2)
-	sumR := RoundRatToDecimalPlaces(outSum, 2)
-	if eqR.Cmp(sumR) != 0 {
+	if !cuadreCompraOK(equivalent, outSum, boughtAmt, quoteRate, input.Quote.Mode) {
 		return ErrCuadreNotMatch
 	}
 

@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '../../api/client';
 import MoneyInput from '../common/MoneyInput';
-import { cuadreMatches2dp, formatMoneyAR, roundHalfAwayFromZero, roundTo } from '../../utils/money';
-import { calculateEquivalent, normalizeQuoteMode, type QuoteMode } from '../../utils/fx';
+import { formatMoneyAR, roundHalfAwayFromZero, roundTo } from '../../utils/money';
+import { calculateEquivalent, cuadreCompraOk, normalizeQuoteMode, type QuoteMode } from '../../utils/fx';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useActiveAccounts } from '../../hooks/useActiveAccounts';
 import { useActiveCurrencies } from '../../hooks/useActiveCurrencies';
@@ -121,6 +121,18 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
     return roundTo(raw, 2);
   }, [quoteRate, quoteMode, outSum]);
 
+  const cuadreOk = useMemo(() => {
+    const a = parseFloat(String(inAmount).trim().replace(',', '.'));
+    const r = parseFloat(String(quoteRate).trim().replace(',', '.'));
+    return cuadreCompraOk(
+      Number.isFinite(a) ? a : 0,
+      outSum,
+      Number.isFinite(r) && r > 0 ? r : 0,
+      normalizeQuoteMode(quoteMode),
+      equivalent,
+    );
+  }, [inAmount, outSum, quoteRate, quoteMode, equivalent]);
+
   const equivalentRounded = roundHalfAwayFromZero(equivalent, 2);
   const outSumRounded = roundHalfAwayFromZero(outSum, 2);
   const diff = equivalentRounded - outSumRounded;
@@ -144,10 +156,11 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
 
   const cuadreMsg = useMemo(() => {
     if (equivalent === 0) return '';
+    if (cuadreOk) return '';
     if (diff === 0) return '';
     if (diff > 0) return `Te falta ${formatMoneyAR(Math.abs(diff))} ${quoteCurrencyCode}`;
     return `Te sobra ${formatMoneyAR(Math.abs(diff))} ${quoteCurrencyCode}`;
-  }, [diff, equivalent, quoteCurrencyCode]);
+  }, [diff, equivalent, quoteCurrencyCode, cuadreOk]);
 
   useEffect(() => {
     if (!inCurrencyId) return;
@@ -289,7 +302,17 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
       if (parseFloat(out.amount) <= 0) { setError('Los montos de salida deben ser mayores a 0.'); return; }
     }
 
-    if (!cuadreMatches2dp(equivalent, outSum)) {
+    const a = parseFloat(String(inAmount).trim().replace(',', '.'));
+    const r = parseFloat(String(quoteRate).trim().replace(',', '.'));
+    if (
+      !cuadreCompraOk(
+        Number.isFinite(a) ? a : 0,
+        outSum,
+        Number.isFinite(r) && r > 0 ? r : 0,
+        normalizeQuoteMode(quoteMode),
+        equivalent,
+      )
+    ) {
       setError(cuadreMsg || 'El cuadre no coincide.');
       return;
     }
@@ -545,7 +568,7 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
           {cuadreMsg && (
             <p className={`mt-1 font-medium ${diff > 0 ? 'text-orange-600' : 'text-error'}`}>{cuadreMsg}</p>
           )}
-          {!cuadreMsg && equivalent > 0 && outSum > 0 && (
+          {cuadreOk && equivalent > 0 && outSum > 0 && (
             <p className="mt-1 text-success font-medium">Cuadre correcto</p>
           )}
         </div>

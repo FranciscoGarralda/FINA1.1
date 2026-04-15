@@ -99,3 +99,76 @@ func TestCuadreRoundedMismatchRealCent(t *testing.T) {
 		t.Fatal("expected mismatch")
 	}
 }
+
+func TestImpliedBaseFromQuoteTotalRoundTrip(t *testing.T) {
+	rate, _ := new(big.Rat).SetString("1.435")
+	base, _ := new(big.Rat).SetString("123.456")
+	eq, err := computeEquivalentFromQuote(base, rate, QuoteModeMultiply)
+	if err != nil {
+		t.Fatal(err)
+	}
+	back, err := impliedBaseFromQuoteTotal(eq, rate, QuoteModeMultiply)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if base.Cmp(back) != 0 {
+		t.Fatalf("MULTIPLY inverse: want %s got %s", base.FloatString(8), back.FloatString(8))
+	}
+	eq2, _ := computeEquivalentFromQuote(base, rate, QuoteModeDivide)
+	back2, _ := impliedBaseFromQuoteTotal(eq2, rate, QuoteModeDivide)
+	if base.Cmp(back2) != 0 {
+		t.Fatalf("DIVIDE inverse: want %s got %s", base.FloatString(8), back2.FloatString(8))
+	}
+}
+
+// Caso real: ARS 2.750.000, cotización 1.435,00 (ARS/USD) = 1435 en número, USD 1.916,38 — vía (1) falla, vía (2) pasa.
+func TestCuadreVentaOK_Path2_2750000(t *testing.T) {
+	inSum, _ := new(big.Rat).SetString("2750000")
+	rate, _ := new(big.Rat).SetString("1435")
+	sold, _ := new(big.Rat).SetString("1916.38")
+	equiv, err := computeEquivalentFromQuote(sold, rate, QuoteModeMultiply)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r2 := func(r *big.Rat) *big.Rat { return RoundRatToDecimalPlaces(r, 2) }
+	if r2(equiv).Cmp(r2(inSum)) == 0 {
+		t.Fatal("path1 should not match raw for this scenario")
+	}
+	if !cuadreVentaOK(equiv, inSum, sold, rate, QuoteModeMultiply) {
+		t.Fatal("expected path2 to accept")
+	}
+}
+
+func TestCuadreVentaOK_Path1Only(t *testing.T) {
+	inSum, _ := new(big.Rat).SetString("2750005.30")
+	rate, _ := new(big.Rat).SetString("1435")
+	sold, _ := new(big.Rat).SetString("1916.38")
+	equiv, _ := computeEquivalentFromQuote(sold, rate, QuoteModeMultiply)
+	if !cuadreVentaOK(equiv, inSum, sold, rate, QuoteModeMultiply) {
+		t.Fatal("expected path1 match")
+	}
+}
+
+func TestCuadreVentaOK_RejectWrongUSD(t *testing.T) {
+	inSum, _ := new(big.Rat).SetString("2750000")
+	rate, _ := new(big.Rat).SetString("1435")
+	sold, _ := new(big.Rat).SetString("2000.00")
+	equiv, _ := computeEquivalentFromQuote(sold, rate, QuoteModeMultiply)
+	if cuadreVentaOK(equiv, inSum, sold, rate, QuoteModeMultiply) {
+		t.Fatal("expected reject")
+	}
+}
+
+func TestCuadreCompraOK_Path2Mirror(t *testing.T) {
+	bought, _ := new(big.Rat).SetString("1916.38")
+	rate, _ := new(big.Rat).SetString("1435")
+	outSum, _ := new(big.Rat).SetString("2750000")
+	equiv, _ := computeEquivalentFromQuote(bought, rate, QuoteModeMultiply)
+	r2 := func(r *big.Rat) *big.Rat { return RoundRatToDecimalPlaces(r, 2) }
+	if r2(equiv).Cmp(r2(outSum)) == 0 {
+		t.Fatal("path1 should not match raw")
+	}
+	if !cuadreCompraOK(equiv, outSum, bought, rate, QuoteModeMultiply) {
+		t.Fatal("expected path2 accept compra")
+	}
+}

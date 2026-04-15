@@ -66,3 +66,49 @@ func computeEquivalentFromQuote(baseAmount, rate *big.Rat, mode string) (*big.Ra
 		return nil, ErrInvalidQuoteMode
 	}
 }
+
+// impliedBaseFromQuoteTotal invierte computeEquivalentFromQuote para el mismo `mode`:
+// si eq = computeEquivalentFromQuote(base, rate, mode), entonces base = impliedBaseFromQuoteTotal(eq, rate, mode).
+// MULTIPLY: eq = base×rate ⇒ base = eq/rate. DIVIDE: eq = base/rate ⇒ base = eq×rate.
+func impliedBaseFromQuoteTotal(totalQuote *big.Rat, rate *big.Rat, mode string) (*big.Rat, error) {
+	switch normalizeQuoteMode(mode) {
+	case QuoteModeMultiply:
+		return new(big.Rat).Quo(new(big.Rat).Set(totalQuote), rate), nil
+	case QuoteModeDivide:
+		return new(big.Rat).Mul(new(big.Rat).Set(totalQuote), rate), nil
+	default:
+		return nil, ErrInvalidQuoteMode
+	}
+}
+
+// cuadreVentaOK: vía (1) Round(equiv,2)=Round(inSum,2) o vía (2) total en cotización manda y out coincide con implied base.
+func cuadreVentaOK(equivalent, inSum, soldAmt *big.Rat, rate *big.Rat, mode string) bool {
+	r2 := func(r *big.Rat) *big.Rat { return RoundRatToDecimalPlaces(r, 2) }
+	if r2(equivalent).Cmp(r2(inSum)) == 0 {
+		return true
+	}
+	if inSum.Sign() <= 0 {
+		return false
+	}
+	implied, err := impliedBaseFromQuoteTotal(inSum, rate, mode)
+	if err != nil {
+		return false
+	}
+	return r2(soldAmt).Cmp(r2(implied)) == 0
+}
+
+// cuadreCompraOK: vía (1) o vía (2) con base = monto comprado (IN) y total en cotización = outSum.
+func cuadreCompraOK(equivalent, outSum, boughtAmt *big.Rat, rate *big.Rat, mode string) bool {
+	r2 := func(r *big.Rat) *big.Rat { return RoundRatToDecimalPlaces(r, 2) }
+	if r2(equivalent).Cmp(r2(outSum)) == 0 {
+		return true
+	}
+	if outSum.Sign() <= 0 {
+		return false
+	}
+	implied, err := impliedBaseFromQuoteTotal(outSum, rate, mode)
+	if err != nil {
+		return false
+	}
+	return r2(boughtAmt).Cmp(r2(implied)) == 0
+}

@@ -79,9 +79,7 @@ func (s *VentaService) Execute(ctx context.Context, movementID string, input Ven
 		inSum.Add(inSum, amt)
 	}
 
-	eqR := RoundRatToDecimalPlaces(equivalent, 2)
-	sumR := RoundRatToDecimalPlaces(inSum, 2)
-	if eqR.Cmp(sumR) != 0 {
+	if !cuadreVentaOK(equivalent, inSum, soldAmt, quoteRate, input.Quote.Mode) {
 		return ErrCuadreNotMatch
 	}
 
