@@ -111,13 +111,13 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
     return outs.reduce((sum, o) => sum + (parseFloat(o.amount) || 0), 0);
   }, [outs]);
 
-  /** Ayuda visual (solo texto): total salida ×/÷ tasa → sugerencia monto comprado. No modifica inputs. */
+  /** Ayuda visual (solo texto): invierte ×/÷ respecto al select (MULTIPLY → ÷, DIVIDE → ×). No modifica inputs ni `equivalent`. */
   const compraAmountVisualHint = useMemo(() => {
     const rate = parseFloat(String(quoteRate).trim().replace(',', '.'));
     if (!Number.isFinite(rate) || rate <= 0) return null;
     if (!Number.isFinite(outSum) || outSum <= 0) return null;
     const mode = normalizeQuoteMode(quoteMode);
-    const raw = mode === 'MULTIPLY' ? outSum * rate : outSum / rate;
+    const raw = mode === 'MULTIPLY' ? outSum / rate : outSum * rate;
     return roundTo(raw, 2);
   }, [quoteRate, quoteMode, outSum]);
 
@@ -421,9 +421,7 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
           <MoneyInput label="Monto comprado" value={inAmount} onValueChange={setInAmount} />
           {compraAmountVisualHint != null ? (
             <p className="text-xs text-fg-muted mt-1 leading-snug col-span-full">
-              Ayuda (no completa el campo): con total líneas de salida y la cotización, sugerencia monto comprado ≈{' '}
-              <span className="font-mono font-medium text-fg">{formatMoneyAR(compraAmountVisualHint)}</span>{' '}
-              ({normalizeQuoteMode(quoteMode) === 'MULTIPLY' ? 'salida × tasa' : 'salida ÷ tasa'}). Cargá el monto a mano.
+              Sugerencia: <span className="font-mono font-medium text-fg">{formatMoneyAR(compraAmountVisualHint)}</span> (no completa el campo)
             </p>
           ) : null}
         </div>
