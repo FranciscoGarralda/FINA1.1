@@ -392,10 +392,10 @@ export default function PosicionIntegralPage() {
     [pendEntregaRows, arsPerUsd],
   );
 
-  const gastosPeriodoUsd = useMemo(
-    () => movGastos.reduce((acc, m) => acc + movementOutflowUsd(m, arsPerUsd), 0),
-    [movGastos, arsPerUsd],
-  );
+  const gastosPeriodoUsd = useMemo(() => {
+    const confirmed = movGastos.filter((m) => m.status === 'CONFIRMADA');
+    return confirmed.reduce((acc, m) => acc + movementOutflowUsd(m, arsPerUsd), 0);
+  }, [movGastos, arsPerUsd]);
 
   const digitalUsd = useMemo(() => {
     let s = 0;
@@ -661,8 +661,8 @@ export default function PosicionIntegralPage() {
             <h4 className="text-sm font-semibold text-fg-muted mb-1">Gastos del día (movimientos)</h4>
             <p className="text-lg font-semibold text-fg">{formatMoneyAR(gastosPeriodoUsd)}</p>
             <p className="text-[11px] text-fg-muted mt-1">
-              Solo tipo GASTO con fecha = corte; conversión vía summary_items. No es la fila «Gastos» del reporte por
-              rango.
+              Solo GASTO confirmados (CONFIRMADA), fecha = corte; conversión vía summary_items. No es la fila «Gastos»
+              del reporte por rango.
             </p>
           </div>
         </div>

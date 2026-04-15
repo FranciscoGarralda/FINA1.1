@@ -108,7 +108,8 @@ func (s *ReportesService) computeProfit(ctx context.Context, from, to string) (m
 		 FROM profit_entries pe
 		 JOIN movements m ON m.id = pe.movement_id
 		 JOIN currencies c ON c.id = pe.currency_id
-		 WHERE m.date >= $1::date AND m.date <= $2::date
+		 WHERE m.status = 'CONFIRMADA'
+		   AND m.date >= $1::date AND m.date <= $2::date
 		 GROUP BY pe.currency_id, c.code`, from, to)
 	if err != nil {
 		return nil, err
@@ -138,6 +139,7 @@ func (s *ReportesService) computeGastos(ctx context.Context, from, to string) (m
 		 JOIN movements m ON m.id = ml.movement_id
 		 JOIN currencies c ON c.id = ml.currency_id
 		 WHERE m.type = 'GASTO' AND ml.side = 'OUT'
+		   AND m.status = 'CONFIRMADA'
 		   AND m.date >= $1::date AND m.date <= $2::date
 		 GROUP BY ml.currency_id, c.code`, from, to)
 	if err != nil {
@@ -299,8 +301,8 @@ func (s *ReportesService) DailySummary(ctx context.Context, referenceDate string
 
 	defs := map[string]string{
 		"utilidad":  "Utilidad compra-venta: P&L realizado con inventario y costo promedio (moneda funcional, p. ej. ARS). Fuente: fx_inventory_ledger + fx_positions. Sin arbitraje ni profit_entries.",
-		"profit":    "Suma de profit_entries del día por divisa (p. ej. comisiones). Backend: reportes_service.computeProfit.",
-		"gastos":    "Suma de líneas OUT en movimientos tipo GASTO. Backend: reportes_service.computeGastos.",
+		"profit":    "Suma de profit_entries del día por divisa (solo movimientos CONFIRMADA). Backend: reportes_service.computeProfit.",
+		"gastos":    "Suma de líneas OUT en movimientos tipo GASTO (solo CONFIRMADA; CANCELADA no cuenta). Backend: reportes_service.computeGastos.",
 		"resultado": "Por divisa: utilidad + profit − gastos. Backend: reportes_service.computeResultado.",
 	}
 
