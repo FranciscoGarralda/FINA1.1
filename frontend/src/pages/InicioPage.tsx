@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import type { CurrencyAmount, DailySummary, ReportData, ReportMetricKey } from '../types/reportes';
+import { EmptyState } from '../components/common/EmptyState';
 import { SkeletonCard } from '../components/common/Skeleton';
 import { formatMoneyAR } from '../utils/money';
 import { useModalFocusTrap } from '../hooks/useModalFocusTrap';
@@ -245,7 +246,7 @@ export default function InicioPage() {
               </h4>
               <div className="table-scroll rounded-lg border border-subtle">
                 {rows.length === 0 ? (
-                  <p className="text-sm text-fg-subtle px-4 py-6 text-center">Sin datos para este día.</p>
+                  <EmptyState variant="inline" message="Sin datos para este día." className="px-4 py-6" />
                 ) : (
                   <table className="w-full min-w-[320px] text-sm">
                     <thead>
@@ -313,7 +314,7 @@ export default function InicioPage() {
                 {!rangeLoading && rangeData && (
                   <div className="rounded-lg border border-subtle divide-y">
                     {rangeSection.length === 0 ? (
-                      <p className="text-sm text-fg-subtle px-4 py-4">Sin datos en el período.</p>
+                      <EmptyState variant="inline" message="Sin datos en el período seleccionado." className="px-4 py-4" />
                     ) : (
                       rangeSection.map((item) => {
                         const num = parseFloat(item.amount);

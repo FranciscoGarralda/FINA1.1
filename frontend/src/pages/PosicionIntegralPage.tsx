@@ -5,6 +5,7 @@ import Big from 'big.js';
 import { formatMoneyAR, normalizeMoneyInput } from '../utils/money';
 import { isPendingUserFacingRetiro, isPendingUserFacingEntrega } from '../utils/pendingTypeLabels';
 import type { ReportData, ReportMetricKey } from '../types/reportes';
+import { EmptyState } from '../components/common/EmptyState';
 import { SkeletonCard, SkeletonTable } from '../components/common/Skeleton';
 
 const LS_COTIZ_USD = 'fina-cotizacion-usd';
@@ -579,7 +580,13 @@ export default function PosicionIntegralPage() {
   function renderMetricTable(section: { by_currency?: Array<{ currency_code: string; amount: string }> }) {
     const rows = section?.by_currency ?? [];
     if (rows.length === 0) {
-      return <p className="text-sm text-fg-muted">Sin movimientos en esta métrica para el período.</p>;
+      return (
+        <EmptyState
+          variant="inline"
+          title="Sin movimientos"
+          message="No hay partidas en esta métrica para el período seleccionado."
+        />
+      );
     }
     return (
       <div className="table-scroll rounded border border-subtle">
@@ -765,7 +772,7 @@ export default function PosicionIntegralPage() {
           totalValue={currencySummary(cashEfectivoRows)}
         >
           {cashEfectivoRows.length === 0 ? (
-            <p className="text-sm text-fg-muted">Sin datos</p>
+            <EmptyState variant="inline" message="Sin saldos efectivo para mostrar." />
           ) : (
             <div className="table-scroll rounded border border-subtle">
               <table className="w-full text-sm">
@@ -808,7 +815,7 @@ export default function PosicionIntegralPage() {
           totalValue={currencySummary(cashDigitalRows)}
         >
           {cashDigitalRows.length === 0 ? (
-            <p className="text-sm text-fg-muted">Sin datos</p>
+            <EmptyState variant="inline" message="Sin saldos digitales para mostrar." />
           ) : (
             <div className="table-scroll rounded border border-subtle">
               <table className="w-full text-sm">
@@ -851,7 +858,7 @@ export default function PosicionIntegralPage() {
           totalValue={currencySummary(physicalByCurrency.map((r) => ({ currencyCode: r.code, balance: r.amount })))}
         >
           {!loading && physicalByCurrency.length === 0 ? (
-            <p className="text-sm text-fg-muted">Sin datos</p>
+            <EmptyState variant="inline" message="Sin totales físicos al corte para mostrar." />
           ) : (
             <div className="table-scroll rounded border border-subtle">
               <table className="w-full text-sm">
@@ -892,7 +899,7 @@ export default function PosicionIntegralPage() {
           totalValue={formatMoneyAR(retirosPendUsd)}
         >
           {pendRetiroFlatRows.length === 0 ? (
-            <p className="text-sm text-fg-muted">Sin pendientes de retiro</p>
+            <EmptyState variant="inline" message="No hay pendientes de retiro abiertos." title="Sin pendientes" />
           ) : (
             <div className="table-scroll rounded border border-subtle">
               <table className="w-full text-sm">
@@ -935,7 +942,7 @@ export default function PosicionIntegralPage() {
           totalValue={formatMoneyAR(entregasPendUsd)}
         >
           {pendEntregaFlatRows.length === 0 ? (
-            <p className="text-sm text-fg-muted">Sin pendientes de entrega</p>
+            <EmptyState variant="inline" message="No hay pendientes de entrega abiertos." title="Sin pendientes" />
           ) : (
             <div className="table-scroll rounded border border-subtle">
               <table className="w-full text-sm">
@@ -979,7 +986,7 @@ export default function PosicionIntegralPage() {
           defaultOpen
         >
           {!loading && ccFlatRows.length === 0 ? (
-            <p className="text-sm text-fg-muted">Sin datos</p>
+            <EmptyState variant="inline" message="Sin posiciones CC para mostrar." />
           ) : (
             <div className="table-scroll rounded border border-subtle">
               <table className="w-full text-sm">
@@ -1051,7 +1058,10 @@ export default function PosicionIntegralPage() {
             <p className="text-xs text-fg-muted">{activeRangeLabel}</p>
 
             {!reporteActivo ? (
-              <p className="text-sm text-fg-muted">Sin datos de reportes para este período.</p>
+              <EmptyState
+                message="No hay datos de reportes para el período y cotización actuales."
+                title="Sin datos de reportes"
+              />
             ) : (
               <>
                 {REPORT_METRIC_ORDER.map((key) => {

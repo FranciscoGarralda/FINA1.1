@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
+import { EmptyState } from '../components/common/EmptyState';
 import { SkeletonTable } from '../components/common/Skeleton';
 import FormActionsRow from '../components/common/FormActionsRow';
 import { movementTypeLabel } from '../utils/movementTypeLabels';
@@ -264,7 +265,7 @@ export default function MovimientosPage() {
       {loading && data === null ? (
         <SkeletonTable rows={8} cols={5} />
       ) : loadError ? null : !data || data.items.length === 0 ? (
-        <p className="text-fg-muted text-sm">No se encontraron movimientos.</p>
+        <EmptyState message="No se encontraron movimientos con los filtros actuales." title="Sin resultados" />
       ) : (
         <>
           <div className="bg-elevated border border-subtle rounded-lg table-scroll">
