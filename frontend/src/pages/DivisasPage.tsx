@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import CurrencyFormModal from '../components/currencies/CurrencyFormModal';
+import { SkeletonTable } from '../components/common/Skeleton';
 
 interface Currency {
   id: string;
@@ -76,7 +77,11 @@ export default function DivisasPage() {
       </div>
 
       {loading ? (
-        <p className="text-fg-muted">Cargando...</p>
+        <div className="bg-elevated rounded-lg shadow overflow-hidden" aria-busy="true">
+          <div className="table-scroll p-4">
+            <SkeletonTable rows={8} cols={4} />
+          </div>
+        </div>
       ) : (
         <div className="bg-elevated rounded-lg shadow overflow-hidden">
           <div className="table-scroll">

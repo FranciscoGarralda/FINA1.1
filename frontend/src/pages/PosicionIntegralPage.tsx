@@ -5,6 +5,7 @@ import Big from 'big.js';
 import { formatMoneyAR, normalizeMoneyInput } from '../utils/money';
 import { isPendingUserFacingRetiro, isPendingUserFacingEntrega } from '../utils/pendingTypeLabels';
 import type { ReportData, ReportMetricKey } from '../types/reportes';
+import { SkeletonCard, SkeletonTable } from '../components/common/Skeleton';
 
 const LS_COTIZ_USD = 'fina-cotizacion-usd';
 
@@ -304,7 +305,7 @@ export default function PosicionIntegralPage() {
 
   const [asOfDate, setAsOfDate] = useState(todayStr);
   const [cotizInput, setCotizInput] = useState(() => readCotizFromStorage());
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [periodo, setPeriodo] = useState<Periodo>('dia');
 
@@ -651,8 +652,41 @@ export default function PosicionIntegralPage() {
       </div>
 
       {error ? <p className="text-error text-sm">{error}</p> : null}
-      {loading ? <p className="text-fg-muted text-sm">Cargando…</p> : null}
 
+      {loading ? (
+        <div className="space-y-8" aria-busy="true" aria-label="Cargando posición integral">
+          <section className="space-y-2">
+            <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wide">Caja — dinero real</h3>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          </section>
+          <section className="space-y-2">
+            <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wide">Obligaciones</h3>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          </section>
+          <section>
+            <SkeletonCard />
+          </section>
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wide">Detalle stock al corte</h2>
+            <SkeletonTable rows={6} cols={4} />
+          </section>
+          {canReportes ? (
+            <section className="space-y-3">
+              <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wide">Generado en el período</h2>
+              <SkeletonTable rows={5} cols={3} />
+            </section>
+          ) : null}
+        </div>
+      ) : (
+        <>
       <section className="space-y-2">
         <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wide">Caja — dinero real</h3>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -1047,6 +1081,8 @@ export default function PosicionIntegralPage() {
           </>
         )}
       </section>
+        </>
+      )}
     </div>
   );
 }

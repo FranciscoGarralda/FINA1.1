@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useParams } from 'react-router-dom';
 import { api, downloadAuthenticated } from '../api/client';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
+import { SkeletonTable } from '../components/common/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { formatMoneyAR } from '../utils/money';
 
@@ -123,7 +124,9 @@ export default function PosicionesClientePage() {
       <ApiErrorBanner message={balancesError} />
 
       {loading ? (
-        <p className="text-fg-muted text-sm">Cargando...</p>
+        <div className="space-y-4" aria-busy="true">
+          <SkeletonTable rows={5} cols={2} />
+        </div>
       ) : balancesError ? null : balances.length === 0 ? (
         <p className="text-fg-muted text-sm">Este cliente no tiene posiciones CC.</p>
       ) : (
@@ -194,7 +197,7 @@ export default function PosicionesClientePage() {
             </h3>
             <ApiErrorBanner message={entriesError} />
             {loadingEntries ? (
-              <p className="text-fg-muted text-sm">Cargando movimientos...</p>
+              <SkeletonTable rows={6} cols={5} />
             ) : entriesError ? null : entries.length === 0 ? (
               <p className="text-fg-muted text-sm">Sin movimientos para esta divisa.</p>
             ) : (

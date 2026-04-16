@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
+import { SkeletonTable } from '../common/Skeleton';
 
 interface EntityItem {
   id: string;
@@ -75,7 +76,9 @@ function EntitySection({ entityKey, title, endpoint, displayFn }: (typeof ENTITY
       </div>
 
       {loading ? (
-        <p className="text-fg-muted text-sm">Cargando...</p>
+        <div className="py-1" aria-busy="true">
+          <SkeletonTable rows={6} cols={2} />
+        </div>
       ) : filtered.length === 0 ? (
         <p className="text-fg-subtle text-sm">Sin resultados</p>
       ) : (

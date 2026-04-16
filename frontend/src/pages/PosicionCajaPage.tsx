@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { formatMoneyAR } from '../utils/money';
+import { SkeletonTable } from '../components/common/Skeleton';
 
 interface Balance {
   currency_id: string;
@@ -85,7 +86,11 @@ export default function PosicionCajaPage() {
       </div>
 
       {error && <p className="text-error text-sm">{error}</p>}
-      {loading && <p className="text-fg-muted text-sm">Cargando…</p>}
+      {loading && (
+        <div className="space-y-4" aria-busy="true">
+          <SkeletonTable rows={6} cols={3} />
+        </div>
+      )}
       {!loading && positions.length === 0 && !error && (
         <p className="text-fg-subtle text-sm">Sin movimientos registrados.</p>
       )}

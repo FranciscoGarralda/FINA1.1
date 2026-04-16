@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import FormActionsRow from '../components/common/FormActionsRow';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { useModalFocusTrap } from '../hooks/useModalFocusTrap';
+import { SkeletonCard, SkeletonTable } from '../components/common/Skeleton';
 
 interface MovementLine {
   id: string;
@@ -79,7 +80,14 @@ export default function MovimientoDetallePage() {
     return () => window.removeEventListener(MOVEMENTS_REFRESH_EVENT, onMovementsRefresh);
   }, [id, loadDetail]);
 
-  if (loading) return <p className="text-fg-muted text-sm p-4">Cargando...</p>;
+  if (loading) {
+    return (
+      <div className="p-4 space-y-4 max-w-3xl" aria-busy="true">
+        <SkeletonCard />
+        <SkeletonTable rows={6} cols={5} />
+      </div>
+    );
+  }
   if (error || !detail) return <p className="text-error text-sm p-4">{error || 'No encontrado.'}</p>;
   const canStartCorrection = can('operations.create_header', ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR']);
   const canCancelOperation = can('pending.cancel', ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR', 'COURIER']);

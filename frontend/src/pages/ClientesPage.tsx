@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import ClientFormModal from '../components/clients/ClientFormModal';
+import { SkeletonTable } from '../components/common/Skeleton';
 
 interface Client {
   id: string;
@@ -151,7 +152,11 @@ export default function ClientesPage() {
       </div>
 
       {loading ? (
-        <p className="text-fg-muted">Cargando...</p>
+        <div className="bg-elevated rounded-lg shadow overflow-hidden" aria-busy="true">
+          <div className="table-scroll p-4">
+            <SkeletonTable rows={10} cols={10} />
+          </div>
+        </div>
       ) : (
         <div className="bg-elevated rounded-lg shadow overflow-hidden">
           <div className="table-scroll">

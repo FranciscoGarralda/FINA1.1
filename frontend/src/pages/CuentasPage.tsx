@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import AccountFormModal from '../components/accounts/AccountFormModal';
 import CashOpeningBalanceModal from '../components/accounts/CashOpeningBalanceModal';
+import { SkeletonTable } from '../components/common/Skeleton';
 
 interface Account {
   id: string;
@@ -87,7 +88,11 @@ export default function CuentasPage() {
       </div>
 
       {loading ? (
-        <p className="text-fg-muted">Cargando...</p>
+        <div className="bg-elevated rounded-lg shadow overflow-hidden" aria-busy="true">
+          <div className="table-scroll p-4">
+            <SkeletonTable rows={8} cols={3} />
+          </div>
+        </div>
       ) : (
         <div className="bg-elevated rounded-lg shadow overflow-hidden">
           <div className="table-scroll">

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
+import { SkeletonTable } from '../components/common/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { formatMoneyAR } from '../utils/money';
 
@@ -312,7 +313,11 @@ export default function CashArqueosPage() {
             >
               Refrescar saldos sistema
             </button>
-            {loadingTotals && <p className="text-xs text-fg-subtle">Cargando saldos…</p>}
+            {loadingTotals && (
+              <div className="mt-2" aria-busy="true">
+                <SkeletonTable rows={4} cols={4} />
+              </div>
+            )}
             {accountId && totals.some((t) => !(t.format && String(t.format).trim())) && totals.length > 0 && (
               <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
                 El API no incluye <code className="text-xs">format</code> por fila. En producción: deploy del backend con migración{' '}
@@ -426,7 +431,11 @@ export default function CashArqueosPage() {
               Aplicar filtros
             </button>
           </div>
-          {loadingList && <p className="text-sm text-fg-muted">Cargando…</p>}
+          {loadingList && (
+            <div className="mb-4" aria-busy="true">
+              <SkeletonTable rows={5} cols={4} />
+            </div>
+          )}
           {!loadingList && arqueos.length === 0 && <p className="text-sm text-fg-subtle">Sin arqueos.</p>}
           <div className="space-y-6">
             {arqueos.map((aq) => (

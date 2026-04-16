@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import UserFormModal from '../components/users/UserFormModal';
 import UserPermissionsModal from '../components/users/UserPermissionsModal';
+import { SkeletonTable } from '../components/common/Skeleton';
 
 interface User {
   id: string;
@@ -81,7 +82,11 @@ export default function UsuariosPage() {
       </div>
 
       {loading ? (
-        <p className="text-fg-muted">Cargando...</p>
+        <div className="bg-elevated rounded-lg shadow overflow-hidden" aria-busy="true">
+          <div className="table-scroll p-4">
+            <SkeletonTable rows={8} cols={4} />
+          </div>
+        </div>
       ) : (
         <div className="bg-elevated rounded-lg shadow overflow-hidden">
           <div className="table-scroll">

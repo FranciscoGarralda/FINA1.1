@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
+import { SkeletonCard } from '../components/common/Skeleton';
 import { formatMoneyAR } from '../utils/money';
 
 interface CurrencyBalance {
@@ -72,7 +73,11 @@ export default function PosicionesPage() {
       />
 
       {loading ? (
-        <p className="text-fg-muted text-sm">Cargando...</p>
+        <div className="space-y-3" aria-busy="true">
+          {[0, 1, 2, 3].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
       ) : loadError ? null : filtered.length === 0 ? (
         <p className="text-fg-muted text-sm">
           {items.length === 0
