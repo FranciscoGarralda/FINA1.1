@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { formatMoneyAR } from '../utils/money';
+import Big from 'big.js';
+import { formatMoneyAR, normalizeMoneyInput } from '../utils/money';
 import { isPendingUserFacingRetiro, isPendingUserFacingEntrega } from '../utils/pendingTypeLabels';
 import type { ReportData, ReportMetricKey } from '../types/reportes';
 
@@ -82,10 +83,30 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Si hay coma, miles/decimales es-AR vía normalizeMoneyInput; si no, decimal con punto (típico API). */
+function moneyStringToNorm(s: string): string {
+  const t = String(s).trim();
+  if (t === '') return '0';
+  if (t.includes(',')) return normalizeMoneyInput(t);
+  const cleaned = t.replace(/[^0-9.-]/g, '');
+  return cleaned === '' ? '0' : cleaned;
+}
+
+function safeBigFromMoney(s: string | undefined): Big {
+  try {
+    return new Big(moneyStringToNorm(s ?? '0'));
+  } catch {
+    return new Big(0);
+  }
+}
+
+/** Monto monetario desde string (sumas y display); lectura con Big.js. */
 function parseAmt(s: string | undefined): number {
-  if (s == null || s === '') return 0;
-  const n = parseFloat(s);
-  return Number.isFinite(n) ? n : 0;
+  try {
+    return safeBigFromMoney(s).toNumber();
+  } catch {
+    return 0;
+  }
 }
 
 /** `arsPerUsd`: ARS por 1 USD. */
@@ -129,13 +150,12 @@ async function aggregateSystemCashPhysical(asOf: string): Promise<SystemTotal[]>
       );
       for (const row of rows) {
         const key = `${row.currency_id}|CASH`;
-        const prev = parseAmt(map.get(key)?.balance);
-        const add = parseAmt(row.balance);
+        const merged = safeBigFromMoney(map.get(key)?.balance).plus(safeBigFromMoney(row.balance));
         map.set(key, {
           currency_id: row.currency_id,
           currency_code: row.currency_code,
           format: 'CASH',
-          balance: String(prev + add),
+          balance: merged.toString(),
         });
       }
     } catch {
@@ -177,11 +197,11 @@ function movementOutflowUsd(m: MovementListItem, arsPerUsd: number): number {
   const items = m.summary_items || [];
   const outs = items.filter((x) => x.side === 'OUT');
   const use = outs.length ? outs : items.filter((x) => x.side === 'IN');
-  let sum = 0;
+  let sum = new Big(0);
   for (const x of use) {
-    sum += amountToUsd(x.currency_code, parseAmt(x.amount), arsPerUsd);
+    sum = sum.plus(new Big(String(amountToUsd(x.currency_code, parseAmt(x.amount), arsPerUsd))));
   }
-  return sum;
+  return sum.toNumber();
 }
 
 type Periodo = 'dia' | 'semana' | 'mes';
@@ -201,14 +221,15 @@ function periodoRange(asOfDate: string, periodo: Periodo): { from: string; to: s
 }
 
 function currencySummary(rows: Array<{ currencyCode: string; balance: number }>): string {
-  const m = new Map<string, number>();
+  const m = new Map<string, Big>();
   for (const r of rows) {
     const code = (r.currencyCode || '').trim() || '?';
-    m.set(code, (m.get(code) ?? 0) + r.balance);
+    const cur = m.get(code) ?? new Big(0);
+    m.set(code, cur.plus(new Big(String(r.balance))));
   }
   const parts = Array.from(m.entries())
-    .filter(([, v]) => Math.abs(v) > 0.0005)
-    .map(([code, amt]) => `${code} ${formatMoneyAR(amt)}`);
+    .filter(([, v]) => v.abs().gt(0.0005))
+    .map(([code, amt]) => `${code} ${formatMoneyAR(amt.toNumber())}`);
   return parts.length ? parts.join(' · ') : '—';
 }
 
@@ -216,13 +237,13 @@ function sumMetricUsd(
   section: { by_currency?: Array<{ currency_code: string; amount: string }> } | undefined,
   arsPer: number,
 ): number {
-  let s = 0;
+  let acc = new Big(0);
   for (const row of section?.by_currency ?? []) {
     const code = row.currency_code || '';
     const n = parseAmt(row.amount);
-    s += amountToUsd(code, n, arsPer);
+    acc = acc.plus(new Big(String(amountToUsd(code, n, arsPer))));
   }
-  return s;
+  return acc.toNumber();
 }
 
 function Disclosure({
@@ -376,54 +397,67 @@ export default function PosicionIntegralPage() {
 
   const retirosPendUsd = useMemo(
     () =>
-      pendRetiroRows.reduce(
-        (acc, p) => acc + amountToUsd(p.currency_code, Math.abs(parseAmt(p.amount)), arsPerUsd),
-        0,
-      ),
+      pendRetiroRows
+        .reduce(
+          (acc, p) =>
+            acc.plus(new Big(String(amountToUsd(p.currency_code, Math.abs(parseAmt(p.amount)), arsPerUsd)))),
+          new Big(0),
+        )
+        .toNumber(),
     [pendRetiroRows, arsPerUsd],
   );
 
   const entregasPendUsd = useMemo(
     () =>
-      pendEntregaRows.reduce(
-        (acc, p) => acc + amountToUsd(p.currency_code, Math.abs(parseAmt(p.amount)), arsPerUsd),
-        0,
-      ),
+      pendEntregaRows
+        .reduce(
+          (acc, p) =>
+            acc.plus(new Big(String(amountToUsd(p.currency_code, Math.abs(parseAmt(p.amount)), arsPerUsd)))),
+          new Big(0),
+        )
+        .toNumber(),
     [pendEntregaRows, arsPerUsd],
   );
 
   const gastosPeriodoUsd = useMemo(() => {
     const confirmed = movGastos.filter((m) => m.status === 'CONFIRMADA');
-    return confirmed.reduce((acc, m) => acc + movementOutflowUsd(m, arsPerUsd), 0);
+    return confirmed
+      .reduce((acc, m) => acc.plus(new Big(String(movementOutflowUsd(m, arsPerUsd)))), new Big(0))
+      .toNumber();
   }, [movGastos, arsPerUsd]);
 
   const digitalUsd = useMemo(() => {
-    let s = 0;
+    let s = new Big(0);
     for (const acc of cashPos) {
       for (const b of acc.balances || []) {
         if (String(b.format).toUpperCase() !== 'DIGITAL') continue;
-        s += amountToUsd(b.currency_code, parseAmt(b.balance), arsPerUsd);
+        s = s.plus(new Big(String(amountToUsd(b.currency_code, parseAmt(b.balance), arsPerUsd))));
       }
     }
-    return s;
+    return s.toNumber();
   }, [cashPos, arsPerUsd]);
 
   const physicalUsd = useMemo(
     () =>
-      physicalTotals.reduce((acc, t) => acc + amountToUsd(t.currency_code, parseAmt(t.balance), arsPerUsd), 0),
+      physicalTotals
+        .reduce(
+          (acc, t) => acc.plus(new Big(String(amountToUsd(t.currency_code, parseAmt(t.balance), arsPerUsd)))),
+          new Big(0),
+        )
+        .toNumber(),
     [physicalTotals, arsPerUsd],
   );
 
   const totalBrutoUsd = physicalUsd + digitalUsd;
 
   const deudaCcNetaUsd = useMemo(() => {
-    let s = 0;
+    let s = new Big(0);
     for (const c of ccRows) {
       for (const b of c.balances || []) {
-        s += amountToUsd(b.currency_code, parseAmt(b.balance), arsPerUsd);
+        s = s.plus(new Big(String(amountToUsd(b.currency_code, parseAmt(b.balance), arsPerUsd))));
       }
     }
-    return s;
+    return s.toNumber();
   }, [ccRows, arsPerUsd]);
 
   const capitalPropioUsd = totalBrutoUsd + deudaCcNetaUsd - retirosPendUsd;
@@ -452,7 +486,7 @@ export default function PosicionIntegralPage() {
     return rows;
   }, [ccRows, arsPerUsd]);
 
-  const ccTotalUsd = ccFlatRows.reduce((a, r) => a + r.usd, 0);
+  const ccTotalUsd = ccFlatRows.reduce((a, r) => a.plus(new Big(String(r.usd))), new Big(0)).toNumber();
 
   const { cashDigitalRows, cashEfectivoRows } = useMemo(() => {
     type FlatRow = {
@@ -485,7 +519,7 @@ export default function PosicionIntegralPage() {
   function subtotalUsd(
     rows: Array<{ currencyCode: string; balance: number; usd: number }>,
   ) {
-    return rows.reduce((a, r) => a + r.usd, 0);
+    return rows.reduce((a, r) => a.plus(new Big(String(r.usd))), new Big(0)).toNumber();
   }
 
   const physicalByCurrency = useMemo(() => {
@@ -494,14 +528,18 @@ export default function PosicionIntegralPage() {
       const code = t.currency_code || '?';
       const amt = parseAmt(t.balance);
       const prev = m.get(code) || { code, amount: 0, usd: 0 };
-      prev.amount += amt;
-      prev.usd += amountToUsd(code, amt, arsPerUsd);
-      m.set(code, prev);
+      const nextAmt = new Big(String(prev.amount)).plus(new Big(String(amt)));
+      const nextUsd = new Big(String(prev.usd)).plus(
+        new Big(String(amountToUsd(code, amt, arsPerUsd))),
+      );
+      m.set(code, { code, amount: nextAmt.toNumber(), usd: nextUsd.toNumber() });
     }
     return Array.from(m.values());
   }, [physicalTotals, arsPerUsd]);
 
-  const physicalGrandUsd = physicalByCurrency.reduce((a, x) => a + x.usd, 0);
+  const physicalGrandUsd = physicalByCurrency
+    .reduce((a, x) => a.plus(new Big(String(x.usd))), new Big(0))
+    .toNumber();
 
   const pendRetiroFlatRows = useMemo(
     () =>
