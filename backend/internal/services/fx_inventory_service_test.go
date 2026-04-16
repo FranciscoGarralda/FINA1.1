@@ -76,11 +76,11 @@ func TestParseFxVentaRequireInventoryJSON(t *testing.T) {
 	if parseFxVentaRequireInventoryJSON("false") {
 		t.Fatal("false")
 	}
-	if !parseFxVentaRequireInventoryJSON("") {
-		t.Fatal("empty defaults true")
+	if parseFxVentaRequireInventoryJSON("") {
+		t.Fatal("empty defaults false")
 	}
-	if !parseFxVentaRequireInventoryJSON("not-json") {
-		t.Fatal("invalid json defaults true")
+	if parseFxVentaRequireInventoryJSON("not-json") {
+		t.Fatal("invalid json defaults false")
 	}
 }
 

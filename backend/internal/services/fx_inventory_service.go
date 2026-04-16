@@ -160,19 +160,20 @@ func (s *FxInventoryService) loadFunctionalCurrencyIDTx(ctx context.Context, tx 
 	return id, nil
 }
 
-// settingFxVentaRequireInventory: si true, VENTA y TRANSFERENCIA que delegan en applyVentaTx exigen stock en fx_positions.
-// Si false y hay faltante (cero o insuficiente), se omite el APPLY FX completo (todo o nada; sin consumo parcial).
+// settingFxVentaRequireInventory: opt-in. Solo con value_json = true se exige stock en fx_positions para applyVentaTx
+// (VENTA y TRANSFERENCIA que delegan en applyVentaTx). Si false, clave ausente o JSON inválido: con faltante de stock
+// se omite el APPLY FX completo (todo o nada; sin consumo parcial).
 const settingFxVentaRequireInventory = "fx_venta_require_inventory"
 
-// parseFxVentaRequireInventoryJSON interpreta value_json; ante vacío o JSON inválido devuelve true (comportamiento estricto).
+// parseFxVentaRequireInventoryJSON devuelve true únicamente cuando el JSON es el booleano true.
 func parseFxVentaRequireInventoryJSON(raw string) bool {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return true
+		return false
 	}
 	var b bool
 	if err := json.Unmarshal([]byte(raw), &b); err != nil {
-		return true
+		return false
 	}
 	return b
 }
@@ -183,7 +184,7 @@ func (s *FxInventoryService) loadFxVentaRequireInventoryTx(ctx context.Context, 
 		`SELECT value_json::text FROM system_settings WHERE key = $1`, settingFxVentaRequireInventory).Scan(&raw)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return true, nil
+			return false, nil
 		}
 		return false, err
 	}
