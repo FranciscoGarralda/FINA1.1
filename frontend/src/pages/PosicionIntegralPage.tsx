@@ -11,6 +11,10 @@ import { SkeletonCard, SkeletonTable } from '../components/common/Skeleton';
 
 const LS_COTIZ_USD = 'fina-cotizacion-usd';
 
+/** Tooltip A-13: aclara diferencia vs. fila «Gastos» del reporte por rango/conversión. */
+const GASTOS_DIA_MOVIMIENTOS_TOOLTIP =
+  'Suma de gastos CONFIRMADOS del día de corte, convertidos a USD con la cotización manual. Puede diferir de la fila «Gastos» del reporte por el rango de fechas y por diferencias de conversión o de agregación.';
+
 function readCotizFromStorage(): string {
   try {
     const v = localStorage.getItem(LS_COTIZ_USD);
@@ -736,11 +740,36 @@ export default function PosicionIntegralPage() {
             <p className="text-[11px] text-fg-muted mt-1">No resta del capital</p>
           </div>
           <div className="card-surface">
-            <h4 className="text-sm font-semibold text-fg-muted mb-1">Gastos del día (movimientos)</h4>
+            <h4 className="text-sm font-semibold text-fg-muted mb-1 flex items-center gap-1.5 min-w-0">
+              <span className="min-w-0">Gastos del día (movimientos)</span>
+              <button
+                type="button"
+                className="shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-full border border-subtle text-fg-muted hover:bg-surface hover:text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-app"
+                title={GASTOS_DIA_MOVIMIENTOS_TOOLTIP}
+                aria-label={`Información sobre gastos del día: ${GASTOS_DIA_MOVIMIENTOS_TOOLTIP}`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 16v-4" />
+                  <path d="M12 8h.01" />
+                </svg>
+              </button>
+            </h4>
             <p className="text-lg font-semibold text-fg">{formatMoneyAR(gastosPeriodoUsd)}</p>
             <p className="text-[11px] text-fg-muted mt-1">
-              Solo GASTO confirmados (CONFIRMADA), fecha = corte; conversión vía summary_items. No es la fila «Gastos»
-              del reporte por rango.
+              Solo movimientos GASTO en CONFIRMADA al corte. Pasá el cursor o foco sobre el (i) para comparar con «Gastos»
+              del reporte.
             </p>
           </div>
         </div>
