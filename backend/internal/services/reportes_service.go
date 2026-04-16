@@ -35,62 +35,67 @@ type ReportResponse struct {
 }
 
 func (s *ReportesService) Generate(ctx context.Context, from, to string) (*ReportResponse, error) {
-	utilidad, err := s.computeFXUtility(ctx, from, to)
+	utilidad, utilidadCodes, err := s.computeFXUtility(ctx, from, to)
 	if err != nil {
 		return nil, err
 	}
 
-	profit, err := s.computeProfit(ctx, from, to)
+	profit, profitCodes, err := s.computeProfit(ctx, from, to)
 	if err != nil {
 		return nil, err
 	}
 
-	gastos, err := s.computeGastos(ctx, from, to)
+	gastos, gastosCodes, err := s.computeGastos(ctx, from, to)
 	if err != nil {
 		return nil, err
 	}
 
 	resultado := s.computeResultado(utilidad, profit, gastos)
+	resultadoCodes := mergeCodesForResultado(utilidadCodes, profitCodes, gastosCodes)
 
 	return &ReportResponse{
-		Utilidad:  ReportSection{ByCurrency: mapToSlice(utilidad)},
-		Profit:    ReportSection{ByCurrency: mapToSlice(profit)},
-		Gastos:    ReportSection{ByCurrency: mapToSlice(gastos)},
-		Resultado: ReportSection{ByCurrency: mapToSlice(resultado)},
+		Utilidad:  ReportSection{ByCurrency: mapToSlice(utilidad, utilidadCodes)},
+		Profit:    ReportSection{ByCurrency: mapToSlice(profit, profitCodes)},
+		Gastos:    ReportSection{ByCurrency: mapToSlice(gastos, gastosCodes)},
+		Resultado: ReportSection{ByCurrency: mapToSlice(resultado, resultadoCodes)},
 	}, nil
 }
 
 // computeFXUtility suma utilidad realizada de inventario FX (solo COMPRA/VENTA) desde fx_inventory_ledger.
 // Incluye APPLY y REVERSE por fecha de operación del movimiento (anulaciones en el período netean).
-func (s *ReportesService) computeFXUtility(ctx context.Context, from, to string) (map[string]*big.Rat, error) {
+func (s *ReportesService) computeFXUtility(ctx context.Context, from, to string) (map[string]*big.Rat, map[string]string, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT l.functional_currency_id::text, COALESCE(SUM(l.realized_pnl_functional), 0)::text
+		`SELECT l.functional_currency_id::text, COALESCE(c.code, ''), COALESCE(SUM(l.realized_pnl_functional), 0)::text
 		 FROM fx_inventory_ledger l
 		 INNER JOIN movements m ON m.id = l.movement_id
+		 INNER JOIN currencies c ON c.id = l.functional_currency_id
 		 WHERE m.type IN ('COMPRA','VENTA')
+		   AND m.status = 'CONFIRMADA'
 		   AND m.date >= $1::date AND m.date <= $2::date
-		 GROUP BY l.functional_currency_id`, from, to)
+		 GROUP BY l.functional_currency_id, c.code`, from, to)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer rows.Close()
 
 	result := map[string]*big.Rat{}
+	codes := map[string]string{}
 	for rows.Next() {
-		var currID, amtStr string
-		if err := rows.Scan(&currID, &amtStr); err != nil {
-			return nil, err
+		var currID, code, amtStr string
+		if err := rows.Scan(&currID, &code, &amtStr); err != nil {
+			return nil, nil, err
 		}
 		amt, err := parseAggRat(amtStr, "utilidad_fx")
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		result[currID] = amt
+		codes[currID] = code
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return result, nil
+	return result, codes, nil
 }
 
 // parseAggRat valida SUM(...)::text para agregados de reportes (profit / gastos).
@@ -102,7 +107,7 @@ func parseAggRat(amtStr, label string) (*big.Rat, error) {
 	return amt, nil
 }
 
-func (s *ReportesService) computeProfit(ctx context.Context, from, to string) (map[string]*big.Rat, error) {
+func (s *ReportesService) computeProfit(ctx context.Context, from, to string) (map[string]*big.Rat, map[string]string, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT pe.currency_id::text, c.code, SUM(pe.amount)::text
 		 FROM profit_entries pe
@@ -112,27 +117,31 @@ func (s *ReportesService) computeProfit(ctx context.Context, from, to string) (m
 		   AND m.date >= $1::date AND m.date <= $2::date
 		 GROUP BY pe.currency_id, c.code`, from, to)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer rows.Close()
 
 	result := map[string]*big.Rat{}
+	codes := map[string]string{}
 	for rows.Next() {
 		var currID, code, amtStr string
 		if err := rows.Scan(&currID, &code, &amtStr); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		amt, err := parseAggRat(amtStr, "profit")
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		result[currID] = amt
-		_ = code
+		codes[currID] = code
 	}
-	return result, nil
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
+	}
+	return result, codes, nil
 }
 
-func (s *ReportesService) computeGastos(ctx context.Context, from, to string) (map[string]*big.Rat, error) {
+func (s *ReportesService) computeGastos(ctx context.Context, from, to string) (map[string]*big.Rat, map[string]string, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT ml.currency_id::text, c.code, SUM(ml.amount)::text
 		 FROM movement_lines ml
@@ -143,24 +152,28 @@ func (s *ReportesService) computeGastos(ctx context.Context, from, to string) (m
 		   AND m.date >= $1::date AND m.date <= $2::date
 		 GROUP BY ml.currency_id, c.code`, from, to)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer rows.Close()
 
 	result := map[string]*big.Rat{}
+	codes := map[string]string{}
 	for rows.Next() {
 		var currID, code, amtStr string
 		if err := rows.Scan(&currID, &code, &amtStr); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		amt, err := parseAggRat(amtStr, "gastos")
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		result[currID] = amt
-		_ = code
+		codes[currID] = code
 	}
-	return result, nil
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
+	}
+	return result, codes, nil
 }
 
 func (s *ReportesService) computeResultado(utilidad, profit, gastos map[string]*big.Rat) map[string]*big.Rat {
@@ -192,65 +205,51 @@ func (s *ReportesService) computeResultado(utilidad, profit, gastos map[string]*
 	return result
 }
 
-func mapToSlice(m map[string]*big.Rat) []CurrencyAmount {
+func mapToSlice(m map[string]*big.Rat, codes map[string]string) []CurrencyAmount {
 	if len(m) == 0 {
 		return []CurrencyAmount{}
 	}
 
-	// We need currency codes — we'll use a separate lookup approach
-	// Since we already have the data, we need to enrich with codes
 	items := make([]CurrencyAmount, 0, len(m))
 	for currID, amt := range m {
+		code := ""
+		if codes != nil {
+			code = codes[currID]
+		}
 		items = append(items, CurrencyAmount{
-			CurrencyID: currID,
-			Amount:     amt.FloatString(2),
+			CurrencyID:   currID,
+			CurrencyCode: code,
+			Amount:       amt.FloatString(2),
 		})
 	}
 	return items
 }
 
-func (s *ReportesService) GenerateWithCodes(ctx context.Context, from, to string) (*ReportResponse, error) {
-	resp, err := s.Generate(ctx, from, to)
-	if err != nil {
-		return nil, err
-	}
-
-	codeMap, err := s.loadCurrencyCodes(ctx)
-	if err != nil {
-		return nil, err
-	}
-	enrichCodes(resp.Utilidad.ByCurrency, codeMap)
-	enrichCodes(resp.Profit.ByCurrency, codeMap)
-	enrichCodes(resp.Gastos.ByCurrency, codeMap)
-	enrichCodes(resp.Resultado.ByCurrency, codeMap)
-
-	return resp, nil
-}
-
-func (s *ReportesService) loadCurrencyCodes(ctx context.Context) (map[string]string, error) {
-	rows, err := s.pool.Query(ctx, `SELECT id::text, code FROM currencies`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	m := make(map[string]string)
-	for rows.Next() {
-		var id, code string
-		if err := rows.Scan(&id, &code); err != nil {
-			return nil, err
-		}
-		m[id] = code
-	}
-	return m, rows.Err()
-}
-
-func enrichCodes(items []CurrencyAmount, codeMap map[string]string) {
-	for i := range items {
-		if code, ok := codeMap[items[i].CurrencyID]; ok {
-			items[i].CurrencyCode = code
+// mergeCodesForResultado une códigos por divisa para la sección resultado (mismas claves que computeResultado).
+func mergeCodesForResultado(utilidadCodes, profitCodes, gastosCodes map[string]string) map[string]string {
+	out := make(map[string]string)
+	for id, c := range utilidadCodes {
+		if c != "" {
+			out[id] = c
 		}
 	}
+	for id, c := range profitCodes {
+		if c == "" {
+			continue
+		}
+		if _, ok := out[id]; !ok || out[id] == "" {
+			out[id] = c
+		}
+	}
+	for id, c := range gastosCodes {
+		if c == "" {
+			continue
+		}
+		if _, ok := out[id]; !ok || out[id] == "" {
+			out[id] = c
+		}
+	}
+	return out
 }
 
 // DashboardDayMetrics cuatro secciones de un reporte de un solo día (sin estimated).
@@ -262,7 +261,7 @@ type DashboardDayMetrics struct {
 }
 
 // DashboardDailySummaryResponse compara el día de referencia con el día calendario anterior.
-// Misma lógica que GenerateWithCodes (módulo Reportes).
+// Misma lógica que Generate (reportes con currency_code por sección).
 type DashboardDailySummaryResponse struct {
 	ReferenceDate string              `json:"reference_date"`
 	CompareDate   string              `json:"compare_date"`
@@ -290,11 +289,11 @@ func (s *ReportesService) DailySummary(ctx context.Context, referenceDate string
 	dayStr := t.Format("2006-01-02")
 	prevStr := t.AddDate(0, 0, -1).Format("2006-01-02")
 
-	refRep, err := s.GenerateWithCodes(ctx, dayStr, dayStr)
+	refRep, err := s.Generate(ctx, dayStr, dayStr)
 	if err != nil {
 		return nil, err
 	}
-	cmpRep, err := s.GenerateWithCodes(ctx, prevStr, prevStr)
+	cmpRep, err := s.Generate(ctx, prevStr, prevStr)
 	if err != nil {
 		return nil, err
 	}

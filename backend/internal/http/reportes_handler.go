@@ -19,7 +19,7 @@ func reportesHandler(svc *services.ReportesService) http.HandlerFunc {
 			to = time.Now().Format("2006-01-02")
 		}
 
-		resp, err := svc.GenerateWithCodes(r.Context(), from, to)
+		resp, err := svc.Generate(r.Context(), from, to)
 		if err != nil {
 			RespondError(w, http.StatusInternalServerError, "INTERNAL", "Error al generar reporte.")
 			return
