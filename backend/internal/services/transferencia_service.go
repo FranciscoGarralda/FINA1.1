@@ -219,21 +219,13 @@ func validateDualLegCrossCurrencyAndQuote(ctx context.Context, pool *pgxpool.Poo
 	}
 
 	if outCID != functionalID && inCID == functionalID {
-		expIn, err := computeEquivalentFromQuote(outAmt, quoteRate, modeNorm)
-		if err != nil {
-			return nil, err
-		}
-		if inAmt.Cmp(expIn) != 0 {
+		if !cuadreTransfOK(outAmt, inAmt, quoteRate, modeNorm) {
 			return nil, ErrTransferQuoteMismatch
 		}
 		return &TransfQuote{Rate: strings.TrimSpace(q.Rate), CurrencyID: qcid, Mode: modeNorm}, nil
 	}
 	if outCID == functionalID && inCID != functionalID {
-		expOut, err := computeEquivalentFromQuote(inAmt, quoteRate, modeNorm)
-		if err != nil {
-			return nil, err
-		}
-		if outAmt.Cmp(expOut) != 0 {
+		if !cuadreTransfOK(inAmt, outAmt, quoteRate, modeNorm) {
 			return nil, ErrTransferQuoteMismatch
 		}
 		return &TransfQuote{Rate: strings.TrimSpace(q.Rate), CurrencyID: qcid, Mode: modeNorm}, nil

@@ -112,3 +112,25 @@ func cuadreCompraOK(equivalent, outSum, boughtAmt *big.Rat, rate *big.Rat, mode 
 	}
 	return r2(boughtAmt).Cmp(r2(implied)) == 0
 }
+
+// cuadreTransfOK: transferencia cross-funcional (base en divisa negociada, total en cotización = moneda funcional).
+// Vía (1) Round(computeEquivalentFromQuote(base,rate,mode),2) == Round(quoteTotal,2) o vía (2) implied base desde quoteTotal vs base.
+// Misma tolerancia 2 decimales que cuadreVentaOK/cuadreCompraOK.
+func cuadreTransfOK(baseAmt, quoteTotalAmt *big.Rat, rate *big.Rat, mode string) bool {
+	r2 := func(r *big.Rat) *big.Rat { return RoundRatToDecimalPlaces(r, 2) }
+	equiv, err := computeEquivalentFromQuote(baseAmt, rate, mode)
+	if err != nil {
+		return false
+	}
+	if r2(equiv).Cmp(r2(quoteTotalAmt)) == 0 {
+		return true
+	}
+	if quoteTotalAmt.Sign() <= 0 {
+		return false
+	}
+	implied, err := impliedBaseFromQuoteTotal(quoteTotalAmt, rate, mode)
+	if err != nil {
+		return false
+	}
+	return r2(baseAmt).Cmp(r2(implied)) == 0
+}

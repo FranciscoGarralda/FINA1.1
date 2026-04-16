@@ -172,3 +172,36 @@ func TestCuadreCompraOK_Path2Mirror(t *testing.T) {
 		t.Fatal("expected path2 accept compra")
 	}
 }
+
+// Mismo caso numérico que venta vía 2: base USD, total ARS funcional, tasa MULTIPLY.
+func TestCuadreTransfOK_Path2_2750000(t *testing.T) {
+	base, _ := new(big.Rat).SetString("1916.38")
+	total, _ := new(big.Rat).SetString("2750000")
+	rate, _ := new(big.Rat).SetString("1435")
+	equiv, _ := computeEquivalentFromQuote(base, rate, QuoteModeMultiply)
+	r2 := func(r *big.Rat) *big.Rat { return RoundRatToDecimalPlaces(r, 2) }
+	if r2(equiv).Cmp(r2(total)) == 0 {
+		t.Fatal("path1 should not match raw for this scenario")
+	}
+	if !cuadreTransfOK(base, total, rate, QuoteModeMultiply) {
+		t.Fatal("expected cuadreTransfOK path2")
+	}
+}
+
+func TestCuadreTransfOK_RejectWrongBase(t *testing.T) {
+	base, _ := new(big.Rat).SetString("2000.00")
+	total, _ := new(big.Rat).SetString("2750000")
+	rate, _ := new(big.Rat).SetString("1435")
+	if cuadreTransfOK(base, total, rate, QuoteModeMultiply) {
+		t.Fatal("expected reject")
+	}
+}
+
+func TestCuadreTransfOK_DivideMode(t *testing.T) {
+	base, _ := new(big.Rat).SetString("100")
+	rate, _ := new(big.Rat).SetString("2")
+	total, _ := computeEquivalentFromQuote(base, rate, QuoteModeDivide)
+	if !cuadreTransfOK(base, total, rate, QuoteModeDivide) {
+		t.Fatal("expected path1 exact for divide clean case")
+	}
+}
