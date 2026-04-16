@@ -221,7 +221,13 @@ func (s *PendingService) Resolve(ctx context.Context, pendingID string, input Re
 
 	// CC diferida: solo si al confirmar se omitió CC para este pendiente (cc_apply_on_resolve).
 	// Si el cliente deshabilitó CC después del alta, se completa la caja sin asiento CC (sin bloquear resolve).
-	// COMPENSATED no aplica aquí: pendientes con flag true cerrados por compensación quedan sin CC vía resolve (documentar en PR si aplica follow-up).
+	//
+	// Regla de negocio (Regla #21): COMPENSATED no aplica impacto CC diferido, nunca.
+	// Fundamento: COMPENSATED cierra el pendiente administrativamente referenciando otra operación
+	// como contrapartida (resolved_by_movement_id). No hay ejecución de caja real, por lo tanto
+	// no hay flujo de dinero que justifique un asiento CC. La responsabilidad CC quedó registrada
+	// en la operación referenciada. Si en el futuro el negocio decide aplicar CC también en
+	// COMPENSATED, crear ticket explícito — es cambio de regla, no corrección de bug.
 	if pending.CcEnabled && pending.CcApplyOnResolve && s.ccSvc != nil {
 		ccSide := strings.TrimSpace(pending.MovementLineSide)
 		if ccSide != ccSideIn && ccSide != ccSideOut {

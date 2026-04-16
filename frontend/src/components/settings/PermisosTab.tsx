@@ -98,7 +98,7 @@ export default function PermisosTab() {
           disabled={saving}
           className="px-4 py-1.5 bg-brand text-white text-sm rounded hover:bg-brand-hover disabled:opacity-50 transition"
         >
-          {saving ? 'Guardando...' : 'Guardar permisos'}
+          {saving ? 'Guardando...' : 'Guardar'}
         </button>
         {msg && (
           <span className={`text-xs ${msgType === 'ok' ? 'text-success' : 'text-error'}`}>

@@ -403,7 +403,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                   disabled={saving}
                   className="btn-touch bg-brand text-white rounded-md hover:bg-brand-hover disabled:opacity-50 font-medium"
                 >
-                  Guardar cambios
+                  Guardar
                 </button>
               ) : tab === 'seguridad' ? (
                 <button
@@ -412,7 +412,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                   disabled={saving}
                   className="btn-touch bg-brand text-white rounded-md hover:bg-brand-hover disabled:opacity-50 font-medium"
                 >
-                  Guardar seguridad
+                  Guardar
                 </button>
               ) : tab === 'permisos' && canEditPermissions ? (
                 <button
@@ -421,7 +421,7 @@ export default function UserFormModal({ user, onClose, onSaved }: Props) {
                   disabled={saving || permLoading}
                   className="btn-touch bg-brand text-white rounded-md hover:bg-brand-hover disabled:opacity-50 font-medium"
                 >
-                  Guardar permisos
+                  Guardar
                 </button>
               ) : null
             }

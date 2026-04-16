@@ -163,7 +163,7 @@ export default function UserPermissionsModal({ userId, username, onClose }: Prop
                 disabled={saving || loading || items.length === 0}
                 className="btn-touch bg-brand text-white rounded-md hover:bg-brand-hover disabled:opacity-50"
               >
-                {saving ? 'Guardando...' : 'Guardar permisos'}
+                {saving ? 'Guardando...' : 'Guardar'}
               </button>
             }
             secondary={

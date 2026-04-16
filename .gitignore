@@ -14,3 +14,7 @@ frontend/dist
 # Artefactos de compilación local (no versionar)
 backend/api
 frontend/*.tsbuildinfo
+
+.DS_Store
+**/.DS_Store
+frontend/.vite/

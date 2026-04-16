@@ -1,0 +1,19 @@
+---
+description: Tras commits, publicar en remoto para alinear repo local y nube (GitHub)
+alwaysApply: true
+---
+
+# Git: local y nube alineados
+
+## Obligatorio en modo Agent
+- Si la tarea incluye **`git commit`**, cerrar con **`git push`** a la rama de trabajo (p. ej. `git push origin main` o la rama actual) **salvo** que el usuario pida explícitamente no subir o haya un bloqueo (sin red, credenciales).
+- Tras el push, verificar con **`git fetch`** y que **`git status`** indique que la rama está al día con **`origin/<rama>`**.
+
+## Varios remotos
+- Si el repo tiene más de un remoto (`git remote -v`), repetir **`git push <remoto> <rama>`** para cada uno que el equipo use como fuente de verdad, para no dejar solo cambios locales en una copia.
+
+## Si el push falla
+- Informar el error (auth, rechazo, divergencia). No dar por cerrada la tarea “subida” sin push exitoso o instrucción explícita del usuario.
+
+## No sustituir
+- Esto no reemplaza revisiones, PR ni políticas de rama protegida del equipo; solo evita commits solo en disco cuando la intención es tener el remoto actualizado.

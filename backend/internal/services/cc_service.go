@@ -57,7 +57,7 @@ func (s *CCService) ApplyEntry(ctx context.Context, tx pgx.Tx, input ApplyCCEntr
 	}
 
 	entryID := input.MovementID
-	s.auditRepo.Insert(ctx, "cc_entry", &entryID, "create",
+	if err := s.auditRepo.InsertTx(ctx, tx, "cc_entry", &entryID, "create",
 		nil,
 		map[string]interface{}{
 			"client_id":   input.ClientID,
@@ -66,7 +66,9 @@ func (s *CCService) ApplyEntry(ctx context.Context, tx pgx.Tx, input ApplyCCEntr
 			"movement_id": input.MovementID,
 			"new_balance": newBalance,
 		},
-		callerID)
+		callerID); err != nil {
+		return "", fmt.Errorf("insert cc audit: %w", err)
+	}
 
 	return newBalance, nil
 }

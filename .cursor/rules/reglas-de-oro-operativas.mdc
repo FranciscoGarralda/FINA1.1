@@ -27,6 +27,7 @@ Aplicar siempre estas reglas ante cualquier cambio. Si hay conflicto entre rapid
 18. Cero secretos en el repositorio: jamas commitear `JWT_SECRET`, `DATABASE_URL`, claves API ni `.env` con credenciales; solo variables de entorno en hosting (Railway) o archivos gitignored localmente.
 19. CI como barrera: si el workflow define `go test`, lint, `govulncheck`, etc., no dar por cerrada la tarea con pipeline rojo salvo decision explicita, mitigacion y registro del riesgo residual (alineado con la regla 16).
 20. Despliegue y healthcheck: en produccion el API exige configuracion documentada (p. ej. `JWT_SECRET` fuerte, `DATABASE_URL` valida). Un healthcheck que falla por variables ausentes se corrige en el panel de hosting, no debilitando politicas de seguridad en codigo para "que levante".
+21. Pendientes COMPENSATED: cerrar sin impacto CC ni movimiento de caja. Solo MarkResolved + audit. El impacto CC corresponde a la operacion referenciada (resolved_by_movement_id), no al cierre administrativo. Si el negocio decide cambiar esta regla, requiere ticket explicito — no es un bug a corregir silenciosamente.
 
 ## Activacion rapida
 

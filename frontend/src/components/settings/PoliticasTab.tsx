@@ -133,7 +133,7 @@ export default function PoliticasTab() {
             disabled={!dirty || saving}
             className="bg-brand text-white px-4 py-2 rounded-md hover:bg-brand-hover disabled:opacity-50 text-sm font-medium"
           >
-            {saving ? 'Guardando...' : 'Guardar cambios'}
+            {saving ? 'Guardando...' : 'Guardar'}
           </button>
           <button
             onClick={handleCancel}
