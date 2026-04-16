@@ -160,6 +160,47 @@ func (s *FxInventoryService) loadFunctionalCurrencyIDTx(ctx context.Context, tx 
 	return id, nil
 }
 
+// settingFxVentaRequireInventory: si true, VENTA y TRANSFERENCIA que delegan en applyVentaTx exigen stock en fx_positions.
+// Si false y hay faltante (cero o insuficiente), se omite el APPLY FX completo (todo o nada; sin consumo parcial).
+const settingFxVentaRequireInventory = "fx_venta_require_inventory"
+
+// parseFxVentaRequireInventoryJSON interpreta value_json; ante vacío o JSON inválido devuelve true (comportamiento estricto).
+func parseFxVentaRequireInventoryJSON(raw string) bool {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return true
+	}
+	var b bool
+	if err := json.Unmarshal([]byte(raw), &b); err != nil {
+		return true
+	}
+	return b
+}
+
+func (s *FxInventoryService) loadFxVentaRequireInventoryTx(ctx context.Context, tx pgx.Tx) (bool, error) {
+	var raw string
+	err := tx.QueryRow(ctx,
+		`SELECT value_json::text FROM system_settings WHERE key = $1`, settingFxVentaRequireInventory).Scan(&raw)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return true, nil
+		}
+		return false, err
+	}
+	return parseFxVentaRequireInventoryJSON(raw), nil
+}
+
+// shouldOmitVentaFXInventoryApply: con inventario no exigido y faltante de stock, no se aplica FX (nil ledger / sin tocar posición).
+func shouldOmitVentaFXInventoryApply(requireInventory bool, posQty, tradedQty *big.Rat) bool {
+	if requireInventory {
+		return false
+	}
+	if tradedQty == nil || tradedQty.Sign() <= 0 {
+		return false
+	}
+	return posQty.Sign() <= 0 || posQty.Cmp(tradedQty) < 0
+}
+
 func (s *FxInventoryService) applyCompraTx(ctx context.Context, tx pgx.Tx, movementID, functionalID string, lines []repositories.MovementLineRow) error {
 	if err := s.ensureNoApplyLedgerTx(ctx, tx, movementID); err != nil {
 		return err
@@ -210,6 +251,13 @@ func (s *FxInventoryService) applyVentaTx(ctx context.Context, tx pgx.Tx, moveme
 	posQty, posCost, err := s.lockPositionTx(ctx, tx, tradedID)
 	if err != nil {
 		return err
+	}
+	requireInv, err := s.loadFxVentaRequireInventoryTx(ctx, tx)
+	if err != nil {
+		return err
+	}
+	if shouldOmitVentaFXInventoryApply(requireInv, posQty, tradedQty) {
+		return nil
 	}
 	if posQty.Sign() <= 0 || posQty.Cmp(tradedQty) < 0 {
 		return fmt.Errorf("%w: stock %s venta %s", ErrFXInsufficientInventory, ratTrimForFX(posQty), ratTrimForFX(tradedQty))

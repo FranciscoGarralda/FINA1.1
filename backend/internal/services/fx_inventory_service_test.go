@@ -69,6 +69,49 @@ func TestVentaRealizedMath(t *testing.T) {
 	}
 }
 
+func TestParseFxVentaRequireInventoryJSON(t *testing.T) {
+	if !parseFxVentaRequireInventoryJSON("true") {
+		t.Fatal("true")
+	}
+	if parseFxVentaRequireInventoryJSON("false") {
+		t.Fatal("false")
+	}
+	if !parseFxVentaRequireInventoryJSON("") {
+		t.Fatal("empty defaults true")
+	}
+	if !parseFxVentaRequireInventoryJSON("not-json") {
+		t.Fatal("invalid json defaults true")
+	}
+}
+
+func TestShouldOmitVentaFXInventoryApply(t *testing.T) {
+	qty := func(s string) *big.Rat {
+		r, _ := new(big.Rat).SetString(s)
+		return r
+	}
+	if shouldOmitVentaFXInventoryApply(true, qty("0"), qty("10")) {
+		t.Fatal("require true must not omit")
+	}
+	if shouldOmitVentaFXInventoryApply(true, qty("5"), qty("10")) {
+		t.Fatal("require true partial must not omit")
+	}
+	if !shouldOmitVentaFXInventoryApply(false, qty("0"), qty("10")) {
+		t.Fatal("require false zero stock should omit")
+	}
+	if !shouldOmitVentaFXInventoryApply(false, qty("5"), qty("10")) {
+		t.Fatal("require false partial should omit (all or nothing)")
+	}
+	if shouldOmitVentaFXInventoryApply(false, qty("10"), qty("10")) {
+		t.Fatal("require false exact should not omit")
+	}
+	if shouldOmitVentaFXInventoryApply(false, qty("100"), qty("10")) {
+		t.Fatal("require false surplus should not omit")
+	}
+	if shouldOmitVentaFXInventoryApply(false, qty("10"), nil) {
+		t.Fatal("nil traded should not omit")
+	}
+}
+
 func TestTransferenciaPrincipalLegLines(t *testing.T) {
 	lines := []repositories.MovementLineRow{
 		{Side: "OUT", CurrencyID: "usd", Amount: "100"},
