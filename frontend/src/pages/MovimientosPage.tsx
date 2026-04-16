@@ -7,6 +7,7 @@ import { SkeletonTable } from '../components/common/Skeleton';
 import FormActionsRow from '../components/common/FormActionsRow';
 import { movementTypeLabel } from '../utils/movementTypeLabels';
 import { formatMoneyAR } from '../utils/money';
+import { formatDate } from '../utils/dateFormat';
 import { MOVEMENTS_REFRESH_EVENT } from '../constants/appEvents';
 import { useAuth } from '../context/AuthContext';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
@@ -289,7 +290,7 @@ export default function MovimientosPage() {
                     onClick={() => navigate(`/movimientos/${m.id}`)}
                   >
                     <td className="px-3 py-2 font-mono text-fg">#{m.operation_number}</td>
-                    <td className="px-3 py-2 text-fg-muted">{m.date}</td>
+                    <td className="px-3 py-2 text-fg-muted">{formatDate(m.date)}</td>
                     <td className="px-3 py-2">
                       <span className="text-xs bg-surface text-fg px-1.5 py-0.5 rounded">
                         {movementTypeLabel(m.type)}

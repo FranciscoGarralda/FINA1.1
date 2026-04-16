@@ -14,6 +14,7 @@ import { useActiveAccounts } from '../hooks/useActiveAccounts';
 import { MOVEMENTS_REFRESH_EVENT } from '../constants/appEvents';
 import { allowedFormatsFromList, formatLabel, resolveFormat } from '../utils/accountCurrencyFormats';
 import { formatMoneyAR } from '../utils/money';
+import { formatDateTime, todayLocalIsoDate } from '../utils/dateFormat';
 import { pendingTypeLabel } from '../utils/pendingTypeLabels';
 
 interface PendingItem {
@@ -197,12 +198,7 @@ export default function PendientesPage() {
                   <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(item.amount)}</td>
                   <td className="px-3 py-2">{item.currency_code}</td>
                   <td className="px-3 py-2 text-fg-muted">{item.account_name}</td>
-                  <td className="px-3 py-2 text-fg-muted text-xs">
-                    {new Date(item.created_at).toLocaleString('es-AR', {
-                      day: '2-digit', month: '2-digit', year: '2-digit',
-                      hour: '2-digit', minute: '2-digit',
-                    })}
-                  </td>
+                  <td className="px-3 py-2 text-fg-muted text-xs">{formatDateTime(item.created_at)}</td>
                   <td className="px-3 py-2">
                     <span className="text-xs bg-warning-soft text-warning px-2 py-0.5 rounded font-medium">
                       Abierto
@@ -278,7 +274,7 @@ function OpeningPendingModal({ onClose, onDone }: { onClose: () => void; onDone:
   const [currencyId, setCurrencyId] = useState('');
   const [format, setFormat] = useState('CASH');
   const [amount, setAmount] = useState('');
-  const [dateStr, setDateStr] = useState(() => new Date().toISOString().slice(0, 10));
+  const [dateStr, setDateStr] = useState(() => todayLocalIsoDate());
   const [note, setNote] = useState('');
   const [accountCurrencies, setAccountCurrencies] = useState<AccountCurrencyRow[]>([]);
   const [submitting, setSubmitting] = useState(false);

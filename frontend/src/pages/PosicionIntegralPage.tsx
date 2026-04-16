@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Big from 'big.js';
 import { formatMoneyAR, normalizeMoneyInput } from '../utils/money';
+import { formatDate, todayLocalIsoDate, toLocalIsoDate } from '../utils/dateFormat';
 import { isPendingUserFacingRetiro, isPendingUserFacingEntrega } from '../utils/pendingTypeLabels';
 import type { ReportData, ReportMetricKey } from '../types/reportes';
 import { EmptyState } from '../components/common/EmptyState';
@@ -79,10 +80,6 @@ interface PendingListRow {
   status: string;
   client_name?: string;
   operation_number?: number;
-}
-
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 /** Si hay coma, miles/decimales es-AR vía normalizeMoneyInput; si no, decimal con punto (típico API). */
@@ -218,7 +215,7 @@ function periodoRange(asOfDate: string, periodo: Periodo): { from: string; to: s
   const dow = d.getDay();
   const diffToMonday = dow === 0 ? -6 : 1 - dow;
   d.setDate(d.getDate() + diffToMonday);
-  const from = d.toISOString().slice(0, 10);
+  const from = toLocalIsoDate(d);
   return { from, to: asOfDate };
 }
 
@@ -304,7 +301,7 @@ export default function PosicionIntegralPage() {
   const { can } = useAuth();
   const canReportes = can('reportes.view', ['SUPERADMIN', 'ADMIN', 'SUBADMIN']);
 
-  const [asOfDate, setAsOfDate] = useState(todayStr);
+  const [asOfDate, setAsOfDate] = useState(() => todayLocalIsoDate());
   const [cotizInput, setCotizInput] = useState(() => readCotizFromStorage());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -619,7 +616,9 @@ export default function PosicionIntegralPage() {
 
   const activeRangeLabel = (() => {
     const r = periodoRange(asOfDate, periodo);
-    return r.from === r.to ? `Período: ${r.from}` : `Período: ${r.from} – ${r.to}`;
+    return r.from === r.to
+      ? `Período: ${formatDate(r.from)}`
+      : `Período: ${formatDate(r.from)} – ${formatDate(r.to)}`;
   })();
 
   return (
@@ -853,7 +852,7 @@ export default function PosicionIntegralPage() {
         <Disclosure
           id="arqueo"
           title="Arqueo físico (sistema CASH consolidado)"
-          subtitle={`Suma system-totals por cuenta al ${asOfDate}; solo filas CASH`}
+          subtitle={`Suma system-totals por cuenta al ${formatDate(asOfDate)}; solo filas CASH`}
           totalLabel="Por divisa"
           totalValue={currencySummary(physicalByCurrency.map((r) => ({ currencyCode: r.code, balance: r.amount })))}
         >
