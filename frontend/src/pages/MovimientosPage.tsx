@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
 import { EmptyState } from '../components/common/EmptyState';
+import { StatusBadge } from '../components/common/StatusBadge';
 import { SkeletonTable } from '../components/common/Skeleton';
 import FormActionsRow from '../components/common/FormActionsRow';
 import { movementTypeLabel } from '../utils/movementTypeLabels';
@@ -114,10 +115,6 @@ export default function MovimientosPage() {
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
   const canStartCorrection = can('operations.create_header', ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR']);
   const canCancelOperation = can('pending.cancel', ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR', 'COURIER']);
-
-  function displayStatus(status: string) {
-    return status === 'CANCELADA' ? 'ANULADA' : status;
-  }
 
   function normalizeStatusForError(status: number | undefined) {
     if (status === 403) return 'No tenés permisos para iniciar esta acción.';
@@ -303,15 +300,7 @@ export default function MovimientosPage() {
                       ) : m.resumen}
                     </td>
                     <td className="px-3 py-2 space-x-1">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                        m.status === 'CANCELADA'
-                          ? 'bg-error-soft text-error'
-                          : m.status === 'BORRADOR'
-                            ? 'bg-amber-50 text-amber-700'
-                            : 'bg-success-soft text-success'
-                      }`}>
-                        {displayStatus(m.status)}
-                      </span>
+                      <StatusBadge status={m.status} />
                       {m.has_open_pending && (
                         <span className="text-xs bg-warning-soft text-warning px-1.5 py-0.5 rounded font-medium">
                           Pendiente

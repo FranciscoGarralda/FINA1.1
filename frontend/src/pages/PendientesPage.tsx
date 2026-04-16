@@ -7,6 +7,7 @@ import ClientSearchCombo from '../components/common/ClientSearchCombo';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
 import { EmptyState } from '../components/common/EmptyState';
 import { SkeletonTable } from '../components/common/Skeleton';
+import { StatusBadge } from '../components/common/StatusBadge';
 import FormActionsRow from '../components/common/FormActionsRow';
 import MoneyInput from '../components/common/MoneyInput';
 import { useAuth } from '../context/AuthContext';
@@ -200,9 +201,7 @@ export default function PendientesPage() {
                   <td className="px-3 py-2 text-fg-muted">{item.account_name}</td>
                   <td className="px-3 py-2 text-fg-muted text-xs">{formatDateTime(item.created_at)}</td>
                   <td className="px-3 py-2">
-                    <span className="text-xs bg-warning-soft text-warning px-2 py-0.5 rounded font-medium">
-                      Abierto
-                    </span>
+                    <StatusBadge status={item.status} />
                   </td>
                   <td className="px-3 py-2 align-top w-[1%] min-w-0 sm:min-w-[11rem]">
                     <div className="flex min-w-0 w-full flex-col items-stretch gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">

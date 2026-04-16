@@ -9,6 +9,7 @@ import FormActionsRow from '../components/common/FormActionsRow';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { useModalFocusTrap } from '../hooks/useModalFocusTrap';
 import { SkeletonCard, SkeletonTable } from '../components/common/Skeleton';
+import { StatusBadge } from '../components/common/StatusBadge';
 
 interface MovementLine {
   id: string;
@@ -149,10 +150,6 @@ export default function MovimientoDetallePage() {
     );
   }
 
-  function displayStatus(status: string) {
-    return status === 'CANCELADA' ? 'ANULADA' : status;
-  }
-
   function normalizeStatusForError(status: number | undefined) {
     if (status === 403) return 'No tenés permisos para iniciar esta acción.';
     if (status === 404) return 'La operación no existe o no está disponible.';
@@ -209,13 +206,7 @@ export default function MovimientoDetallePage() {
             <h2 className="text-lg font-semibold text-fg min-w-0 break-words">
               Operación #{detail.operation_number}
             </h2>
-            <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-              detail.status === 'CANCELADA'
-                ? 'bg-error-soft text-error'
-                : 'bg-success-soft text-success'
-            }`}>
-              {displayStatus(detail.status)}
-            </span>
+            <StatusBadge status={detail.status} />
           </div>
           {(canStartCorrection || canCancelOperation) && detail.status === 'CONFIRMADA' && (
             <FormActionsRow variant="table">
