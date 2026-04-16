@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import ClientFormModal from '../components/clients/ClientFormModal';
@@ -57,7 +58,7 @@ export default function ClientesPage() {
       await api.put(`/clients/${c.id}/active`, { active: !c.active });
       setClients((prev) => prev.map((x) => (x.id === c.id ? { ...x, active: !x.active } : x)));
     } catch (err: unknown) {
-      alert((err as { message?: string })?.message || 'Error al cambiar estado');
+      toast.error((err as { message?: string })?.message || 'Error al cambiar estado');
     }
   };
 

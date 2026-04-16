@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import UserFormModal from '../components/users/UserFormModal';
@@ -37,7 +38,7 @@ export default function UsuariosPage() {
       await api.put(`/users/${user.id}/active`, { active: !user.active });
       setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, active: !u.active } : u)));
     } catch (err: any) {
-      alert(err?.message || 'Error al cambiar estado');
+      toast.error(err?.message || 'Error al cambiar estado');
     }
   };
 

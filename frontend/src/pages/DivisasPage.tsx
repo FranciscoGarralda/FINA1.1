@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import CurrencyFormModal from '../components/currencies/CurrencyFormModal';
@@ -41,7 +42,7 @@ export default function DivisasPage() {
       await api.put(`/currencies/${c.id}/active`, { active: !c.active });
       setCurrencies((prev) => prev.map((x) => (x.id === c.id ? { ...x, active: !x.active } : x)));
     } catch (err: any) {
-      alert(err?.message || 'Error al cambiar estado');
+      toast.error(err?.message || 'Error al cambiar estado');
     }
   };
 

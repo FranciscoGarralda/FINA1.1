@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import AccountFormModal from '../components/accounts/AccountFormModal';
@@ -43,7 +44,7 @@ export default function CuentasPage() {
       await api.put(`/accounts/${a.id}/active`, { active: !a.active });
       setAccounts((prev) => prev.map((x) => (x.id === a.id ? { ...x, active: !x.active } : x)));
     } catch (err: any) {
-      alert(err?.message || 'Error al cambiar estado');
+      toast.error(err?.message || 'Error al cambiar estado');
     }
   };
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 
@@ -51,7 +52,7 @@ function EntitySection({ entityKey, title, endpoint, displayFn }: (typeof ENTITY
       await api.put(`/${entityKey}/${item.id}/active`, { active: !item.active });
       setItems((prev) => prev.map((e) => (e.id === item.id ? { ...e, active: !e.active } : e)));
     } catch (err: any) {
-      alert(err?.message || 'Error al cambiar estado');
+      toast.error(err?.message || 'Error al cambiar estado');
     }
   };
 

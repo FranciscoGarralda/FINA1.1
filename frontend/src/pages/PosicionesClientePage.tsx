@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useParams } from 'react-router-dom';
 import { api, downloadAuthenticated } from '../api/client';
 import ApiErrorBanner from '../components/common/ApiErrorBanner';
@@ -109,7 +110,7 @@ export default function PosicionesClientePage() {
       await downloadAuthenticated(`/cc-entries/export.csv?${q.toString()}`, 'cc_export.csv');
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'No se pudo exportar.';
-      window.alert(msg);
+      toast.error(msg);
     } finally {
       setExporting(false);
     }
