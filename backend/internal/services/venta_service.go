@@ -83,12 +83,12 @@ func (s *VentaService) Execute(ctx context.Context, movementID string, input Ven
 		return ErrCuadreNotMatch
 	}
 
-	if input.Out.Format != "CASH" && input.Out.Format != "DIGITAL" {
-		return ErrInvalidAmount
+	if err := validateFormat(input.Out.Format); err != nil {
+		return err
 	}
 	for _, in_ := range input.Ins {
-		if in_.Format != "CASH" && in_.Format != "DIGITAL" {
-			return ErrInvalidAmount
+		if err := validateFormat(in_.Format); err != nil {
+			return err
 		}
 	}
 
@@ -101,22 +101,9 @@ func (s *VentaService) Execute(ctx context.Context, movementID string, input Ven
 		}
 	}
 
-	var movType, movStatus, clientID string
-	var ccEnabled bool
-	err = s.pool.QueryRow(ctx,
-		`SELECT m.type, m.status, m.client_id::text, c.cc_enabled
-		 FROM movements m
-		 JOIN clients c ON c.id = m.client_id
-		 WHERE m.id = $1`, movementID).
-		Scan(&movType, &movStatus, &clientID, &ccEnabled)
+	_, _, clientID, ccEnabled, err := lookupMovementForExecution(ctx, s.pool, movementID, "VENTA")
 	if err != nil {
-		return ErrMovementNotFound
-	}
-	if movType != "VENTA" {
-		return ErrMovementTypeMismatch
-	}
-	if movStatus != MovementStatusDraft {
-		return ErrMovementNotDraft
+		return err
 	}
 
 	tx, err := s.pool.Begin(ctx)

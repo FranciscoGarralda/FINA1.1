@@ -89,12 +89,12 @@ func (s *CompraService) Execute(ctx context.Context, movementID string, input Co
 		return ErrCuadreNotMatch
 	}
 
-	if input.In.Format != "CASH" && input.In.Format != "DIGITAL" {
-		return ErrInvalidAmount
+	if err := validateFormat(input.In.Format); err != nil {
+		return err
 	}
 	for _, out := range input.Outs {
-		if out.Format != "CASH" && out.Format != "DIGITAL" {
-			return ErrInvalidAmount
+		if err := validateFormat(out.Format); err != nil {
+			return err
 		}
 	}
 
@@ -108,23 +108,9 @@ func (s *CompraService) Execute(ctx context.Context, movementID string, input Co
 		}
 	}
 
-	// Verify movement exists and is COMPRA
-	var movType, movStatus, clientID string
-	var ccEnabled bool
-	err = s.pool.QueryRow(ctx,
-		`SELECT m.type, m.status, m.client_id::text, c.cc_enabled
-		 FROM movements m
-		 JOIN clients c ON c.id = m.client_id
-		 WHERE m.id = $1`, movementID).
-		Scan(&movType, &movStatus, &clientID, &ccEnabled)
+	_, _, clientID, ccEnabled, err := lookupMovementForExecution(ctx, s.pool, movementID, "COMPRA")
 	if err != nil {
-		return ErrMovementNotFound
-	}
-	if movType != "COMPRA" {
-		return ErrMovementTypeMismatch
-	}
-	if movStatus != MovementStatusDraft {
-		return ErrMovementNotDraft
+		return err
 	}
 
 	tx, err := s.pool.Begin(ctx)
