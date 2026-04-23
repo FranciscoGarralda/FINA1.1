@@ -239,7 +239,7 @@ export default function ClientFormModal({ client, onClose, onSaved }: Props) {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
               <div>
                 <label className="block text-sm font-medium text-fg mb-1">Número del contacto de referencia</label>
                 <input type="tel" value={referenceContact} onChange={(e) => setReferenceContact(e.target.value)} className={inputCls} required autoComplete="tel" />
