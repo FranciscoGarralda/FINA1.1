@@ -11,7 +11,6 @@ import {
 } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import ThemeToggle from '../common/ThemeToggle';
 
 type NavItemDef = { to: string; label: string; permission: string; icon: ReactNode };
 
@@ -159,7 +158,7 @@ const NAV_ITEMS: NavItemDef[] = [
   {
     to: '/configuracion',
     label: 'Configuración',
-    permission: 'settings.view',
+    permission: 'dashboard.view',
     icon: (
       <>
         <path
@@ -494,10 +493,6 @@ export default function AppLayout() {
         </nav>
 
         <div className="border-t border-subtle px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] space-y-3">
-          <div className="flex items-center justify-between gap-3 min-h-[44px]">
-            <span className="text-sm text-fg-muted">Tema</span>
-            <ThemeToggle className="min-h-[44px] min-w-[44px] shrink-0" />
-          </div>
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs border border-subtle bg-surface text-fg-muted px-2 py-1 rounded-control truncate">{role}</span>
             <button

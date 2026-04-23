@@ -20,10 +20,10 @@ import UsuariosPage from './pages/UsuariosPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
 import MiPerfilPage from './pages/MiPerfilPage';
 import AppLayout from './components/layout/AppLayout';
+import { DASHBOARD_ROLES } from './constants/dashboardAccess';
 
 const FORCED_INITIAL_ROUTE = '/inicio';
 const FORBIDDEN_ROUTE = '/forbidden';
-const DASHBOARD_ROLES = ['SUPERADMIN', 'ADMIN', 'SUBADMIN', 'OPERATOR', 'COURIER'];
 
 function ForbiddenBanner() {
   const [visible, setVisible] = useState(true);
@@ -108,7 +108,7 @@ export default function App() {
         <Route
           path="/inicio"
           element={
-            <ProtectedRoute requiredPermission="dashboard.view" fallbackRoles={DASHBOARD_ROLES}>
+            <ProtectedRoute requiredPermission="dashboard.view" fallbackRoles={[...DASHBOARD_ROLES]}>
               <InicioPage />
             </ProtectedRoute>
           }
@@ -230,7 +230,7 @@ export default function App() {
         <Route
           path="/configuracion"
           element={
-            <ProtectedRoute requiredPermission="settings.view" fallbackRoles={['SUPERADMIN', 'ADMIN', 'SUBADMIN']}>
+            <ProtectedRoute requiredPermission="dashboard.view" fallbackRoles={[...DASHBOARD_ROLES]}>
               <ConfiguracionPage />
             </ProtectedRoute>
           }
