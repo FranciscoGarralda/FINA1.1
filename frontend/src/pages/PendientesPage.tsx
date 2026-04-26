@@ -618,7 +618,8 @@ function ResolveModal({ item, initialMode, onClose, onDone }: { item: PendingIte
       <div className="modal-panel modal-enter max-w-md p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <h3 className="text-lg font-semibold text-fg mb-1">Resolver pendiente</h3>
         <p className="text-sm text-fg-muted mb-4">
-          {item.client_name} — {item.currency_code} {formatMoneyAR(item.amount)} ({pendingTypeLabel(item.type)})
+          {item.client_name} — {item.currency_code} {formatMoneyAR(item.amount)} (
+          {pendingTypeLabel(item.type, item.movement_type)})
         </p>
         {mode === 'REAL_EXECUTION' ? (
           <p className="text-xs text-fg-muted mb-4">{impactLabel}</p>

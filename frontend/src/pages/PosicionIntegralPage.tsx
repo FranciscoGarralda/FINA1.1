@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Big from 'big.js';
 import { formatMoneyAR, normalizeMoneyInput } from '../utils/money';
 import { formatDate, todayLocalIsoDate, toLocalIsoDate } from '../utils/dateFormat';
-import { isPendingUserFacingRetiro, isPendingUserFacingEntrega } from '../utils/pendingTypeLabels';
+import { isPendingPorCobrar, isPendingPorPagar } from '../utils/pendingTypeLabels';
 import type { ReportData, ReportMetricKey } from '../types/reportes';
 import { EmptyState } from '../components/common/EmptyState';
 import { SkeletonCard, SkeletonTable } from '../components/common/Skeleton';
@@ -314,8 +314,8 @@ export default function PosicionIntegralPage() {
   const [ccRows, setCcRows] = useState<CCBalanceSummary[]>([]);
   const [cashPos, setCashPos] = useState<CashPositionAccount[]>([]);
   const [physicalTotals, setPhysicalTotals] = useState<SystemTotal[]>([]);
-  const [pendRetiroRows, setPendRetiroRows] = useState<PendingListRow[]>([]);
-  const [pendEntregaRows, setPendEntregaRows] = useState<PendingListRow[]>([]);
+  const [pendPorPagarRows, setPendPorPagarRows] = useState<PendingListRow[]>([]);
+  const [pendPorCobrarRows, setPendPorCobrarRows] = useState<PendingListRow[]>([]);
   const [movGastos, setMovGastos] = useState<MovementListItem[]>([]);
 
   const [reporteDia, setReporteDia] = useState<ReportData | null>(null);
@@ -375,11 +375,11 @@ export default function PosicionIntegralPage() {
       setCashPos(Array.isArray(pos) ? pos : []);
       setPhysicalTotals(phys);
       const pend = Array.isArray(pendAll) ? pendAll : [];
-      setPendRetiroRows(
-        pend.filter((p) => p.status === 'ABIERTO' && isPendingUserFacingRetiro(p.type, p.movement_type)),
+      setPendPorCobrarRows(
+        pend.filter((p) => p.status === 'ABIERTO' && isPendingPorCobrar(p.type, p.movement_type)),
       );
-      setPendEntregaRows(
-        pend.filter((p) => p.status === 'ABIERTO' && isPendingUserFacingEntrega(p.type, p.movement_type)),
+      setPendPorPagarRows(
+        pend.filter((p) => p.status === 'ABIERTO' && isPendingPorPagar(p.type, p.movement_type)),
       );
       setMovGastos(Array.isArray(gastosAll) ? gastosAll : []);
       setReporteDia(rDia);
@@ -398,28 +398,28 @@ export default function PosicionIntegralPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const retirosPendUsd = useMemo(
+  const porCobrarPendUsd = useMemo(
     () =>
-      pendRetiroRows
+      pendPorCobrarRows
         .reduce(
           (acc, p) =>
             acc.plus(new Big(String(amountToUsd(p.currency_code, Math.abs(parseAmt(p.amount)), arsPerUsd)))),
           new Big(0),
         )
         .toNumber(),
-    [pendRetiroRows, arsPerUsd],
+    [pendPorCobrarRows, arsPerUsd],
   );
 
-  const entregasPendUsd = useMemo(
+  const porPagarPendUsd = useMemo(
     () =>
-      pendEntregaRows
+      pendPorPagarRows
         .reduce(
           (acc, p) =>
             acc.plus(new Big(String(amountToUsd(p.currency_code, Math.abs(parseAmt(p.amount)), arsPerUsd)))),
           new Big(0),
         )
         .toNumber(),
-    [pendEntregaRows, arsPerUsd],
+    [pendPorPagarRows, arsPerUsd],
   );
 
   const gastosPeriodoUsd = useMemo(() => {
@@ -463,7 +463,7 @@ export default function PosicionIntegralPage() {
     return s.toNumber();
   }, [ccRows, arsPerUsd]);
 
-  const capitalPropioUsd = totalBrutoUsd + deudaCcNetaUsd - retirosPendUsd;
+  const capitalPropioUsd = totalBrutoUsd + deudaCcNetaUsd + porCobrarPendUsd - porPagarPendUsd;
 
   const ccFlatRows = useMemo(() => {
     const rows: Array<{
@@ -544,28 +544,28 @@ export default function PosicionIntegralPage() {
     .reduce((a, x) => a.plus(new Big(String(x.usd))), new Big(0))
     .toNumber();
 
-  const pendRetiroFlatRows = useMemo(
+  const pendPorCobrarFlatRows = useMemo(
     () =>
-      pendRetiroRows.map((p) => ({
+      pendPorCobrarRows.map((p) => ({
         id: p.id,
         clientLabel: p.client_name?.trim() || (p.operation_number != null ? `#${p.operation_number}` : '—'),
         currency: p.currency_code,
         amount: Math.abs(parseAmt(p.amount)),
         usd: amountToUsd(p.currency_code, Math.abs(parseAmt(p.amount)), arsPerUsd),
       })),
-    [pendRetiroRows, arsPerUsd],
+    [pendPorCobrarRows, arsPerUsd],
   );
 
-  const pendEntregaFlatRows = useMemo(
+  const pendPorPagarFlatRows = useMemo(
     () =>
-      pendEntregaRows.map((p) => ({
+      pendPorPagarRows.map((p) => ({
         id: p.id,
         clientLabel: p.client_name?.trim() || (p.operation_number != null ? `#${p.operation_number}` : '—'),
         currency: p.currency_code,
         amount: Math.abs(parseAmt(p.amount)),
         usd: amountToUsd(p.currency_code, Math.abs(parseAmt(p.amount)), arsPerUsd),
       })),
-    [pendEntregaRows, arsPerUsd],
+    [pendPorPagarRows, arsPerUsd],
   );
 
   const reporteActivo = useMemo(() => {
@@ -655,9 +655,9 @@ export default function PosicionIntegralPage() {
           </button>
         </div>
         <p className="text-xs text-fg-muted max-w-3xl leading-relaxed">
-          <strong className="text-fg-muted">Capital propio</strong> = Bruto caja + CC neta − Retiros pend. (USD equiv.
-          con cotización manual). Las entregas pendientes se listan aparte y <strong>no restan</strong> del capital.
-          EUR en USD: — hasta definir tipo cruzado.
+          <strong className="text-fg-muted">Capital propio</strong> = Bruto caja + CC neta + Por cobrar pend. − Por
+          pagar pend. (USD equiv. con cotización manual). «Por cobrar» = la casa va a recibir (suma); «Por pagar» = la
+          casa va a entregar (resta). EUR en USD: — hasta definir tipo cruzado.
         </p>
       </div>
 
@@ -731,13 +731,14 @@ export default function PosicionIntegralPage() {
             </p>
           </div>
           <div className="card-surface">
-            <h4 className="text-sm font-semibold text-fg-muted mb-1">Retiros pendientes (USD)</h4>
-            <p className="text-lg font-semibold text-fg">{formatMoneyAR(retirosPendUsd)}</p>
+            <h4 className="text-sm font-semibold text-fg-muted mb-1">Por cobrar pendientes (USD)</h4>
+            <p className="text-lg font-semibold text-success">{formatMoneyAR(porCobrarPendUsd)}</p>
+            <p className="text-[11px] text-fg-muted mt-1">Suma al capital</p>
           </div>
           <div className="card-surface">
-            <h4 className="text-sm font-semibold text-fg-muted mb-1">Entregas pendientes (USD)</h4>
-            <p className="text-lg font-semibold text-fg">{formatMoneyAR(entregasPendUsd)}</p>
-            <p className="text-[11px] text-fg-muted mt-1">No resta del capital</p>
+            <h4 className="text-sm font-semibold text-fg-muted mb-1">Por pagar pendientes (USD)</h4>
+            <p className="text-lg font-semibold text-error">{formatMoneyAR(porPagarPendUsd)}</p>
+            <p className="text-[11px] text-fg-muted mt-1">Resta del capital</p>
           </div>
           <div className="card-surface">
             <h4 className="text-sm font-semibold text-fg-muted mb-1 flex items-center gap-1.5 min-w-0">
@@ -780,8 +781,8 @@ export default function PosicionIntegralPage() {
           <h3 className="text-sm font-semibold text-fg-muted mb-1">Capital propio (USD)</h3>
           <p className="text-2xl font-bold text-fg">{formatMoneyAR(capitalPropioUsd)}</p>
           <p className="text-xs text-fg-muted mt-1">
-            = Bruto {formatMoneyAR(totalBrutoUsd)} + CC {formatMoneyAR(deudaCcNetaUsd)} − Retiros{' '}
-            {formatMoneyAR(retirosPendUsd)}
+            = Bruto {formatMoneyAR(totalBrutoUsd)} + CC {formatMoneyAR(deudaCcNetaUsd)} + Por cobrar{' '}
+            {formatMoneyAR(porCobrarPendUsd)} − Por pagar {formatMoneyAR(porPagarPendUsd)}
           </p>
           <span className={`mt-2 inline-block ${capitalPropioUsd >= 0 ? 'badge-success' : 'badge-error'}`}>
             {capitalPropioUsd >= 0 ? 'Positivo' : 'Negativo'}
@@ -920,14 +921,15 @@ export default function PosicionIntegralPage() {
         </Disclosure>
 
         <Disclosure
-          id="pend-retiro"
-          title="Pendientes — Retiro"
-          subtitle="Obligaciones que en Pendientes se muestran como «Retiro» (restan del capital)"
+          id="pend-por-cobrar"
+          title="Pendientes — Por cobrar"
+          subtitle="Derechos a cobrar (la casa va a recibir) — suman al capital"
           totalLabel="En USD"
-          totalValue={formatMoneyAR(retirosPendUsd)}
+          totalValue={formatMoneyAR(porCobrarPendUsd)}
+          totalValueClassName="text-success"
         >
-          {pendRetiroFlatRows.length === 0 ? (
-            <EmptyState variant="inline" message="No hay pendientes de retiro abiertos." title="Sin pendientes" />
+          {pendPorCobrarFlatRows.length === 0 ? (
+            <EmptyState variant="inline" message="No hay pendientes por cobrar abiertos." title="Sin pendientes" />
           ) : (
             <div className="table-scroll rounded border border-subtle">
               <table className="w-full text-sm">
@@ -940,7 +942,7 @@ export default function PosicionIntegralPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pendRetiroFlatRows.map((r) => (
+                  {pendPorCobrarFlatRows.map((r) => (
                     <tr key={r.id} className="border-b border-subtle/60 last:border-0">
                       <td className="px-3 py-2 text-fg">{r.clientLabel}</td>
                       <td className="px-3 py-2 font-medium">{r.currency}</td>
@@ -954,7 +956,7 @@ export default function PosicionIntegralPage() {
                     <td className="px-3 py-2" colSpan={3}>
                       Total
                     </td>
-                    <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(retirosPendUsd)}</td>
+                    <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(porCobrarPendUsd)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -963,14 +965,15 @@ export default function PosicionIntegralPage() {
         </Disclosure>
 
         <Disclosure
-          id="pend-entrega"
-          title="Pendientes — Entrega"
-          subtitle="Compromisos de entrega de divisa (referencia — no resta del capital)"
+          id="pend-por-pagar"
+          title="Pendientes — Por pagar"
+          subtitle="Obligaciones a pagar (la casa va a entregar) — restan del capital"
           totalLabel="En USD"
-          totalValue={formatMoneyAR(entregasPendUsd)}
+          totalValue={formatMoneyAR(porPagarPendUsd)}
+          totalValueClassName="text-error"
         >
-          {pendEntregaFlatRows.length === 0 ? (
-            <EmptyState variant="inline" message="No hay pendientes de entrega abiertos." title="Sin pendientes" />
+          {pendPorPagarFlatRows.length === 0 ? (
+            <EmptyState variant="inline" message="No hay pendientes por pagar abiertos." title="Sin pendientes" />
           ) : (
             <div className="table-scroll rounded border border-subtle">
               <table className="w-full text-sm">
@@ -983,7 +986,7 @@ export default function PosicionIntegralPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pendEntregaFlatRows.map((r) => (
+                  {pendPorPagarFlatRows.map((r) => (
                     <tr key={r.id} className="border-b border-subtle/60 last:border-0">
                       <td className="px-3 py-2 text-fg">{r.clientLabel}</td>
                       <td className="px-3 py-2 font-medium">{r.currency}</td>
@@ -997,7 +1000,7 @@ export default function PosicionIntegralPage() {
                     <td className="px-3 py-2" colSpan={3}>
                       Total
                     </td>
-                    <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(entregasPendUsd)}</td>
+                    <td className="px-3 py-2 text-right font-mono">{formatMoneyAR(porPagarPendUsd)}</td>
                   </tr>
                 </tfoot>
               </table>

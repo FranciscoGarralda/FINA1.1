@@ -713,9 +713,18 @@ export default function NuevaOperacionPage() {
   function renderOperationForm() {
     if (!movementId || !type) return null;
     const key = `${movementId}-${type}-${formRemountKey}`;
+    const selectedClient = clients.find((c) => c.id === clientId);
     switch (type) {
       case 'COMPRA':
-        return <CompraForm key={key} movementId={movementId} onDone={handleDone} onCancel={handleCancelDraft} />;
+        return (
+          <CompraForm
+            key={key}
+            movementId={movementId}
+            onDone={handleDone}
+            onCancel={handleCancelDraft}
+            clientCcEnabled={selectedClient?.cc_enabled ?? false}
+          />
+        );
       case 'VENTA':
         return <VentaForm key={key} movementId={movementId} onDone={handleDone} onCancel={handleCancelDraft} />;
       case 'ARBITRAJE':

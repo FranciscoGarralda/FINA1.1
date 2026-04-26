@@ -54,7 +54,17 @@ interface CompraDraftData {
   firstOutAmountMode: FirstLineAmountMode;
 }
 
-export default function CompraForm({ movementId, onDone, onCancel }: { movementId: string; onDone: () => void; onCancel: () => void }) {
+export default function CompraForm({
+  movementId,
+  onDone,
+  onCancel,
+  clientCcEnabled = false,
+}: {
+  movementId: string;
+  onDone: () => void;
+  onCancel: () => void;
+  clientCcEnabled?: boolean;
+}) {
   const accounts = useActiveAccounts();
   const currencies = useActiveCurrencies();
 
@@ -453,6 +463,12 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
           <input type="checkbox" checked={inPending} onChange={(e) => setInPending(e.target.checked)} disabled={!canInPending()} />
           <span className={canInPending() ? 'text-fg' : 'text-fg-subtle'}>Pendiente de retiro</span>
         </label>
+        {clientCcEnabled && (
+          <p className="text-xs text-fg-muted mt-1">
+            Cliente con CC: si dejás el checkbox sin marcar, entra/sale de caja. Si lo marcás, queda registrado en
+            cuenta corriente sin afectar caja.
+          </p>
+        )}
       </fieldset>
 
       {/* COTIZACIÓN */}
@@ -544,6 +560,12 @@ export default function CompraForm({ movementId, onDone, onCancel }: { movementI
               />
               <span className={canOutPending(out) ? 'text-fg' : 'text-fg-subtle'}>Pendiente de pago</span>
             </label>
+            {clientCcEnabled && idx === 0 && (
+              <p className="text-xs text-fg-muted mt-1">
+                Cliente con CC: si dejás el checkbox sin marcar, entra/sale de caja. Si lo marcás, queda registrado
+                en cuenta corriente sin afectar caja.
+              </p>
+            )}
             {out.accountId && quoteCurrencyId && !validateOutCurrencyOnAccount(out.key) && (
               <p className="text-xs text-error mt-1">La divisa/formato no está habilitada para esta cuenta.</p>
             )}
