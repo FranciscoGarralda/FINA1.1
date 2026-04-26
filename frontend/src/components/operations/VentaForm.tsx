@@ -54,7 +54,17 @@ interface VentaDraftData {
   firstInAmountMode: FirstLineAmountMode;
 }
 
-export default function VentaForm({ movementId, onDone, onCancel }: { movementId: string; onDone: () => void; onCancel: () => void }) {
+export default function VentaForm({
+  movementId,
+  onDone,
+  onCancel,
+  clientCcEnabled = false,
+}: {
+  movementId: string;
+  onDone: () => void;
+  onCancel: () => void;
+  clientCcEnabled?: boolean;
+}) {
   const accounts = useActiveAccounts();
   const currencies = useActiveCurrencies();
 
@@ -452,6 +462,12 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
           <input type="checkbox" checked={outPending} onChange={(e) => setOutPending(e.target.checked)} disabled={!canOutPending()} />
           <span className={canOutPending() ? 'text-fg' : 'text-fg-subtle'}>Pendiente de entrega</span>
         </label>
+        {clientCcEnabled && (
+          <p className="text-xs text-fg-muted mt-1">
+            Cliente con CC: si dejás el checkbox sin marcar, sale de caja al instante. Si lo marcás, queda registrado en
+            la cuenta corriente como divisa pendiente de entregar.
+          </p>
+        )}
       </fieldset>
 
       {/* COTIZACIÓN */}
@@ -543,6 +559,12 @@ export default function VentaForm({ movementId, onDone, onCancel }: { movementId
               />
               <span className={canInPending(inLine) ? 'text-fg' : 'text-fg-subtle'}>Pendiente de retiro</span>
             </label>
+            {clientCcEnabled && idx === 0 && (
+              <p className="text-xs text-fg-muted mt-1">
+                Cliente con CC: si dejás el checkbox sin marcar, entra a caja al instante. Si lo marcás, queda registrado
+                en la cuenta corriente como pago pendiente del cliente.
+              </p>
+            )}
             {inLine.accountId && quoteCurrencyId && !validateInCurrencyOnAccount(inLine.key) && (
               <p className="text-xs text-error mt-1">La divisa/formato no está habilitada para esta cuenta.</p>
             )}

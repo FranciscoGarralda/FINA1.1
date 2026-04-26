@@ -726,7 +726,15 @@ export default function NuevaOperacionPage() {
           />
         );
       case 'VENTA':
-        return <VentaForm key={key} movementId={movementId} onDone={handleDone} onCancel={handleCancelDraft} />;
+        return (
+          <VentaForm
+            key={key}
+            movementId={movementId}
+            onDone={handleDone}
+            onCancel={handleCancelDraft}
+            clientCcEnabled={selectedClient?.cc_enabled ?? false}
+          />
+        );
       case 'ARBITRAJE':
         return <ArbitrajeForm key={key} movementId={movementId} onDone={handleDone} onCancel={handleCancelDraft} />;
       case 'TRANSFERENCIA_ENTRE_CUENTAS':

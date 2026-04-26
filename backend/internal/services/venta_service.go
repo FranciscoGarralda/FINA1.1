@@ -112,29 +112,31 @@ func (s *VentaService) Execute(ctx context.Context, movementID string, input Ven
 	}
 	defer tx.Rollback(ctx)
 
-	// OUT line (single — divisa vendida)
+	// OUT line (single — divisa vendida) — Tabla maestra (Fix Venta:
+	// simetría CC + reclasificación pendientes — H-007/H-008/H-009/H-010).
+	// Etiqueta UI unificada: OUT pendiente = "Pendiente de pago" (la casa
+	// debe entregar divisa al cliente).
 	outPending := input.Out.PendingCash && input.Out.Format == "CASH"
 	outLineID, err := s.operationRepo.InsertMovementLine(ctx, tx, movementID, "OUT",
 		input.Out.AccountID, input.Out.CurrencyID, input.Out.Format, input.Out.Amount, outPending)
 	if err != nil {
 		return fmt.Errorf("insert OUT line: %w", err)
 	}
-
-	if outPending {
-		// PENDIENTE_DE_RETIRO en OUT: pendiente de entregar divisa vendida al cliente (etiqueta VENTA: "Entrega").
-		_, err = s.operationRepo.InsertPendingItem(ctx, tx, outLineID, "PENDIENTE_DE_RETIRO",
-			clientID, input.Out.CurrencyID, input.Out.Amount, true)
-		if err != nil {
-			return fmt.Errorf("insert OUT pending: %w", err)
-		}
-	}
-	if ccEnabled && !outPending {
-		if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Out.CurrencyID, input.Out.Amount, movementID, ccSideOut, "Venta — divisa vendida", callerID); err != nil {
+	outEffect := decideVentaLineEffect(ccEnabled, outPending)
+	if outEffect.ApplyCC {
+		if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Out.CurrencyID, input.Out.Amount, movementID, ccSideOut, "Venta — divisa pendiente de entregar al cliente", callerID); err != nil {
 			return fmt.Errorf("apply cc impact OUT: %w", err)
 		}
 	}
+	if outEffect.InsertPending {
+		if _, err = s.operationRepo.InsertPendingItem(ctx, tx, outLineID, "PENDIENTE_DE_RETIRO",
+			clientID, input.Out.CurrencyID, input.Out.Amount, true); err != nil {
+			return fmt.Errorf("insert OUT pending: %w", err)
+		}
+	}
 
-	// IN lines (multiple — divisa cotización)
+	// IN lines (multiple — divisa cotización). Etiqueta UI unificada: IN
+	// pendiente = "Pendiente de cobro" (el cliente debe pagarnos).
 	for i, in_ := range input.Ins {
 		inPending := in_.PendingCash && in_.Format == "CASH"
 		inLineID, err := s.operationRepo.InsertMovementLine(ctx, tx, movementID, "IN",
@@ -142,12 +144,15 @@ func (s *VentaService) Execute(ctx context.Context, movementID string, input Ven
 		if err != nil {
 			return fmt.Errorf("insert IN line %d: %w", i, err)
 		}
-
-		if inPending {
-			// PENDIENTE_DE_PAGO en IN: pendiente de cobro/retiro en caja (etiqueta VENTA: "Retiro" hacia la casa).
-			_, err = s.operationRepo.InsertPendingItem(ctx, tx, inLineID, "PENDIENTE_DE_PAGO",
-				clientID, input.Quote.CurrencyID, in_.Amount, true)
-			if err != nil {
+		inEffect := decideVentaLineEffect(ccEnabled, inPending)
+		if inEffect.ApplyCC {
+			if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Quote.CurrencyID, in_.Amount, movementID, ccSideIn, "Venta — pago pendiente del cliente", callerID); err != nil {
+				return fmt.Errorf("apply cc impact IN %d: %w", i, err)
+			}
+		}
+		if inEffect.InsertPending {
+			if _, err = s.operationRepo.InsertPendingItem(ctx, tx, inLineID, "PENDIENTE_DE_PAGO",
+				clientID, input.Quote.CurrencyID, in_.Amount, true); err != nil {
 				return fmt.Errorf("insert IN pending %d: %w", i, err)
 			}
 		}
@@ -172,4 +177,41 @@ func (s *VentaService) Execute(ctx context.Context, movementID string, input Ven
 	}
 
 	return tx.Commit(ctx)
+}
+
+// ventaLineEffect describe los efectos contables que hay que aplicar para una
+// pata (OUT o IN) de una operación de Venta dada la configuración del cliente
+// (`ccEnabled`) y si esa pata fue marcada como pendiente.
+//
+// Es la codificación pura (sin DB) de la Tabla maestra acordada con el usuario,
+// idéntica a la usada en Compra:
+//
+//	ccEnabled | pending | acción
+//	---------|---------|--------
+//	false    | false   | solo caja (movement_line)
+//	false    | true    | pending_items
+//	true     | false   | solo caja (movement_line)
+//	true     | true    | cc_entries (sin pending_items)
+//
+// Para clientes con CC, los pendientes desaparecen como concepto: lo que antes
+// iba a `pending_items` ahora va directo a `cc_entries`. Para clientes sin CC,
+// `pending_items` sigue funcionando como hoy.
+//
+// Nota (regla 12, cambios mínimos): este helper queda LOCAL en Venta y duplica
+// el de Compra (`decideCompraLineEffect`). NO se comparte ni se mueve a un
+// paquete común
+type ventaLineEffect struct {
+	InsertPending bool
+	ApplyCC       bool
+}
+
+func decideVentaLineEffect(ccEnabled, pending bool) ventaLineEffect {
+	switch {
+	case ccEnabled && pending:
+		return ventaLineEffect{ApplyCC: true}
+	case !ccEnabled && pending:
+		return ventaLineEffect{InsertPending: true}
+	default:
+		return ventaLineEffect{}
+	}
 }
