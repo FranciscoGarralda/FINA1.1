@@ -31,7 +31,10 @@ func resolveVentaPending(pendingCashFlag bool, format string) bool {
 
 // TestVentaExecute_CC_OutPending — V2 esperado.
 // Cliente con CC, OUT marcado pendiente CASH, IN no pendiente.
-// Debe registrar 1 cc_entry en OUT (USD -X) y 0 pending_items.
+// Debe registrar 1 cc_entry en OUT (Out.Currency +X, ccSideIn — la casa
+// debe entregar la divisa al cliente, saldo a favor del cliente sube) y
+// 0 pending_items. H-013: convención del sistema (cc_service.go:37 /
+// cc_repo.go:56: positive = debt reduction / saldo a favor).
 func TestVentaExecute_CC_OutPending(t *testing.T) {
 	t.Parallel()
 
@@ -57,7 +60,10 @@ func TestVentaExecute_CC_OutPending(t *testing.T) {
 
 // TestVentaExecute_CC_InPending — V3 esperado.
 // Cliente con CC, OUT no pendiente, IN marcado pendiente CASH.
-// Debe registrar 1 cc_entry en IN (Quote.Currency +Y) y 0 pending_items.
+// Debe registrar 1 cc_entry en IN (Quote.Currency -Y, ccSideOut — el cliente
+// nos debe pagar, deuda del cliente sube) y 0 pending_items. H-014:
+// convención del sistema (cc_service.go:37 / cc_repo.go:56:
+// negative = client owes more).
 func TestVentaExecute_CC_InPending(t *testing.T) {
 	t.Parallel()
 
@@ -74,7 +80,7 @@ func TestVentaExecute_CC_InPending(t *testing.T) {
 		t.Fatalf("OUT: InsertPending=true; sin pendiente no debe crearse pending_item")
 	}
 	if !in.ApplyCC {
-		t.Fatalf("IN: ApplyCC=false; CC con IN pendiente debe registrar cc_entry positivo (H-007)")
+		t.Fatalf("IN: ApplyCC=false; CC con IN pendiente debe registrar cc_entry (H-007/H-014)")
 	}
 	if in.InsertPending {
 		t.Fatalf("IN: InsertPending=true; cliente CC no debe crear pending_items (H-008)")
@@ -174,12 +180,12 @@ func TestSimulacionVentaTablaMaestra_DocumentacionFlujo(t *testing.T) {
 	b.WriteString("1) TX begin\n")
 	b.WriteString("2) INSERT movement_lines OUT (is_pending=true si OUT.pending_cash && Format==CASH)\n")
 	b.WriteString("3) decideVentaLineEffect(ccEnabled, outPending):\n")
-	b.WriteString("     CC && pending     → applyCCImpactTx(ccSideOut, \"Venta — divisa pendiente de entregar al cliente\")\n")
+	b.WriteString("     CC && pending     → applyCCImpactTx(ccSideIn, \"Venta — divisa pendiente de entregar al cliente\")\n")
 	b.WriteString("     !CC && pending    → InsertPendingItem(PENDIENTE_DE_RETIRO) [UI: \"Pendiente de pago\"]\n")
 	b.WriteString("     resto             → solo caja (movement_line ya creado)\n")
 	b.WriteString("4) Por cada IN line: INSERT movement_lines IN (is_pending=true si IN.pending_cash && Format==CASH)\n")
 	b.WriteString("5) decideVentaLineEffect(ccEnabled, inPending):\n")
-	b.WriteString("     CC && pending     → applyCCImpactTx(ccSideIn, \"Venta — pago pendiente del cliente\")\n")
+	b.WriteString("     CC && pending     → applyCCImpactTx(ccSideOut, \"Venta — pago pendiente del cliente\")\n")
 	b.WriteString("     !CC && pending    → InsertPendingItem(PENDIENTE_DE_PAGO) [UI: \"Pendiente de cobro\"]\n")
 	b.WriteString("     resto             → solo caja\n")
 	b.WriteString("6) Auditoría + confirmar borrador + COMMIT\n")
@@ -189,5 +195,8 @@ func TestSimulacionVentaTablaMaestra_DocumentacionFlujo(t *testing.T) {
 	b.WriteString(" - H-009 cerrado: la condición OUT ya no es `ccEnabled && !outPending`; sin pendiente no toca CC.\n")
 	b.WriteString(" - H-010 cerrado: comentarios alineados con etiquetas UI \"Pendiente de pago\" / \"Pendiente de cobro\".\n")
 	b.WriteString(" - H-012 doble defensa: pending_cash=true con format!=CASH se descarta antes del helper.\n")
+	b.WriteString(" - H-013/H-014 cerrados: el side de las patas CC pendientes respeta la convención del sistema\n")
+	b.WriteString("   (negative = client owes more, positive = debt reduction). OUT pendiente → ccSideIn (casa debe);\n")
+	b.WriteString("   IN pendiente → ccSideOut (cliente debe).\n")
 	t.Log(b.String())
 }

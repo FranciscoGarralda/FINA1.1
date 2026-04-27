@@ -18,6 +18,8 @@
 | H-010 | Comentarios desalineados con el etiquetado unificado UI | Baja | ✅ RESUELTO |
 | H-011 | `cc_balances` desincronizado tras `DELETE FROM movements` (lateral) | Media | Abierto / no productivo (runbook de dev) |
 | H-012 | `pending_cash=true` en formato DIGITAL se silencia en backend | Baja UX | CERRADO — comportamiento esperado |
+| **H-013** | **Signo CC invertido en pata OUT pendiente (Venta)** | **Crítica** | ✅ **RESUELTO** |
+| **H-014** | **Signo CC invertido en pata IN pendiente (Venta)** | **Crítica** | ✅ **RESUELTO** |
 | OK-1 | Cuadre (`CUADRE_NOT_MATCH`) y `NO_IN_LINES` validan correctamente | — | OK |
 | OK-2 | Modificación / Anulación / Recreate revierten cc_entries y pendientes | — | OK |
 | OK-3 | Quote `MODE=DIVIDE` cuadra correctamente con tolerancia a redondeo | — | OK |
@@ -310,3 +312,81 @@ No quedan riesgos operativos abiertos derivados de este fix. Cualquier tarea adi
 
 1. Continuar la auditoría con los próximos módulos (Arbitraje, Transferencias entre cuentas, Ingreso/Retiro Capital, Gasto, Pago CC Cruzado, Traspaso Deuda CC). Generar un doc por módulo y un resumen final consolidado.
 2. Definir la decisión UX final para H-012 a nivel global (afecta Compra y Venta por igual): hoy doble defensa en frontend y backend; si se quiere validación explícita con error `INVALID_PENDING_FORMAT`, se trabaja en un prompt aparte.
+
+---
+
+# Apéndice — Reapertura del cierre (H-013 / H-014) — Sun Apr 26 2026 (segunda pasada)
+
+> El "riesgo residual 0%" declarado en la sección de cierre del fix Venta original quedó **invalidado** al detectar que las invocaciones a `applyCCImpactTx` para patas CC pendientes usaban el `ccSide` opuesto al que corresponde según la convención del propio sistema (`backend/internal/services/cc_service.go:37` y `backend/internal/repositories/cc_repo.go:56`: *"negative = client owes more, positive = debt reduction"*). La causa raíz es que la "tabla maestra" del sprint Compra original fijó los sides al revés y todos los chats posteriores la copiaron por inercia. El bug tampoco lo cazaron los tests del helper `decideVentaLineEffect` ni los smokes V1–V4 originales, porque ninguno verificaba el signo final que llegaba a `cc_balances` con un balance inicial conocido.
+
+## H-013 — Signo CC invertido en pata OUT pendiente (Venta) — ✅ RESUELTO
+
+**Archivo:** `backend/internal/services/venta_service.go:127`.
+
+**Síntoma:** vendiendo USD a un cliente CC con OUT pendiente (la casa todavía no entregó la divisa), el balance del cliente **bajaba** cuando debía **subir**. Concretamente: con balance USD inicial 0, una venta OUT pendiente USD 100 dejaba al cliente con `-100` (UI roja, "deuda") en lugar de `+100` (UI verde, "saldo a favor"). El cliente quedaba aparentemente debiéndole USD a la casa cuando, semánticamente, la casa le debía a él.
+
+**Análisis:**
+
+- Convención del sistema (citada en `cc_service.go:37`): `+` = saldo a favor del cliente / la casa le debe al cliente; `−` = deuda del cliente / el cliente le debe a la casa.
+- Para Venta OUT pendiente, "la casa todavía no entregó la divisa" → la casa **debe** al cliente → `+` → debería usar `ccSideIn`.
+- Código previo: usaba `ccSideOut` (negativo) → invertía el signo.
+
+**Fix aplicado:**
+
+```127:130:backend/internal/services/venta_service.go
+		if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Out.CurrencyID, input.Out.Amount, movementID, ccSideIn, "Venta — divisa pendiente de entregar al cliente", callerID); err != nil {
+			return fmt.Errorf("apply cc impact OUT: %w", err)
+		}
+```
+
+Comentarios cercanos actualizados con la justificación y la cita a `cc_service.go:37`.
+
+## H-014 — Signo CC invertido en pata IN pendiente (Venta) — ✅ RESUELTO
+
+**Archivo:** `backend/internal/services/venta_service.go:149`.
+
+**Síntoma:** simétrico al anterior. Con cliente CC, IN pendiente ARS (el cliente todavía no nos pagó), el balance del cliente **subía** cuando debía **bajar**: balance ARS 0 + Venta IN pendiente 150 000 dejaba al cliente con `+150 000` (saldo a favor de la casa hacia el cliente) cuando, semánticamente, el cliente debería estar registrado como deudor de esa cantidad.
+
+**Fix aplicado:** invertido a `ccSideOut` (negativo). El cliente le debe pagar a la casa → balance baja, deuda sube.
+
+```149:154:backend/internal/services/venta_service.go
+			if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Quote.CurrencyID, in_.Amount, movementID, ccSideOut, "Venta — pago pendiente del cliente", callerID); err != nil {
+				return fmt.Errorf("apply cc impact IN %d: %w", i, err)
+			}
+```
+
+## Tests actualizados
+
+- `backend/internal/services/venta_service_cc_test.go`: comentarios de cabecera y `WriteString` documentales reflejan la convención correcta (OUT pendiente → `ccSideIn`; IN pendiente → `ccSideOut`). Las aserciones del helper `decideVentaLineEffect` no cambian (siguen siendo válidas: el helper decide *si* aplicar CC, no *con qué side*).
+- `backend/internal/services/cc_sign_invariant_test.go` (nuevo): tres capas de defensa puras sin DB.
+  1. `TestCCSignedAmount_ConvencionSistema`: la convención del helper (`ccSideIn → +`, `ccSideOut → −`).
+  2. `TestCCSemanticTable_MatchesConvention`: tabla canónica operación→pata→side esperado para los 4 casos (H-013..H-016) según "quién debe a quién".
+  3. `TestCCSign_StructuralInvariant_VentaCompra`: lee `venta_service.go` y `compra_service.go` con `runtime.Caller` y verifica que las 4 invocaciones reales a `applyCCImpactTx` (ancladas por su nota textual) usan el side esperado. Si alguien revierte el signo, el test rompe antes de llegar a producción.
+
+## Smokes runtime (S1–S4) — DB Homebrew local, backend reiniciado con código del fix
+
+| ID | Cliente CC | Pata | Esperado `cc_entries` | Esperado balance | Verificación UI |
+|----|------------|------|------------------------|------------------|-----------------|
+| S1 | sí, balance USD inicial 0 | Venta OUT 100 USD CASH **pend** | `USD = +100` con nota `"Venta — divisa pendiente de entregar al cliente"` | `USD = +100` | `/posiciones` muestra USD verde (saldo a favor del cliente) |
+| S2 | sí, balance ARS inicial 0 | Venta IN 150 000 ARS CASH **pend** | `ARS = -150 000` con nota `"Venta — pago pendiente del cliente"` | `ARS = -150 000` | `/posiciones` muestra ARS rojo (deuda del cliente) |
+| S3 | sí, balance USD inicial 0 | Compra IN 100 USD CASH **pend** | `USD = -100` con nota `"Compra — divisa pendiente de cobro al cliente"` | `USD = -100` | `/posiciones` muestra USD rojo |
+| S4 | sí, balance ARS inicial 0 | Compra OUT 150 000 ARS CASH **pend** | `ARS = +150 000` con nota `"Compra — pago pendiente al cliente"` | `ARS = +150 000` | `/posiciones` muestra ARS verde |
+
+Resultados detallados: ver bloque "Smokes runtime S1–S4" más abajo en el commit (`fix(cc): corrige signo en cc_entries de patas CC pendientes (Compra+Venta)`).
+
+## Riesgo residual: 0% sobre Compra+Venta CC pendientes
+
+Justificación:
+
+- Tabla maestra corregida y publicada en `HALLAZGOS_AUDITORIA_SISTEMA.md` (regla 6: signos unificados).
+- Tres capas de defensa de tests para que el bug no se reintroduzca: convención del helper, tabla semántica, invariante estructural sobre los archivos de servicio (regla 14: evidencia de cierre).
+- Comentarios inline en cada una de las 4 invocaciones citan la convención (`cc_service.go:37`) y el hallazgo asociado (regla 15: trazabilidad de decisiones).
+- Sin cambios fuera de alcance: solo `compra_service.go`, `venta_service.go`, sus tests CC y el nuevo `cc_sign_invariant_test.go` + dos archivos de doc (regla 13: alcance estricto).
+
+**Riesgo residual abierto fuera del alcance de este fix:**
+
+- `backend/internal/services/arbitraje_service.go`: usa `ccSideIn` y `ccSideOut` en patas no-pendientes y en profit; no se sabe si la semántica concuerda con la convención.
+- `backend/internal/services/transferencia_service.go` (modelos viejo y dual-leg): usa sides directos en delivery/collection y comisión; al ser bilateral con neto cero podría estar correcto, pero no se verificó con balance inicial conocido.
+- `backend/internal/services/pending_service.go:237` (resolve diferido): aplica el side directamente desde `pending.MovementLineSide`, semántica heredada del flujo que generó el pending.
+
+Estos sitios quedan registrados como **pendientes de auditar** en `HALLAZGOS_AUDITORIA_SISTEMA.md` con prioridad alta para el próximo sprint.

@@ -130,7 +130,11 @@ func (s *CompraService) Execute(ctx context.Context, movementID string, input Co
 	}
 	inEffect := decideCompraLineEffect(ccEnabled, inPending)
 	if inEffect.ApplyCC {
-		if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.In.CurrencyID, input.In.Amount, movementID, ccSideIn, "Compra — divisa pendiente de cobro al cliente", callerID); err != nil {
+		// H-015: el cliente todavía no nos entregó la divisa que nos vendió,
+		// por lo que el cliente le DEBE a la casa. Convención CC del sistema
+		// (cc_service.go:37, cc_repo.go:56): negative = client owes more.
+		// Por eso aplicamos `ccSideOut` (resta al balance del cliente).
+		if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.In.CurrencyID, input.In.Amount, movementID, ccSideOut, "Compra — divisa pendiente de cobro al cliente", callerID); err != nil {
 			return fmt.Errorf("apply cc impact IN pending: %w", err)
 		}
 	}
@@ -151,7 +155,11 @@ func (s *CompraService) Execute(ctx context.Context, movementID string, input Co
 		}
 		outEffect := decideCompraLineEffect(ccEnabled, outPending)
 		if outEffect.ApplyCC {
-			if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Quote.CurrencyID, out.Amount, movementID, ccSideOut, "Compra — pago pendiente al cliente", callerID); err != nil {
+			// H-016: la casa todavía no le pagó al cliente lo que le compró,
+			// por lo que la casa le DEBE al cliente. Convención CC del sistema
+			// (cc_service.go:37, cc_repo.go:56): positive = saldo a favor del
+			// cliente / debt reduction. Por eso aplicamos `ccSideIn`.
+			if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Quote.CurrencyID, out.Amount, movementID, ccSideIn, "Compra — pago pendiente al cliente", callerID); err != nil {
 				return fmt.Errorf("apply cc impact OUT pending %d: %w", i, err)
 			}
 		}

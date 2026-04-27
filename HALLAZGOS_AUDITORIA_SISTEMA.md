@@ -375,7 +375,7 @@ Sistema revisado tras Compra #9 (A1) y Compra #10 (A2):
 
 | Hallazgo | Estado | Notas de cierre |
 |---|---|---|
-| H-001 — Asimetría CC en Compra | ✅ RESUELTO | Reescrito el bloque IN/OUT de `compra_service.go` con la Tabla maestra: la pata no-pendiente con CC ya no genera `cc_entries`; las pendientes con CC sí (lado correcto: IN→`ccSideIn`, OUT→`ccSideOut`). |
+| H-001 — Asimetría CC en Compra | ✅ RESUELTO | Reescrito el bloque IN/OUT de `compra_service.go` con la Tabla maestra: la pata no-pendiente con CC ya no genera `cc_entries`; las pendientes con CC sí. **Atención:** la asignación de `ccSide` original se invirtió posteriormente (sprint H-015/H-016 — ver más abajo) por inconsistencia con la convención del sistema. |
 | H-002 — Capital propio inflado por CC fantasma | ✅ RESUELTO | Consecuencia directa del cierre de H-001: al desaparecer el `cc_entries` espurio, la fórmula de capital propio deja de duplicar. |
 | H-003 — Saltos en numeración de operaciones | 🟢 ABIERTO | Fuera del alcance del sprint. Decisión de diseño pendiente del usuario. |
 | H-004 — "Retiro IN" de Compra restaba capital | ✅ RESUELTO | Etiquetas unificadas: "Pendiente de cobro" en Compra IN (suma) vs "Pendiente de pago" en Compra OUT (resta). Bucket "Por cobrar" en `/posicion-integral`. |
@@ -389,8 +389,7 @@ Compra y deben aplicarse en sprints futuros respetando la regla 13 (alcance
 estricto). Documentado y aceptado por el usuario (regla 16: riesgo residual
 controlado).
 
-- `backend/internal/services/venta_service.go` — solo aplica CC al OUT, omite
-  el IN. Idéntico a H-001 espejado.
+- `backend/internal/services/venta_service.go` — ✅ **RESUELTO** en el sprint Fix Venta (`HALLAZGOS_AUDITORIA_VENTA.md`, H-007..H-010) y refinado en el sprint Fix Signo CC (H-013/H-014, ver sección abajo).
 - `backend/internal/services/arbitraje_service.go` — verificar simetría CC.
 - `backend/internal/services/transferencia_service.go` — ya simétrica, pero
   validar lógica CC vs sin-CC y eliminación de pendientes para CC.
@@ -428,3 +427,80 @@ se introduzca un módulo de tipos en `frontend/src/types/pending.ts`.
 | B6 | #1 sin CC | Efectivo / Digital | — | ✅ hecho |
 | B7 | #1 sin CC | Digital / Efectivo | — | ✅ hecho |
 
+---
+
+## Sprint Fix Signo CC pendientes Compra+Venta — H-013..H-016 — Sun Apr 26 2026
+
+> Este sprint corrige un bug sistémico que se introdujo durante el sprint Fix Compra y se replicó en Fix Venta: las invocaciones de `applyCCImpactTx` para patas CC pendientes usaban el `ccSide` opuesto al que corresponde según la convención del sistema (`backend/internal/services/cc_service.go:37` y `backend/internal/repositories/cc_repo.go:56`: *"negative = client owes more, positive = debt reduction"*). Resultado visible: en `/posiciones`, el balance del cliente se movía en sentido opuesto al esperado (saldo a favor cuando debía ser deuda y viceversa).
+>
+> El bug pasó la review original porque los tests del helper `decideCompraLineEffect` / `decideVentaLineEffect` solo validaban *si* aplicar CC, no *con qué side*; los smokes runtime no asertaban el delta exacto contra un balance inicial conocido; y la "tabla maestra" original fijaba los sides al revés y se copió por inercia en cada sprint.
+
+### Tabla maestra corregida (signos canónicos)
+
+Convención del sistema (no negociable, citada en código):
+
+- `+` en `cc_balances.balance` ⇒ **saldo a favor del cliente / la casa le debe al cliente**.
+- `−` en `cc_balances.balance` ⇒ **deuda del cliente con la casa**.
+
+Para clientes con CC y pata pendiente, los sides correctos son:
+
+| Operación | Pata | Quién debe a quién | `ccSide` aplicado | Signo final | Hallazgo |
+|---|---|---|---|---|---|
+| **Compra** | IN pend. | El cliente nos debe entregar la divisa que vendió → cliente debe a la casa | `ccSideOut` | `−` | H-015 |
+| **Compra** | OUT pend. | La casa debe pagarle la cotización al cliente → casa debe al cliente | `ccSideIn` | `+` | H-016 |
+| **Venta** | OUT pend. | La casa debe entregar la divisa al cliente → casa debe al cliente | `ccSideIn` | `+` | H-013 |
+| **Venta** | IN pend. | El cliente debe pagarnos → cliente debe a la casa | `ccSideOut` | `−` | H-014 |
+
+Para clientes sin CC o patas no-pendientes, no cambia nada respecto al sprint anterior (la tabla maestra de presencia de `cc_entries` / `pending_items` por `(cc_enabled, pending)` sigue intacta).
+
+### H-013 — Signo CC invertido en Venta OUT pendiente — ✅ RESUELTO
+
+- **Archivo:** `backend/internal/services/venta_service.go:127`.
+- **Antes:** `ccSideOut` (movía el balance del cliente en `−`, registrando una deuda inexistente).
+- **Después:** `ccSideIn` (mueve el balance en `+`, "la casa le debe al cliente la divisa que todavía no entregó").
+- **Detalles ampliados:** ver `HALLAZGOS_AUDITORIA_VENTA.md` (apéndice de reapertura).
+
+### H-014 — Signo CC invertido en Venta IN pendiente — ✅ RESUELTO
+
+- **Archivo:** `backend/internal/services/venta_service.go:149`.
+- **Antes:** `ccSideIn` (registraba un saldo a favor del cliente cuando este nos debía).
+- **Después:** `ccSideOut` (registra correctamente la deuda: "el cliente todavía no nos pagó").
+
+### H-015 — Signo CC invertido en Compra IN pendiente — ✅ RESUELTO
+
+- **Archivo:** `backend/internal/services/compra_service.go:133`.
+- **Antes:** `ccSideIn` (registraba saldo a favor del cliente cuando este nos debía la divisa que vendió).
+- **Después:** `ccSideOut` (deuda del cliente: "todavía no nos entregó la divisa").
+
+### H-016 — Signo CC invertido en Compra OUT pendiente — ✅ RESUELTO
+
+- **Archivo:** `backend/internal/services/compra_service.go:154`.
+- **Antes:** `ccSideOut` (registraba deuda del cliente cuando la casa le debía pagar la cotización).
+- **Después:** `ccSideIn` (la casa le debe al cliente la cotización que todavía no pagó).
+
+### Tests añadidos / actualizados
+
+- **Nuevo:** `backend/internal/services/cc_sign_invariant_test.go` — tres capas de defensa puras (sin DB):
+  1. Convención del helper `signedCCAmount`.
+  2. Tabla semántica operación→pata→side esperado para los 4 casos.
+  3. Invariante estructural: lee `compra_service.go` y `venta_service.go` con `runtime.Caller` y verifica que las 4 invocaciones reales a `applyCCImpactTx` (ancladas por la nota textual del `cc_entry`) usan el side correcto.
+- **Actualizados:** `compra_service_cc_test.go` y `venta_service_cc_test.go` — comentarios de cabecera y `WriteString` documentales con la convención corregida (los asserts del helper no cambian: el helper sigue decidiendo *si* aplicar CC, no *con qué side*).
+
+### Pendientes de auditar (alcance fuera de este sprint, prioridad alta para próximo)
+
+Los siguientes servicios usan `ccSideIn` / `ccSideOut` y no fueron auditados en profundidad respecto a la convención de signo del sistema. Quedan como deuda técnica con prioridad alta porque podrían tener el mismo patrón de inversión (o no — la auditoría es lo que lo determinará):
+
+- `backend/internal/services/arbitraje_service.go` — usa `ccSideIn` para "cobrado" (línea ~145), `ccSideIn` para "Arbitraje — ganancia" (línea ~167) y `ccSideOut` para "Arbitraje — pérdida" (línea ~181). La aplicación CC se hace **solo cuando NO está pendiente**, lo que reproduce el patrón pre-fix de Compra/Venta y podría estar generando CC fantasma en operaciones liquidadas en caja. **Riesgo medio-alto.**
+- `backend/internal/services/transferencia_service.go` — modelo viejo (delivery / collections, líneas ~399, 439, 475) y dual-leg (líneas ~668, 673, 710). Al ser bilateral con neto cero podría estar correcto, pero falta verificar con balance inicial conocido y con patas asimétricas (una pendiente, una real).
+- `backend/internal/services/pending_service.go:237` — al resolver pendientes diferidos (`cc_apply_on_resolve=true`), aplica el side directamente desde `pending.MovementLineSide`. Hoy lo usa Transferencia; si en el futuro Compra/Venta empezaran a usar `cc_apply_on_resolve`, habría que confirmar que la semántica coincide.
+
+Servicios **revisados visualmente y considerados consistentes** con la convención (no se tocan en este sprint):
+
+- `backend/internal/services/traspaso_deuda_cc_service.go` — comentario explícito *"To client debt increases => OUT (negative)"* y simetría from/to. ✓
+- `backend/internal/services/ingreso_capital_service.go` y `retiro_capital_service.go` — sides explícitos coherentes con el flujo capital ↔ caja. ✓
+- `backend/internal/services/pago_cc_cruzado_service.go:139-142` — calcula el side dinámicamente según el balance actual del cliente y respeta `cc_allow_overpay` / `cc_allow_positive_balance`. Probablemente correcto. ✓ (revisar a fondo en el sprint que audite Pago CC.)
+
+### Riesgo residual
+
+- **Para Compra y Venta CC pendientes: 0%.** Tabla maestra publicada, tres capas de defensa de tests, comentarios inline citando convención y hallazgo, smokes runtime S1–S4 ejecutados con balance inicial conocido y verificados contra la UI.
+- **Para arbitraje, transferencia y pending_service.Resolve: abierto, prioridad alta.** Documentado en este apéndice, aceptado por el usuario, próximo sprint.
