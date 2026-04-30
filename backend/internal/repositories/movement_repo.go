@@ -41,16 +41,18 @@ type MovementPendingFlag struct {
 }
 
 type MovementDetailRow struct {
-	ID              string    `json:"id"`
-	OperationNumber int64     `json:"operation_number"`
-	Type            string    `json:"type"`
-	Date            string    `json:"date"`
-	DayName         string    `json:"day_name"`
-	Status          string    `json:"status"`
-	ClientID        *string   `json:"client_id"`
-	ClientName      *string   `json:"client_name"`
-	Note            *string   `json:"note"`
-	CreatedAt       time.Time `json:"created_at"`
+	ID                       string    `json:"id"`
+	OperationNumber          int64     `json:"operation_number"`
+	Type                     string    `json:"type"`
+	Date                     string    `json:"date"`
+	DayName                  string    `json:"day_name"`
+	Status                   string    `json:"status"`
+	ClientID                 *string   `json:"client_id"`
+	ClientName               *string   `json:"client_name"`
+	ArbitrajeCostClientID    *string   `json:"arbitraje_cost_client_id"`
+	ArbitrajeCobradoClientID *string   `json:"arbitraje_cobrado_client_id"`
+	Note                     *string   `json:"note"`
+	CreatedAt                time.Time `json:"created_at"`
 }
 
 type MovementLineDetail struct {
@@ -318,12 +320,15 @@ func (r *MovementRepo) FindByID(ctx context.Context, id string) (*MovementDetail
 		`SELECT m.id::text, m.operation_number, m.type, m.date::text, m.day_name, m.status,
 		        m.client_id::text,
 		        CASE WHEN m.client_id IS NOT NULL THEN cl.last_name || ', ' || cl.first_name ELSE NULL END,
+		        m.arbitraje_cost_client_id::text,
+		        m.arbitraje_cobrado_client_id::text,
 		        m.note, m.created_at
 		 FROM movements m
 		 LEFT JOIN clients cl ON cl.id = m.client_id
 		 WHERE m.id = $1`, id).
 		Scan(&m.ID, &m.OperationNumber, &m.Type, &m.Date, &m.DayName, &m.Status,
-			&m.ClientID, &m.ClientName, &m.Note, &m.CreatedAt)
+			&m.ClientID, &m.ClientName, &m.ArbitrajeCostClientID, &m.ArbitrajeCobradoClientID,
+			&m.Note, &m.CreatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound

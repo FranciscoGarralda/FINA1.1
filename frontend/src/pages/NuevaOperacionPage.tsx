@@ -34,6 +34,8 @@ interface WizardPersistedPayload {
   date: string;
   type: string;
   clientId: string;
+  arbitrajeCostClientId?: string;
+  arbitrajeCobradoClientId?: string;
 }
 
 function readWizardPersisted(userIdVal: string | null): Omit<WizardPersistedPayload, 'schema'> | null {
@@ -49,6 +51,8 @@ function readWizardPersisted(userIdVal: string | null): Omit<WizardPersistedPayl
       date: o.date,
       type: o.type,
       clientId: typeof o.clientId === 'string' ? o.clientId : '',
+      arbitrajeCostClientId: typeof o.arbitrajeCostClientId === 'string' ? o.arbitrajeCostClientId : '',
+      arbitrajeCobradoClientId: typeof o.arbitrajeCobradoClientId === 'string' ? o.arbitrajeCobradoClientId : '',
     };
   } catch {
     return null;
@@ -57,7 +61,13 @@ function readWizardPersisted(userIdVal: string | null): Omit<WizardPersistedPayl
 
 function writeWizardPersisted(userIdVal: string | null, p: Omit<WizardPersistedPayload, 'schema'>): void {
   try {
-    const payload: WizardPersistedPayload = { schema: WIZARD_SESSION_SCHEMA, ...p, clientId: p.clientId || '' };
+    const payload: WizardPersistedPayload = {
+      schema: WIZARD_SESSION_SCHEMA,
+      ...p,
+      clientId: p.clientId || '',
+      arbitrajeCostClientId: p.arbitrajeCostClientId || '',
+      arbitrajeCobradoClientId: p.arbitrajeCobradoClientId || '',
+    };
     sessionStorage.setItem(wizardSessionStorageKey(userIdVal), JSON.stringify(payload));
   } catch {
     // sessionStorage puede fallar en modo privado / cuota.
@@ -107,6 +117,8 @@ interface MovementDetailResume {
   status: string;
   client_id: string | null;
   client_name: string | null;
+  arbitraje_cost_client_id?: string | null;
+  arbitraje_cobrado_client_id?: string | null;
 }
 
 interface MovementDraftEnvelopeResponse {
@@ -134,7 +146,7 @@ const MOVEMENT_TYPES = [
   { value: 'TRASPASO_DEUDA_CC', label: 'Traspaso deuda CC' },
 ];
 
-const CLIENT_OPTIONAL_TYPES = ['TRANSFERENCIA_ENTRE_CUENTAS', 'GASTO'];
+const CLIENT_OPTIONAL_TYPES = ['TRANSFERENCIA_ENTRE_CUENTAS', 'GASTO', 'ARBITRAJE'];
 const CLIENT_CC_REQUIRED_TYPES = ['RETIRO_CAPITAL', 'INGRESO_CAPITAL', 'PAGO_CC_CRUZADO'];
 
 const DAY_NAMES: Record<number, string> = {
@@ -178,6 +190,8 @@ export default function NuevaOperacionPage() {
   const [date, setDate] = useState(() => getInitialDate());
   const [type, setType] = useState('');
   const [clientId, setClientId] = useState('');
+  const [arbitrajeCostClientId, setArbitrajeCostClientId] = useState('');
+  const [arbitrajeCobradoClientId, setArbitrajeCobradoClientId] = useState('');
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
 
   const [clients, setClients] = useState<Client[]>([]);
@@ -202,7 +216,13 @@ export default function NuevaOperacionPage() {
   const [formRemountKey, setFormRemountKey] = useState(0);
   const [error, setError] = useState('');
   const [resumeNotice, setResumeNotice] = useState('');
-  const lastSyncedHeaderRef = useRef<{ date: string; type: string; clientId: string } | null>(null);
+  const lastSyncedHeaderRef = useRef<{
+    date: string;
+    type: string;
+    clientId: string;
+    arbitrajeCostClientId: string;
+    arbitrajeCobradoClientId: string;
+  } | null>(null);
   const autoCreateInFlightRef = useRef(false);
   const patchSeqRef = useRef(0);
   const patchLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -225,10 +245,14 @@ export default function NuevaOperacionPage() {
     setDate(stored.date);
     setType(stored.type);
     setClientId(stored.clientId);
+    setArbitrajeCostClientId(stored.arbitrajeCostClientId || '');
+    setArbitrajeCobradoClientId(stored.arbitrajeCobradoClientId || '');
     lastSyncedHeaderRef.current = {
       date: stored.date,
       type: stored.type,
-      clientId: stored.clientId,
+      clientId: stored.type === 'ARBITRAJE' ? stored.arbitrajeCobradoClientId || '' : stored.clientId,
+      arbitrajeCostClientId: stored.arbitrajeCostClientId || '',
+      arbitrajeCobradoClientId: stored.arbitrajeCobradoClientId || '',
     };
   }, [userId, resetToken, resumeMovementId, movementId]);
 
@@ -240,8 +264,10 @@ export default function NuevaOperacionPage() {
       date,
       type,
       clientId: clientId || '',
+      arbitrajeCostClientId: type === 'ARBITRAJE' ? arbitrajeCostClientId || '' : '',
+      arbitrajeCobradoClientId: type === 'ARBITRAJE' ? arbitrajeCobradoClientId || '' : '',
     });
-  }, [movementId, operationNumber, date, type, clientId, userId]);
+  }, [movementId, operationNumber, date, type, clientId, arbitrajeCostClientId, arbitrajeCobradoClientId, userId]);
 
   useBodyScrollLock(confirmClearOpen);
 
@@ -301,6 +327,11 @@ export default function NuevaOperacionPage() {
 
   useEffect(() => {
     if (!type) return;
+    // Arbitraje usa combos de cliente en el formulario (no en el encabezado global).
+    if (type === 'ARBITRAJE') {
+      fetchClients();
+      return;
+    }
     if (clientOptional && !clientRequired) return;
     fetchClients();
   }, [type, clientRequired, clientOptional, fetchClients]);
@@ -415,6 +446,8 @@ export default function NuevaOperacionPage() {
     setDate(last.date);
     setType(last.type);
     setClientId(last.clientId);
+    setArbitrajeCostClientId(last.arbitrajeCostClientId || '');
+    setArbitrajeCobradoClientId(last.arbitrajeCobradoClientId || '');
     setConfirmClearOpen(false);
   }, []);
 
@@ -450,10 +483,14 @@ export default function NuevaOperacionPage() {
         setType(detail.type);
         setDate(detail.date);
         setClientId(detail.client_id || '');
+        setArbitrajeCostClientId(detail.arbitraje_cost_client_id || '');
+        setArbitrajeCobradoClientId(detail.arbitraje_cobrado_client_id || '');
         lastSyncedHeaderRef.current = {
           date: detail.date,
           type: detail.type,
           clientId: detail.client_id || '',
+          arbitrajeCostClientId: detail.arbitraje_cost_client_id || '',
+          arbitrajeCobradoClientId: detail.arbitraje_cobrado_client_id || '',
         };
       })
       .catch((err: any) => setError(err?.message || 'No se pudo reanudar la operación de corrección.'));
@@ -487,6 +524,8 @@ export default function NuevaOperacionPage() {
     setDate(getInitialDate());
     setType('');
     setClientId('');
+    setArbitrajeCostClientId('');
+    setArbitrajeCobradoClientId('');
     setError('');
     setResumeNotice('');
     setConfirmClearOpen(false);
@@ -522,7 +561,9 @@ export default function NuevaOperacionPage() {
       lastSyncedHeaderRef.current = {
         date,
         type,
-        clientId: clientId || '',
+        clientId: type === 'ARBITRAJE' ? '' : clientId || '',
+        arbitrajeCostClientId: '',
+        arbitrajeCobradoClientId: '',
       };
       fetchDrafts();
       emitDraftSync('draft_created', result.id);
@@ -571,14 +612,22 @@ export default function NuevaOperacionPage() {
         await api.patch(`/movements/${movementId}/header`, {
           date,
           type,
-          client_id: clientId || null,
+          client_id: type === 'ARBITRAJE' ? arbitrajeCobradoClientId || null : clientId || null,
+          ...(type === 'ARBITRAJE'
+            ? {
+                arbitraje_cost_client_id: arbitrajeCostClientId || null,
+                arbitraje_cobrado_client_id: arbitrajeCobradoClientId || null,
+              }
+            : {}),
           confirm_clear_payload: confirmClearPayload,
         });
         if (seq !== patchSeqRef.current) return;
         lastSyncedHeaderRef.current = {
           date,
           type,
-          clientId: clientId || '',
+          clientId: type === 'ARBITRAJE' ? arbitrajeCobradoClientId || '' : clientId || '',
+          arbitrajeCostClientId: type === 'ARBITRAJE' ? arbitrajeCostClientId || '' : '',
+          arbitrajeCobradoClientId: type === 'ARBITRAJE' ? arbitrajeCobradoClientId || '' : '',
         };
         setConfirmClearOpen(false);
         if (confirmClearPayload) {
@@ -603,7 +652,7 @@ export default function NuevaOperacionPage() {
         }
       }
     },
-    [movementId, date, type, clientId],
+    [movementId, date, type, clientId, arbitrajeCostClientId, arbitrajeCobradoClientId],
   );
 
   useEffect(() => {
@@ -624,8 +673,22 @@ export default function NuevaOperacionPage() {
     if (confirmClearOpen) return;
     const last = lastSyncedHeaderRef.current;
     if (!last) return;
-    const cur = { date, type, clientId: clientId || '' };
-    if (last.date === cur.date && last.type === cur.type && last.clientId === cur.clientId) return;
+    const cur = {
+      date,
+      type,
+      clientId: type === 'ARBITRAJE' ? arbitrajeCobradoClientId || '' : clientId || '',
+      arbitrajeCostClientId: type === 'ARBITRAJE' ? arbitrajeCostClientId || '' : '',
+      arbitrajeCobradoClientId: type === 'ARBITRAJE' ? arbitrajeCobradoClientId || '' : '',
+    };
+    if (
+      last.date === cur.date &&
+      last.type === cur.type &&
+      last.clientId === cur.clientId &&
+      last.arbitrajeCostClientId === cur.arbitrajeCostClientId &&
+      last.arbitrajeCobradoClientId === cur.arbitrajeCobradoClientId
+    ) {
+      return;
+    }
     if (patchDebounceRef.current) clearTimeout(patchDebounceRef.current);
     patchDebounceRef.current = setTimeout(() => {
       patchMovementHeader(false);
@@ -633,7 +696,16 @@ export default function NuevaOperacionPage() {
     return () => {
       if (patchDebounceRef.current) clearTimeout(patchDebounceRef.current);
     };
-  }, [date, type, clientId, movementId, confirmClearOpen, patchMovementHeader]);
+  }, [
+    date,
+    type,
+    clientId,
+    arbitrajeCostClientId,
+    arbitrajeCobradoClientId,
+    movementId,
+    confirmClearOpen,
+    patchMovementHeader,
+  ]);
 
   /**
    * Éxito del flujo final (formularios hijos llaman onDone tras confirmar en API).
@@ -676,11 +748,28 @@ export default function NuevaOperacionPage() {
     setType(draft.type);
     setDate(draft.date);
     setClientId(draft.client_id || '');
+    setArbitrajeCostClientId('');
+    setArbitrajeCobradoClientId('');
     lastSyncedHeaderRef.current = {
       date: draft.date,
       type: draft.type,
       clientId: draft.client_id || '',
+      arbitrajeCostClientId: '',
+      arbitrajeCobradoClientId: '',
     };
+    if (draft.type === 'ARBITRAJE') {
+      api.get<MovementDetailResume>(`/movements/${draft.id}`).then((d) => {
+        setArbitrajeCostClientId(d.arbitraje_cost_client_id || '');
+        setArbitrajeCobradoClientId(d.arbitraje_cobrado_client_id || '');
+        lastSyncedHeaderRef.current = {
+          date: d.date,
+          type: d.type,
+          clientId: d.client_id || '',
+          arbitrajeCostClientId: d.arbitraje_cost_client_id || '',
+          arbitrajeCobradoClientId: d.arbitraje_cobrado_client_id || '',
+        };
+      }).catch(() => {});
+    }
     setError('');
     emitDraftSync('draft_resumed', draft.id);
   }
@@ -736,7 +825,22 @@ export default function NuevaOperacionPage() {
           />
         );
       case 'ARBITRAJE':
-        return <ArbitrajeForm key={key} movementId={movementId} onDone={handleDone} onCancel={handleCancelDraft} />;
+        return (
+          <ArbitrajeForm
+            key={key}
+            movementId={movementId}
+            clients={clients}
+            loadingClients={loadingClients}
+            canCreateClient={canCreateClient}
+            fetchClients={fetchClients}
+            arbitrajeCostClientId={arbitrajeCostClientId}
+            arbitrajeCobradoClientId={arbitrajeCobradoClientId}
+            onArbitrajeCostClientChange={setArbitrajeCostClientId}
+            onArbitrajeCobradoClientChange={setArbitrajeCobradoClientId}
+            onDone={handleDone}
+            onCancel={handleCancelDraft}
+          />
+        );
       case 'TRANSFERENCIA_ENTRE_CUENTAS':
         return <TransferenciaEntreCuentasForm key={key} movementId={movementId} onDone={handleDone} onCancel={handleCancelDraft} />;
       case 'INGRESO_CAPITAL':
@@ -863,6 +967,8 @@ export default function NuevaOperacionPage() {
               if (movementId && !v) return;
               setType(v);
               setClientId('');
+              setArbitrajeCostClientId('');
+              setArbitrajeCobradoClientId('');
             }}
             className="input-field max-w-sm"
           >
@@ -919,7 +1025,8 @@ export default function NuevaOperacionPage() {
         )}
 
         <p className="text-xs text-fg-muted">
-          El borrador se crea automáticamente al tener fecha, tipo y cliente (si el tipo lo requiere).
+          El borrador se crea automáticamente al tener fecha y tipo (y cliente si el tipo lo exige en el encabezado).
+          En Arbitraje, elegí cliente costo y cliente cobrado dentro del formulario.
           Podés editar la cabecera mientras esté en BORRADOR.
         </p>
         {(creatingHeader || patchingHeader) && (

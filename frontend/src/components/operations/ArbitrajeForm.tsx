@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '../../api/client';
+import ClientSearchCombo, { type ClientSearchComboItem } from '../common/ClientSearchCombo';
+import ClientFormModal from '../clients/ClientFormModal';
 import MoneyInput from '../common/MoneyInput';
 import { formatMoneyAR, numberToNormalizedMoney } from '../../utils/money';
 import OperationAmountCalculator from './OperationAmountCalculator';
@@ -35,9 +37,37 @@ interface ArbitrajeDraftData {
   profitFormat: string;
   profitManual: string;
   profitOverride: boolean;
+  arbitrajeCostClientId?: string;
+  arbitrajeCobradoClientId?: string;
 }
 
-export default function ArbitrajeForm({ movementId, onDone, onCancel }: { movementId: string; onDone: () => void; onCancel: () => void }) {
+interface ArbitrajeFormProps {
+  movementId: string;
+  clients: ClientSearchComboItem[];
+  loadingClients: boolean;
+  canCreateClient: boolean;
+  fetchClients: () => Promise<ClientSearchComboItem[]>;
+  arbitrajeCostClientId: string;
+  arbitrajeCobradoClientId: string;
+  onArbitrajeCostClientChange: (id: string) => void;
+  onArbitrajeCobradoClientChange: (id: string) => void;
+  onDone: () => void;
+  onCancel: () => void;
+}
+
+export default function ArbitrajeForm({
+  movementId,
+  clients,
+  loadingClients,
+  canCreateClient,
+  fetchClients,
+  arbitrajeCostClientId,
+  arbitrajeCobradoClientId,
+  onArbitrajeCostClientChange,
+  onArbitrajeCobradoClientChange,
+  onDone,
+  onCancel,
+}: ArbitrajeFormProps) {
   const accounts = useActiveAccounts();
   const currencies = useActiveCurrencies();
 
@@ -70,6 +100,8 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
   const [draftLoading, setDraftLoading] = useState(true);
   const [error, setError] = useState('');
   const [draftMessage, setDraftMessage] = useState('');
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [clientModalTarget, setClientModalTarget] = useState<'cost' | 'cob'>('cost');
 
   useEffect(() => {
     if (!costoAccountId) { setCostoAC([]); return; }
@@ -114,6 +146,9 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
         setProfitFormat(draft.profitFormat || 'CASH');
         setProfitManual(draft.profitManual || '');
         setProfitOverride(Boolean(draft.profitOverride));
+        const ext = draft as ArbitrajeDraftData;
+        if (ext.arbitrajeCostClientId) onArbitrajeCostClientChange(ext.arbitrajeCostClientId);
+        if (ext.arbitrajeCobradoClientId) onArbitrajeCobradoClientChange(ext.arbitrajeCobradoClientId);
         setDraftMessage('Borrador reanudado.');
       })
       .finally(() => {
@@ -122,7 +157,7 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
     return () => {
       cancelled = true;
     };
-  }, [movementId]);
+  }, [movementId, onArbitrajeCostClientChange, onArbitrajeCobradoClientChange]);
 
   useEffect(() => {
     if (!costoCurrencyId) return;
@@ -176,6 +211,11 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
 
   async function handleSubmit() {
     setError('');
+
+    if (!arbitrajeCostClientId || !arbitrajeCobradoClientId) {
+      setError('Seleccioná cliente costo y cliente cobrado.');
+      return;
+    }
 
     if (!costoAccountId || !costoCurrencyId || !costoAmount) { setError('Completá la sección de costo.'); return; }
     if (!cobradoAccountId || !cobradoCurrencyId || !cobradoAmount) { setError('Completá la sección de cobrado.'); return; }
@@ -238,6 +278,8 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
       profitFormat,
       profitManual,
       profitOverride,
+      arbitrajeCostClientId,
+      arbitrajeCobradoClientId,
     };
   }
 
@@ -282,6 +324,30 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
       {error && <p className="text-error text-sm">{error}</p>}
       {draftMessage && <p className="text-info text-sm">{draftMessage}</p>}
       {draftLoading && <p className="text-fg-muted text-sm">Cargando borrador...</p>}
+
+      <div className="space-y-2 max-w-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="text-sm font-medium text-fg">Cliente — costo (pata SALE)</label>
+          {canCreateClient && (
+            <button
+              type="button"
+              className="text-xs text-info hover:text-info font-medium transition"
+              onClick={() => {
+                setClientModalTarget('cost');
+                setIsClientModalOpen(true);
+              }}
+            >
+              + Nuevo cliente
+            </button>
+          )}
+        </div>
+        <ClientSearchCombo
+          clients={clients}
+          value={arbitrajeCostClientId}
+          onChange={onArbitrajeCostClientChange}
+          loading={loadingClients}
+        />
+      </div>
 
       {/* COSTO (OUT) */}
       <fieldset>
@@ -330,6 +396,30 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
         </label>
       </fieldset>
 
+      <div className="space-y-2 max-w-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="text-sm font-medium text-fg">Cliente — cobrado (pata ENTRA)</label>
+          {canCreateClient && (
+            <button
+              type="button"
+              className="text-xs text-info hover:text-info font-medium transition"
+              onClick={() => {
+                setClientModalTarget('cob');
+                setIsClientModalOpen(true);
+              }}
+            >
+              + Nuevo cliente
+            </button>
+          )}
+        </div>
+        <ClientSearchCombo
+          clients={clients}
+          value={arbitrajeCobradoClientId}
+          onChange={onArbitrajeCobradoClientChange}
+          loading={loadingClients}
+        />
+      </div>
+
       {/* COBRADO (IN) */}
       <fieldset>
         <legend className="text-sm font-semibold text-fg mb-2">Cobrado (ENTRA)</legend>
@@ -373,7 +463,7 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
         <OperationAmountCalculator onApply={setCobradoAmount} />
         <label className="flex items-center gap-2 mt-2 text-sm">
           <input type="checkbox" checked={cobradoPending} onChange={(e) => setCobradoPending(e.target.checked)} disabled={cobradoFormat !== 'CASH'} />
-          <span className={cobradoFormat === 'CASH' ? 'text-fg' : 'text-fg-subtle'}>Pendiente de retiro</span>
+          <span className={cobradoFormat === 'CASH' ? 'text-fg' : 'text-fg-subtle'}>Pendiente de cobro</span>
         </label>
       </fieldset>
 
@@ -451,6 +541,24 @@ export default function ArbitrajeForm({ movementId, onDone, onCancel }: { moveme
           </div>
         )}
       </fieldset>
+
+      {isClientModalOpen && (
+        <ClientFormModal
+          client={null}
+          onClose={() => setIsClientModalOpen(false)}
+          onSaved={async (newId) => {
+            setIsClientModalOpen(false);
+            const freshList = await fetchClients();
+            if (newId) {
+              const created = freshList.find((c) => c.id === newId);
+              if (created) {
+                if (clientModalTarget === 'cost') onArbitrajeCostClientChange(created.id);
+                else onArbitrajeCobradoClientChange(created.id);
+              }
+            }
+          }}
+        />
+      )}
 
       <OperationFormActions
         onSubmit={handleSubmit}

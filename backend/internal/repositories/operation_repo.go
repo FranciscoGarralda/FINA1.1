@@ -25,13 +25,15 @@ type MovementHeader struct {
 }
 
 type MovementMeta struct {
-	ID              string
-	Type            string
-	Date            string
-	DayName         string
-	Status          string
-	ClientID        *string
-	OperationNumber int64
+	ID                       string
+	Type                     string
+	Date                     string
+	DayName                  string
+	Status                   string
+	ClientID                 *string
+	OperationNumber          int64
+	ArbitrajeCostClientID    *string
+	ArbitrajeCobradoClientID *string
 }
 
 type MovementLineRow struct {
@@ -82,10 +84,13 @@ func (r *OperationRepo) CreateMovementHeader(ctx context.Context, tx pgx.Tx, mov
 func (r *OperationRepo) GetMovementMetaTx(ctx context.Context, tx pgx.Tx, movementID string) (*MovementMeta, error) {
 	var m MovementMeta
 	err := tx.QueryRow(ctx,
-		`SELECT id::text, type, date::text, day_name, status, client_id::text, operation_number
+		`SELECT id::text, type, date::text, day_name, status, client_id::text, operation_number,
+		        NULLIF(TRIM(arbitraje_cost_client_id::text), ''),
+		        NULLIF(TRIM(arbitraje_cobrado_client_id::text), '')
 		 FROM movements
 		 WHERE id = $1`, movementID).
-		Scan(&m.ID, &m.Type, &m.Date, &m.DayName, &m.Status, &m.ClientID, &m.OperationNumber)
+		Scan(&m.ID, &m.Type, &m.Date, &m.DayName, &m.Status, &m.ClientID, &m.OperationNumber,
+			&m.ArbitrajeCostClientID, &m.ArbitrajeCobradoClientID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
@@ -213,12 +218,23 @@ func ReverseSide(side string) (string, error) {
 	}
 }
 
-func (r *OperationRepo) UpdateMovementHeaderTx(ctx context.Context, tx pgx.Tx, movementID, movType, date, dayName string, clientID *string) error {
+func (r *OperationRepo) UpdateMovementHeaderTx(ctx context.Context, tx pgx.Tx, movementID, movType, date, dayName string, clientID *string, arbitrajeCostClientID *string, arbitrajeCobradoClientID *string) error {
+	var costArg interface{}
+	if arbitrajeCostClientID != nil && strings.TrimSpace(*arbitrajeCostClientID) != "" {
+		costArg = strings.TrimSpace(*arbitrajeCostClientID)
+	}
+	var cobArg interface{}
+	if arbitrajeCobradoClientID != nil && strings.TrimSpace(*arbitrajeCobradoClientID) != "" {
+		cobArg = strings.TrimSpace(*arbitrajeCobradoClientID)
+	}
 	tag, err := tx.Exec(ctx,
 		`UPDATE movements
-		 SET type = $2, date = $3::date, day_name = $4, client_id = $5, updated_at = now()
+		 SET type = $2, date = $3::date, day_name = $4, client_id = $5,
+		     arbitraje_cost_client_id = $6::uuid,
+		     arbitraje_cobrado_client_id = $7::uuid,
+		     updated_at = now()
 		 WHERE id = $1 AND status = 'BORRADOR'`,
-		movementID, movType, date, dayName, clientID)
+		movementID, movType, date, dayName, clientID, costArg, cobArg)
 	if err != nil {
 		return err
 	}

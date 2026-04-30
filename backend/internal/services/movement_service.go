@@ -140,17 +140,19 @@ func (s *MovementService) ListDrafts(ctx context.Context, f repositories.ListDra
 }
 
 type MovementDetail struct {
-	ID              string                            `json:"id"`
-	OperationNumber int64                             `json:"operation_number"`
-	Type            string                            `json:"type"`
-	Date            string                            `json:"date"`
-	DayName         string                            `json:"day_name"`
-	Status          string                            `json:"status"`
-	ClientID        *string                           `json:"client_id"`
-	ClientName      *string                           `json:"client_name"`
-	Note            *string                           `json:"note"`
-	CreatedAt       string                            `json:"created_at"`
-	Lines           []repositories.MovementLineDetail `json:"lines"`
+	ID                       string                            `json:"id"`
+	OperationNumber          int64                             `json:"operation_number"`
+	Type                     string                            `json:"type"`
+	Date                     string                            `json:"date"`
+	DayName                  string                            `json:"day_name"`
+	Status                   string                            `json:"status"`
+	ClientID                 *string                           `json:"client_id"`
+	ClientName               *string                           `json:"client_name"`
+	ArbitrajeCostClientID    *string                           `json:"arbitraje_cost_client_id"`
+	ArbitrajeCobradoClientID *string                           `json:"arbitraje_cobrado_client_id"`
+	Note                     *string                           `json:"note"`
+	CreatedAt                string                            `json:"created_at"`
+	Lines                    []repositories.MovementLineDetail `json:"lines"`
 }
 
 func (s *MovementService) GetByID(ctx context.Context, id string) (*MovementDetail, error) {
@@ -168,17 +170,19 @@ func (s *MovementService) GetByID(ctx context.Context, id string) (*MovementDeta
 	}
 
 	return &MovementDetail{
-		ID:              row.ID,
-		OperationNumber: row.OperationNumber,
-		Type:            row.Type,
-		Date:            row.Date,
-		DayName:         row.DayName,
-		Status:          row.Status,
-		ClientID:        row.ClientID,
-		ClientName:      row.ClientName,
-		Note:            row.Note,
-		CreatedAt:       row.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		Lines:           lines,
+		ID:                       row.ID,
+		OperationNumber:          row.OperationNumber,
+		Type:                     row.Type,
+		Date:                     row.Date,
+		DayName:                  row.DayName,
+		Status:                   row.Status,
+		ClientID:                 row.ClientID,
+		ClientName:               row.ClientName,
+		ArbitrajeCostClientID:    row.ArbitrajeCostClientID,
+		ArbitrajeCobradoClientID: row.ArbitrajeCobradoClientID,
+		Note:                     row.Note,
+		CreatedAt:                row.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		Lines:                    lines,
 	}, nil
 }
 

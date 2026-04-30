@@ -52,6 +52,7 @@ var validMovementTypes = map[string]bool{
 var clientOptionalTypes = map[string]bool{
 	"TRANSFERENCIA_ENTRE_CUENTAS": true,
 	"GASTO":                       true,
+	"ARBITRAJE":                   true,
 }
 
 type OperationService struct {
@@ -154,10 +155,12 @@ func (s *OperationService) CreateMovement(ctx context.Context, input CreateMovem
 // PatchMovementHeaderInput updates header fields for a BORRADOR movement only.
 // If type or client changes and a usable draft payload exists, ConfirmClearPayload must be true or ErrPayloadClearConfirmationRequired is returned.
 type PatchMovementHeaderInput struct {
-	Date                string  `json:"date"`
-	Type                string  `json:"type"`
-	ClientID            *string `json:"client_id"`
-	ConfirmClearPayload bool    `json:"confirm_clear_payload"`
+	Date                     string  `json:"date"`
+	Type                     string  `json:"type"`
+	ClientID                 *string `json:"client_id"`
+	ArbitrajeCostClientID    *string `json:"arbitraje_cost_client_id"`
+	ArbitrajeCobradoClientID *string `json:"arbitraje_cobrado_client_id"`
+	ConfirmClearPayload      bool    `json:"confirm_clear_payload"`
 }
 
 type PatchMovementHeaderResult struct {
@@ -202,15 +205,51 @@ func (s *OperationService) PatchMovementHeader(ctx context.Context, movementID s
 		return nil, ErrInvalidMovementType
 	}
 	clientRequired := !clientOptionalTypes[input.Type]
-	if clientRequired && (input.ClientID == nil || *input.ClientID == "") {
+	if clientRequired && (input.ClientID == nil || strings.TrimSpace(*input.ClientID) == "") {
 		return nil, ErrClientRequired
 	}
-	var clientPtr *string
-	if input.ClientID != nil && *input.ClientID != "" {
-		if err := s.operationRepo.ValidateClientActive(ctx, *input.ClientID); err != nil {
+
+	resolveActiveClientUUID := func(raw *string) (*string, error) {
+		if raw == nil {
+			return nil, nil
+		}
+		v := strings.TrimSpace(*raw)
+		if v == "" {
+			return nil, nil
+		}
+		if err := s.operationRepo.ValidateClientActive(ctx, v); err != nil {
 			return nil, err
 		}
-		clientPtr = input.ClientID
+		return &v, nil
+	}
+
+	var arbCostPtr *string
+	var arbCobPtr *string
+	if input.Type == "ARBITRAJE" {
+		var err error
+		arbCostPtr, err = resolveActiveClientUUID(input.ArbitrajeCostClientID)
+		if err != nil {
+			return nil, err
+		}
+		cobSrc := input.ArbitrajeCobradoClientID
+		if cobSrc == nil || strings.TrimSpace(*cobSrc) == "" {
+			cobSrc = input.ClientID
+		}
+		arbCobPtr, err = resolveActiveClientUUID(cobSrc)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var clientPtr *string
+	if input.Type == "ARBITRAJE" {
+		clientPtr = arbCobPtr
+	} else if input.ClientID != nil && strings.TrimSpace(*input.ClientID) != "" {
+		cp, err := resolveActiveClientUUID(input.ClientID)
+		if err != nil {
+			return nil, err
+		}
+		clientPtr = cp
 	}
 
 	dayName, err := computeDayNameES(input.Date)
@@ -234,7 +273,9 @@ func (s *OperationService) PatchMovementHeader(ctx context.Context, movementID s
 
 	typeChanged := meta.Type != input.Type
 	clientChanged := normalizeClientIDPtr(meta.ClientID) != normalizeClientIDPtr(clientPtr)
-	needsClear := (typeChanged || clientChanged)
+	arbCostChanged := normalizeClientIDPtr(meta.ArbitrajeCostClientID) != normalizeClientIDPtr(arbCostPtr)
+	arbCobChanged := normalizeClientIDPtr(meta.ArbitrajeCobradoClientID) != normalizeClientIDPtr(arbCobPtr)
+	needsClear := typeChanged || clientChanged || arbCostChanged || arbCobChanged
 
 	var draftPayload string
 	payloadPtr, perr := s.operationRepo.GetMovementDraftPayloadTx(ctx, tx, movementID)
@@ -251,14 +292,18 @@ func (s *OperationService) PatchMovementHeader(ctx context.Context, movementID s
 	}
 
 	before := map[string]interface{}{
-		"type":      meta.Type,
-		"date":      meta.Date,
-		"client_id": meta.ClientID,
+		"type":                         meta.Type,
+		"date":                         meta.Date,
+		"client_id":                    meta.ClientID,
+		"arbitraje_cost_client_id":     meta.ArbitrajeCostClientID,
+		"arbitraje_cobrado_client_id": meta.ArbitrajeCobradoClientID,
 	}
 	after := map[string]interface{}{
-		"type":      input.Type,
-		"date":      input.Date,
-		"client_id": clientPtr,
+		"type":                         input.Type,
+		"date":                         input.Date,
+		"client_id":                    clientPtr,
+		"arbitraje_cost_client_id":     arbCostPtr,
+		"arbitraje_cobrado_client_id": arbCobPtr,
 	}
 
 	draftCleared := false
@@ -269,6 +314,12 @@ func (s *OperationService) PatchMovementHeader(ctx context.Context, movementID s
 		}
 		if clientChanged {
 			reasons = append(reasons, "CLIENT_CHANGED")
+		}
+		if arbCostChanged {
+			reasons = append(reasons, "ARBITRAJE_COST_CLIENT_CHANGED")
+		}
+		if arbCobChanged {
+			reasons = append(reasons, "ARBITRAJE_COBRADO_CLIENT_CHANGED")
 		}
 		if err := s.operationRepo.DeleteMovementDraftTx(ctx, tx, movementID); err != nil {
 			return nil, fmt.Errorf("delete movement draft: %w", err)
@@ -282,7 +333,14 @@ func (s *OperationService) PatchMovementHeader(ctx context.Context, movementID s
 		}
 	}
 
-	if err := s.operationRepo.UpdateMovementHeaderTx(ctx, tx, movementID, input.Type, input.Date, dayName, clientPtr); err != nil {
+	var arbCostUpdate *string
+	var arbCobUpdate *string
+	if input.Type == "ARBITRAJE" {
+		arbCostUpdate = arbCostPtr
+		arbCobUpdate = arbCobPtr
+	}
+
+	if err := s.operationRepo.UpdateMovementHeaderTx(ctx, tx, movementID, input.Type, input.Date, dayName, clientPtr, arbCostUpdate, arbCobUpdate); err != nil {
 		if errors.Is(err, repositories.ErrNotFound) {
 			return nil, ErrMovementNotDraft
 		}
@@ -611,7 +669,7 @@ func reconstructDraftDataFromMovementTx(ctx context.Context, tx pgx.Tx, opRepo *
 	case "VENTA":
 		return reconstructVentaDraftData(ctx, tx, meta.ID, lines)
 	case "ARBITRAJE":
-		return reconstructArbitrajeDraftData(lines, profitEntries), nil, nil
+		return reconstructArbitrajeDraftData(meta, lines, profitEntries), nil, nil
 	case "TRANSFERENCIA_ENTRE_CUENTAS":
 		return reconstructTransferenciaEntreCuentasDraftData(lines)
 	case "INGRESO_CAPITAL":
@@ -767,7 +825,7 @@ func reconstructTraspasoDeudaCCDraftData(sourceClientID *string, ccEntries []rep
 	return data, []string{"toClientId", "currencyId", "amount"}, nil
 }
 
-func reconstructArbitrajeDraftData(lines []repositories.MovementLineRow, profitEntries []repositories.MovementProfitEntryRow) map[string]interface{} {
+func reconstructArbitrajeDraftData(meta *repositories.MovementMeta, lines []repositories.MovementLineRow, profitEntries []repositories.MovementProfitEntryRow) map[string]interface{} {
 	data := map[string]interface{}{
 		"costoAccountId":    "",
 		"costoCurrencyId":   "",
@@ -809,6 +867,14 @@ func reconstructArbitrajeDraftData(lines []repositories.MovementLineRow, profitE
 		data["profitFormat"] = pe.Format
 		data["profitManual"] = pe.Amount
 		data["profitOverride"] = true
+	}
+	if meta != nil {
+		if meta.ArbitrajeCostClientID != nil && *meta.ArbitrajeCostClientID != "" {
+			data["arbitrajeCostClientId"] = *meta.ArbitrajeCostClientID
+		}
+		if meta.ArbitrajeCobradoClientID != nil && *meta.ArbitrajeCobradoClientID != "" {
+			data["arbitrajeCobradoClientId"] = *meta.ArbitrajeCobradoClientID
+		}
 	}
 	return data
 }

@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	ErrProfitRequired = errors.New("PROFIT_REQUIRED")
-	ErrProfitAccount  = errors.New("PROFIT_ACCOUNT_REQUIRED")
+	ErrProfitRequired           = errors.New("PROFIT_REQUIRED")
+	ErrProfitAccount            = errors.New("PROFIT_ACCOUNT_REQUIRED")
+	ErrArbitrajeClientsRequired = errors.New("ARBITRAJE_CLIENTS_REQUIRED")
 )
 
 type ArbitrajeService struct {
@@ -88,22 +89,15 @@ func (s *ArbitrajeService) Execute(ctx context.Context, movementID string, input
 		return err
 	}
 
-	var movType, movStatus, clientID string
-	var ccEnabled bool
-	err := s.pool.QueryRow(ctx,
-		`SELECT m.type, m.status, m.client_id::text, c.cc_enabled
-		 FROM movements m
-		 JOIN clients c ON c.id = m.client_id
-		 WHERE m.id = $1`, movementID).
-		Scan(&movType, &movStatus, &clientID, &ccEnabled)
+	costClientID, cobClientID, ccCostEnabled, ccCobEnabled, err := lookupArbitrajeClientsForExecution(ctx, s.pool, movementID)
 	if err != nil {
-		return ErrMovementNotFound
+		return err
 	}
-	if movType != "ARBITRAJE" {
-		return ErrMovementTypeMismatch
+	if err := s.operationRepo.ValidateClientActive(ctx, costClientID); err != nil {
+		return err
 	}
-	if movStatus != MovementStatusDraft {
-		return ErrMovementNotDraft
+	if err := s.operationRepo.ValidateClientActive(ctx, cobClientID); err != nil {
+		return err
 	}
 
 	tx, err := s.pool.Begin(ctx)
@@ -112,37 +106,48 @@ func (s *ArbitrajeService) Execute(ctx context.Context, movementID string, input
 	}
 	defer tx.Rollback(ctx)
 
-	// COSTO → OUT
+	// COSTO → OUT (tabla maestra idéntica a Compra OUT por pata).
 	costoPending := input.Costo.PendingCash && input.Costo.Format == "CASH"
 	costoLineID, err := s.operationRepo.InsertMovementLine(ctx, tx, movementID, "OUT",
 		input.Costo.AccountID, input.Costo.CurrencyID, input.Costo.Format, input.Costo.Amount, costoPending)
 	if err != nil {
 		return fmt.Errorf("insert COSTO line: %w", err)
 	}
-	if costoPending {
-		_, err = s.operationRepo.InsertPendingItem(ctx, tx, costoLineID, "PENDIENTE_DE_PAGO",
-			clientID, input.Costo.CurrencyID, input.Costo.Amount, false)
-		if err != nil {
+	costoEffect := decideCompraLineEffect(ccCostEnabled, costoPending)
+	if costoEffect.ApplyCC {
+		if err := applyCCImpactTx(ctx, s.ccSvc, tx, costClientID, input.Costo.CurrencyID, input.Costo.Amount, movementID, ccSideIn, "Compra — pago pendiente al cliente", callerID); err != nil {
+			return fmt.Errorf("apply cc impact COSTO pending: %w", err)
+		}
+	}
+	if costoEffect.InsertPending {
+		if _, err = s.operationRepo.InsertPendingItem(ctx, tx, costoLineID, "PENDIENTE_DE_PAGO",
+			costClientID, input.Costo.CurrencyID, input.Costo.Amount, true); err != nil {
 			return fmt.Errorf("insert COSTO pending: %w", err)
 		}
 	}
 
-	// COBRADO → IN
+	// COBRADO → IN (tabla maestra idéntica a Venta IN por pata).
 	cobradoPending := input.Cobrado.PendingCash && input.Cobrado.Format == "CASH"
 	cobradoLineID, err := s.operationRepo.InsertMovementLine(ctx, tx, movementID, "IN",
 		input.Cobrado.AccountID, input.Cobrado.CurrencyID, input.Cobrado.Format, input.Cobrado.Amount, cobradoPending)
 	if err != nil {
 		return fmt.Errorf("insert COBRADO line: %w", err)
 	}
-	if cobradoPending {
-		_, err = s.operationRepo.InsertPendingItem(ctx, tx, cobradoLineID, "PENDIENTE_DE_RETIRO",
-			clientID, input.Cobrado.CurrencyID, input.Cobrado.Amount, true)
-		if err != nil {
+	cobEffect := decideVentaLineEffect(ccCobEnabled, cobradoPending)
+	if cobEffect.ApplyCC {
+		if err := applyCCImpactTx(ctx, s.ccSvc, tx, cobClientID, input.Cobrado.CurrencyID, input.Cobrado.Amount, movementID, ccSideOut, "Venta — pago pendiente del cliente", callerID); err != nil {
+			return fmt.Errorf("apply cc impact COBRADO pending: %w", err)
+		}
+	}
+	if cobEffect.InsertPending {
+		if _, err = s.operationRepo.InsertPendingItem(ctx, tx, cobradoLineID, "PENDIENTE_DE_PAGO",
+			cobClientID, input.Cobrado.CurrencyID, input.Cobrado.Amount, true); err != nil {
 			return fmt.Errorf("insert COBRADO pending: %w", err)
 		}
 	}
-	if ccEnabled && !cobradoPending {
-		if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Cobrado.CurrencyID, input.Cobrado.Amount, movementID, ccSideIn, "Arbitraje — cobrado", callerID); err != nil {
+	// Piloto § spot: cobrado real + CC cliente cobrado — mantener comportamiento histórico de Arbitraje (no igualar a Venta IN sin pendiente).
+	if ccCobEnabled && !cobradoPending {
+		if err := applyCCImpactTx(ctx, s.ccSvc, tx, cobClientID, input.Cobrado.CurrencyID, input.Cobrado.Amount, movementID, ccSideIn, "Arbitraje — cobrado", callerID); err != nil {
 			return fmt.Errorf("apply cc impact cobrado: %w", err)
 		}
 	}
@@ -154,7 +159,7 @@ func (s *ArbitrajeService) Execute(ctx context.Context, movementID string, input
 		return fmt.Errorf("insert profit_entry: %w", err)
 	}
 
-	// Option A strict: profit movement_line reflecting real money
+	// Option A strict: profit movement_line reflecting real money (CC temporal: mismo cliente cobrado que antes).
 	if profitAmt.Sign() > 0 {
 		_, err = s.operationRepo.InsertMovementLine(ctx, tx, movementID, "IN",
 			input.Profit.AccountID, input.Profit.CurrencyID, input.Profit.Format,
@@ -162,9 +167,9 @@ func (s *ArbitrajeService) Execute(ctx context.Context, movementID string, input
 		if err != nil {
 			return fmt.Errorf("insert profit IN line: %w", err)
 		}
-		if ccEnabled {
+		if ccCobEnabled {
 			profitStr := strings.TrimRight(strings.TrimRight(profitAmt.FloatString(8), "0"), ".")
-			if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Profit.CurrencyID, profitStr, movementID, ccSideIn, "Arbitraje — ganancia", callerID); err != nil {
+			if err := applyCCImpactTx(ctx, s.ccSvc, tx, cobClientID, input.Profit.CurrencyID, profitStr, movementID, ccSideIn, "Arbitraje — ganancia", callerID); err != nil {
 				return fmt.Errorf("apply cc impact profit IN: %w", err)
 			}
 		}
@@ -176,21 +181,23 @@ func (s *ArbitrajeService) Execute(ctx context.Context, movementID string, input
 		if err != nil {
 			return fmt.Errorf("insert profit OUT line: %w", err)
 		}
-		if ccEnabled {
+		if ccCobEnabled {
 			absProfitStr := strings.TrimRight(strings.TrimRight(absProfit.FloatString(8), "0"), ".")
-			if err := applyCCImpactTx(ctx, s.ccSvc, tx, clientID, input.Profit.CurrencyID, absProfitStr, movementID, ccSideOut, "Arbitraje — pérdida", callerID); err != nil {
+			if err := applyCCImpactTx(ctx, s.ccSvc, tx, cobClientID, input.Profit.CurrencyID, absProfitStr, movementID, ccSideOut, "Arbitraje — pérdida", callerID); err != nil {
 				return fmt.Errorf("apply cc impact profit OUT: %w", err)
 			}
 		}
 	}
 
 	auditNew := map[string]interface{}{
-		"costo_currency":   input.Costo.CurrencyID,
-		"costo_amount":     input.Costo.Amount,
-		"cobrado_currency": input.Cobrado.CurrencyID,
-		"cobrado_amount":   input.Cobrado.Amount,
-		"profit_amount":    input.Profit.Amount,
-		"profit_currency":  input.Profit.CurrencyID,
+		"cost_client_id":               costClientID,
+		"cobrado_client_id":            cobClientID,
+		"costo_currency":               input.Costo.CurrencyID,
+		"costo_amount":                 input.Costo.Amount,
+		"cobrado_currency":             input.Cobrado.CurrencyID,
+		"cobrado_amount":               input.Cobrado.Amount,
+		"profit_amount":                input.Profit.Amount,
+		"profit_currency":              input.Profit.CurrencyID,
 	}
 	if err := s.auditRepo.InsertTx(ctx, tx, "movement", &movementID, "arbitraje",
 		nil, auditNew, callerID); err != nil {

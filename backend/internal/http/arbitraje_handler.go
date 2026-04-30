@@ -48,6 +48,8 @@ func handleArbitrajeError(w http.ResponseWriter, err error) {
 		RespondError(w, http.StatusNotFound, "NOT_FOUND", "Movimiento no encontrado.")
 	case errors.Is(err, services.ErrMovementTypeMismatch):
 		RespondError(w, http.StatusBadRequest, "TYPE_MISMATCH", "El movimiento no es de tipo ARBITRAJE.")
+	case errors.Is(err, services.ErrArbitrajeClientsRequired):
+		RespondError(w, http.StatusBadRequest, "ARBITRAJE_CLIENTS_REQUIRED", "Indicá cliente costo y cliente cobrado en la cabecera del borrador.")
 	default:
 		handleOperationError(w, err)
 	}

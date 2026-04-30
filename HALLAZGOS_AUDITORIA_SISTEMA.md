@@ -488,11 +488,13 @@ Para clientes sin CC o patas no-pendientes, no cambia nada respecto al sprint an
 
 ### Pendientes de auditar (alcance fuera de este sprint, prioridad alta para próximo)
 
+> **Auditoría de lectura (2026-04-27) —** Detalle, IDs **H-017..H-022** y referencias: **`HALLAZGOS_AUDITORIA_ARBITRAJE_TRANSFERENCIA.md`**. No reemplaza smokes; prioriza riesgo de alineación con la tabla maestra H-013..H-016 y con la política "CC + pendiente → sin `pending_items`" en módulos que aún no migraron.
+
 Los siguientes servicios usan `ccSideIn` / `ccSideOut` y no fueron auditados en profundidad respecto a la convención de signo del sistema. Quedan como deuda técnica con prioridad alta porque podrían tener el mismo patrón de inversión (o no — la auditoría es lo que lo determinará):
 
-- `backend/internal/services/arbitraje_service.go` — usa `ccSideIn` para "cobrado" (línea ~145), `ccSideIn` para "Arbitraje — ganancia" (línea ~167) y `ccSideOut` para "Arbitraje — pérdida" (línea ~181). La aplicación CC se hace **solo cuando NO está pendiente**, lo que reproduce el patrón pre-fix de Compra/Venta y podría estar generando CC fantasma en operaciones liquidadas en caja. **Riesgo medio-alto.**
-- `backend/internal/services/transferencia_service.go` — modelo viejo (delivery / collections, líneas ~399, 439, 475) y dual-leg (líneas ~668, 673, 710). Al ser bilateral con neto cero podría estar correcto, pero falta verificar con balance inicial conocido y con patas asimétricas (una pendiente, una real).
-- `backend/internal/services/pending_service.go:237` — al resolver pendientes diferidos (`cc_apply_on_resolve=true`), aplica el side directamente desde `pending.MovementLineSide`. Hoy lo usa Transferencia; si en el futuro Compra/Venta empezaran a usar `cc_apply_on_resolve`, habría que confirmar que la semántica coincide.
+- `backend/internal/services/arbitraje_service.go` — **H-017, H-018, H-019** en el doc vinculado. Resumen: sigue creando `pending_items` aun con CC; no aplica CC a la pata **costo (OUT)**; asimetría en `cc_apply_on_resolve` entre costo y cobrado.
+- `backend/internal/services/transferencia_service.go` — **H-020, H-021** en el doc vinculado. Resumen: mapeo IN/OUT REAL 1:1 a `ccSide`; riesgo al contrastar con resolve CC diferida vs tabla de obligaciones (H-020); comisión con cobro `OWED_PENDING` sin CC de fee (H-021).
+- `backend/internal/services/pending_service.go:237` — **H-022** en el doc vinculado. Resumen: CC diferida usa `MovementLineSide` como `ccSide` sin tabla por tipo de operación; coherente con "side literal" pero tensión potencial con H-013..H-016.
 
 Servicios **revisados visualmente y considerados consistentes** con la convención (no se tocan en este sprint):
 
